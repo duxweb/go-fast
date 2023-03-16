@@ -11,7 +11,7 @@
     <a title="Go Reference" target="_blank" href="https://pkg.go.dev"><img src="https://img.shields.io/github/go-mod/go-version/duxweb/go-storage"></a>
 </p>
 
-<p align="center"><code>duxgo</code> is a fast development framework based on GoFiber, integrated with mainstream third-party packages, simple, easy to develop, and high-performance integrated framework.</p>
+<p align="center"><code>DuxFast</code> is a fast development framework based on GoFiber, integrated with mainstream third-party packages, simple, easy to develop, and high-performance integrated framework.</p>
 <p align="center">
 <a href="https://github.com/duxphp/duxgo/blob/master/README_zh-CN.md">中文说明</a>
 </p>

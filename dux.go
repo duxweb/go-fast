@@ -1,4 +1,4 @@
-package duxgo
+package dux
 
 import (
 	"embed"
