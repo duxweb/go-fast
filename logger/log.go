@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/duxweb/go-fast/config"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/pkgerrors"
 	"github.com/samber/do"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
@@ -12,6 +13,8 @@ import (
 )
 
 func Log() *zerolog.Logger {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
 	return do.MustInvoke[*zerolog.Logger](nil)
 }
 

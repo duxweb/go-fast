@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/duxweb/go-fast/auth"
@@ -14,11 +15,11 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gookit/color"
+	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 	"net/http"
 	"os"
-	"runtime/debug"
 	"time"
 )
 
@@ -35,19 +36,18 @@ func Init() {
 		ProxyHeader:           lo.Ternary[string](proxyHeader != "", proxyHeader, "X-Real-IP"),
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
 			code := fiber.StatusInternalServerError
-			var msg any
-			if e, ok := err.(*handlers.CoreError); ok {
-				// program error
-				msg = e.Message
-			} else if e, ok := err.(*fiber.Error); ok {
+			var msg string
+			if e, ok := err.(*fiber.Error); ok {
 				// http error
 				code = e.Code
 				msg = e.Message
 			} else {
 				// Other error
-				msg = err.Error()
-				logger.Log().Error().Bytes("body", ctx.Body()).Err(err).Msg("error")
+				marshal, _ := json.Marshal(eris.ToJSON(eris.Wrapf(err, "error"), true))
+				logger.Log().Error().RawJSON("stack", marshal).Send()
 			}
+
+			msg = lo.Ternary[string](global.DebugMsg == "", "business is busy, please try again", global.DebugMsg)
 
 			// Asynchronous request
 			if ctx.Is("json") || ctx.XHR() {
@@ -78,7 +78,8 @@ func Init() {
 	global.App.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
 		StackTraceHandler: func(c *fiber.Ctx, e interface{}) {
-			logger.Log().Error().Interface("err", e).Bytes("stack", debug.Stack()).Send()
+			marshal, _ := json.Marshal(eris.ToJSON(eris.New("panic"), true))
+			logger.Log().Error().Interface("err", e).RawJSON("stack", marshal).Send()
 		},
 	}))
 
