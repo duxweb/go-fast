@@ -3,20 +3,18 @@ package global
 import (
 	"context"
 	"github.com/gofiber/fiber/v2"
-	"github.com/rotisserie/eris"
 	"time"
 )
 
 var (
-	ErrInternalServer = eris.New("error internal server")
-	App               *fiber.App
-	Version           = "v2.0.0"
-	BootTime          time.Time
-	TablePrefix       = "app_"
-	Debug             bool
-	DebugMsg          string
-	TimeLocation      = time.UTC
-	Ctx               = context.Background()
-	DirList           []string
-	ConfigDir         = "./config/"
+	App          *fiber.App
+	Version      = "v2.0.0"
+	BootTime     time.Time
+	TablePrefix  = "app_"
+	Debug        bool
+	DebugMsg     string
+	TimeLocation = time.UTC
+	Ctx          = context.Background()
+	DirList      []string
+	ConfigDir    = "./config/"
 )
