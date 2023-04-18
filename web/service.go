@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/demdxx/gocast/v2"
 	"github.com/duxweb/go-fast/auth"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
@@ -17,7 +18,6 @@ import (
 	"github.com/gookit/color"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
-	"github.com/spf13/cast"
 	"net/http"
 	"os"
 	"time"
@@ -110,7 +110,7 @@ func Start() {
 		if err != nil {
 			return err
 		}
-		return websocket.Socket.Handler(cast.ToString(data["sub"]), cast.ToString(data["id"]))(c)
+		return websocket.Socket.Handler(gocast.Str(data["sub"]), gocast.Str(data["id"]))(c)
 	})
 
 	port := config.Get("app").GetString("server.port")

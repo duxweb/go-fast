@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/demdxx/gocast/v2"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/logger"
@@ -12,7 +13,6 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog"
 	"github.com/samber/do"
-	"github.com/spf13/cast"
 	"time"
 )
 
@@ -21,7 +21,7 @@ func Init() {
 	res := asynq.RedisClientOpt{
 		Addr:     dbConfig["host"] + ":" + dbConfig["port"],
 		Password: dbConfig["password"],
-		DB:       cast.ToInt(dbConfig["db"]),
+		DB:       gocast.Number[int](dbConfig["db"]),
 	}
 
 	srv := asynq.NewServer(

@@ -23,7 +23,7 @@ func Middleware(app string, callback func(id int64) []string) fiber.Handler {
 		if routeName == "" || lo.IndexOf[string](permissions, routeName) == -1 {
 			return c.Next()
 		}
-		permissions = callback(gocast.Int64(auth["id"]))
+		permissions = callback(gocast.Number[int64](auth["id"]))
 		if len(permissions) > 0 && lo.IndexOf[string](permissions, routeName) == -1 {
 			return fiber.ErrForbidden
 		}

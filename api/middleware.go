@@ -4,9 +4,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"github.com/demdxx/gocast/v2"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/gofiber/fiber/v2"
-	"github.com/spf13/cast"
 	"strings"
 	"time"
 )
@@ -19,7 +19,7 @@ func Middleware(secretCallback func(id string) string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		date := c.GetRespHeader("Content-Date")
 		timeNow := time.Now()
-		t := time.Unix(cast.ToInt64(date), 0)
+		t := time.Unix(gocast.Number[int64](date), 0)
 		if timeNow.Sub(t).Seconds() > diffTime {
 			return fiber.ErrRequestTimeout
 		}

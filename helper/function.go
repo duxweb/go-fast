@@ -4,11 +4,11 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"github.com/demdxx/gocast/v2"
 	"github.com/duxweb/go-fast/config"
 	"github.com/gofrs/uuid"
 	"github.com/rs/zerolog"
 	"github.com/samber/do"
-	"github.com/spf13/cast"
 	"golang.org/x/crypto/bcrypt"
 	"math"
 	"math/rand"
@@ -74,7 +74,7 @@ func Url(urlString string, params map[string]any, absolutes ...bool) string {
 	var uri url.URL
 	q := uri.Query()
 	for k, v := range params {
-		q.Add(k, cast.ToString(v))
+		q.Add(k, gocast.Str(v))
 	}
 	urlBuild := urlString + "?" + q.Encode()
 	var absolute bool

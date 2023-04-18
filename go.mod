@@ -24,11 +24,11 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.4.6
 	github.com/panjf2000/ants/v2 v2.7.1
 	github.com/qiniu/qmgo v1.1.5
+	github.com/rotisserie/eris v0.5.4
 	github.com/rs/zerolog v1.29.0
 	github.com/samber/do v1.6.0
 	github.com/samber/lo v1.37.0
 	github.com/shirou/gopsutil/v3 v3.23.2
-	github.com/spf13/cast v1.5.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
 	github.com/xuri/excelize/v2 v2.6.0
@@ -78,10 +78,10 @@ require (
 	github.com/richardlehane/msoleps v1.0.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/rotisserie/eris v0.5.4 // indirect
 	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
 	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
 	github.com/spf13/afero v1.9.5 // indirect
+	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
