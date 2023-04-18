@@ -36,7 +36,7 @@ func (j *JWT) MakeToken(app string, params jwt.MapClaims, expires ...int64) (tok
 	return tokenString, err
 }
 
-func (j *JWT) ParsingToken(app string, token string) (claims jwt.MapClaims, err error) {
+func (j *JWT) ParsingToken(token string, app ...string) (claims jwt.MapClaims, err error) {
 	data := jwt.MapClaims{}
 	_, err = jwt.ParseWithClaims(token, &data, func(token *jwt.Token) (interface{}, error) {
 		return j.SigningKey, nil
@@ -44,7 +44,7 @@ func (j *JWT) ParsingToken(app string, token string) (claims jwt.MapClaims, err 
 	if err != nil {
 		return nil, err
 	}
-	if data["sub"] != app {
+	if len(app) > 0 && data["sub"] != app[0] {
 		return nil, errors.New("token type error")
 	}
 	return data, nil

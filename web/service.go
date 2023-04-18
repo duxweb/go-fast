@@ -3,6 +3,7 @@ package web
 import (
 	"errors"
 	"fmt"
+	"github.com/duxweb/go-fast/auth"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/handlers"
@@ -14,6 +15,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gookit/color"
 	"github.com/samber/lo"
+	"github.com/spf13/cast"
 	"net/http"
 	"os"
 	"runtime/debug"
@@ -95,6 +97,21 @@ func Init() {
 }
 
 func Start() {
+
+	// Default route
+	global.App.Get("/", func(c *fiber.Ctx) error {
+		return views.FrameRender(c, "welcome.gohtml")
+	})
+
+	// Websocket route
+	global.App.Get("/ws", func(c *fiber.Ctx) error {
+		data, err := auth.NewJWT().ParsingToken(c.Get("Authorization"))
+		if err != nil {
+			return err
+		}
+		return websocket.Socket.Handler(cast.ToString(data["sub"]), cast.ToString(data["id"]))(c)
+	})
+
 	port := config.Get("app").GetString("server.port")
 	banner()
 	global.BootTime = time.Now()

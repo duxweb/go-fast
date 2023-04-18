@@ -17,7 +17,7 @@ func Middleware(app string, callback func(id int64) []string) fiber.Handler {
 			return fiber.ErrUnauthorized
 		}
 		doOnce.Do(func() {
-			permissions = Get(app).GetData()
+			permissions = Get(app).GetFlat()
 		})
 		routeName := c.Route().Name
 		if routeName == "" || lo.IndexOf[string](permissions, routeName) == -1 {

@@ -3,6 +3,7 @@ package views
 import (
 	"embed"
 	"encoding/json"
+	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html"
 	"html/template"
 	"net/http"
@@ -30,4 +31,9 @@ func Init() {
 		return string(a)
 	})
 	Views = engine
+}
+
+func FrameRender(ctx *fiber.Ctx, name string) error {
+	ctx.Status(200).Set(fiber.HeaderContentType, fiber.MIMETextHTML)
+	return FrameTpl.ExecuteTemplate(ctx.Response().BodyWriter(), name, nil)
 }
