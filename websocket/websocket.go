@@ -240,11 +240,11 @@ func (r *Service) Start() {
 				MessageStruct := Message{}
 				err := json.Unmarshal(data.Msg, &MessageStruct)
 				if err != nil {
-					data.Client.SendMsg("err", "incorrect message format")
+					data.Client.SendMsg("error", "incorrect message format")
 					continue
 				}
 				if MessageStruct.Type == "" {
-					data.Client.SendMsg("err", "message type error")
+					data.Client.SendMsg("error", "message type error")
 					continue
 				}
 				switch MessageStruct.Type {

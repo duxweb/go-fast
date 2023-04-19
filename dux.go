@@ -37,7 +37,7 @@ func (t *Dux) RegisterDir(dirs ...string) {
 	app.DirList = append(app.DirList, dirs...)
 }
 
-//go:embed template/*
+//go:embed template/* logger/template/*
 var FrameFs embed.FS
 
 // Create Universal Service

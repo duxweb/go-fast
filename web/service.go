@@ -44,7 +44,7 @@ func Init() {
 			} else {
 				// Other error
 				marshal, _ := json.Marshal(eris.ToJSON(eris.Wrapf(err, "error"), true))
-				logger.Log().Error().RawJSON("stack", marshal).Send()
+				logger.Log().Error().RawJSON("stack", marshal).Msg(err.Error())
 			}
 
 			msg = lo.Ternary[string](global.DebugMsg == "", "business is busy, please try again", global.DebugMsg)
@@ -58,17 +58,13 @@ func Init() {
 			// Web request
 			if code == http.StatusNotFound {
 				ctx.Status(code).Set(fiber.HeaderContentType, fiber.MIMETextHTML)
-				return views.FrameTpl.ExecuteTemplate(ctx.Response().BodyWriter(), "404.gohtml", nil)
+				return ctx.Render("template/404", fiber.Map{})
 			} else {
 				ctx.Set(fiber.HeaderContentType, fiber.MIMETextHTML)
-				err = views.FrameTpl.ExecuteTemplate(ctx.Response().BodyWriter(), "error.gohtml", fiber.Map{
+				return ctx.Render("template/error", fiber.Map{
 					"code":    code,
 					"message": msg,
 				})
-				if err != nil {
-					logger.Log().Error().Err(err).Send()
-				}
-				return nil
 			}
 		},
 		Views: views.Views,
@@ -79,7 +75,7 @@ func Init() {
 		EnableStackTrace: true,
 		StackTraceHandler: func(c *fiber.Ctx, e interface{}) {
 			marshal, _ := json.Marshal(eris.ToJSON(eris.New("panic"), true))
-			logger.Log().Error().Interface("err", e).RawJSON("stack", marshal).Send()
+			logger.Log().Error().Interface("message", e).RawJSON("stack", marshal)
 		},
 	}))
 
@@ -101,8 +97,11 @@ func Start() {
 
 	// Default route
 	global.App.Get("/", func(c *fiber.Ctx) error {
-		return views.FrameRender(c, "welcome.gohtml")
+		return c.Render("template/welcome", fiber.Map{})
 	})
+
+	// Dashboard
+	logger.InitDashboard()
 
 	// Websocket route
 	global.App.Get("/ws", func(c *fiber.Ctx) error {

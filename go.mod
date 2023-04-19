@@ -32,6 +32,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
 	github.com/xuri/excelize/v2 v2.6.0
+	github.com/yalue/merged_fs v1.2.3
 	golang.org/x/crypto v0.7.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/mysql v1.4.7
