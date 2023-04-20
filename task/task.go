@@ -32,7 +32,6 @@ func Init() {
 					logger.GetWriter(
 						zerolog.LevelDebugValue,
 						"task",
-						"default",
 						true,
 					),
 				).With().Timestamp().Logger(),

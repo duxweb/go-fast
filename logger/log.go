@@ -19,18 +19,14 @@ func Log() *zerolog.Logger {
 }
 
 func Init() {
-	// Initialize default logs and output them according to log levels.
+	// Initialize default logs
 	writerList := make([]io.Writer, 0)
-	levels := []string{"trace", "debug", "info", "warn", "error", "fatal", "panic"}
-	for _, level := range levels {
-		writerList = append(writerList, GetWriter(
-			level,
-			"default",
-			level,
-			false,
-		))
-	}
-	log := New(writerList...).With().Timestamp().Caller().Logger()
+	writerList = append(writerList, GetWriter(
+		config.Get("app").GetString("logger.default.level"),
+		"default",
+		true,
+	))
+	log := New(writerList...).With().Caller().Logger()
 	do.ProvideValue[*zerolog.Logger](nil, &log)
 
 }
@@ -42,10 +38,10 @@ func New(writers ...io.Writer) zerolog.Logger {
 	return zerolog.New(multi)
 }
 
-func GetWriter(level string, dirName string, name string, recursion bool) *LevelWriter {
+func GetWriter(level string, name string, recursion bool) *LevelWriter {
 	parseLevel, _ := zerolog.ParseLevel(level)
 	return &LevelWriter{zerolog.MultiLevelWriter(&lumberjack.Logger{
-		Filename:   fmt.Sprintf("./data/%s/%s.log", dirName, name),        // Log file path.
+		Filename:   fmt.Sprintf("./data/logs/%s.log", name),               // Log file path.
 		MaxSize:    config.Get("app").GetInt("logger.default.maxSize"),    // Maximum size of each log file to be saved, unit: M.
 		MaxBackups: config.Get("app").GetInt("logger.default.maxBackups"), // Number of file backups.
 		MaxAge:     config.Get("app").GetInt("logger.default.maxAge"),     // Maximum number of days to keep the files.

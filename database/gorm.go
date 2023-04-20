@@ -80,7 +80,6 @@ func GormLogger() *Logger {
 	vLog := coreLogger.New(
 		coreLogger.GetWriter(
 			config.Get("app").GetString("logger.db.level"),
-			"database",
 			"gorm",
 			true,
 		)).With().Caller().CallerWithSkipFrameCount(5).Timestamp().Logger()
