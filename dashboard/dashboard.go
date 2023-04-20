@@ -1,31 +1,32 @@
-package logger
+package dashboard
 
 import (
 	"bufio"
 	"embed"
 	"encoding/json"
+	"net/http"
+	"os"
+
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/response"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/rotisserie/eris"
-	"net/http"
-	"os"
 )
 
 //go:embed static/*
 var template embed.FS
 
-func InitDashboard() {
+func Init() {
 
-	global.App.Use("/dux/log", filesystem.New(filesystem.Config{
+	global.App.Use("/dashboard/static", filesystem.New(filesystem.Config{
 		Root:       http.FS(template),
 		PathPrefix: "",
 		Browse:     true,
 	}))
 
-	global.App.Get("/log", func(c *fiber.Ctx) error {
-		return c.Render("logger/template/index", fiber.Map{})
+	global.App.Get("/dashboard", func(c *fiber.Ctx) error {
+		return c.Render("dashboard/template/index", fiber.Map{})
 	})
 
 	global.App.Get("/log/data", func(c *fiber.Ctx) error {

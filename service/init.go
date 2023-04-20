@@ -4,6 +4,7 @@ import (
 	"github.com/duxweb/go-fast/cache"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/database"
+	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/logger"
 	"github.com/duxweb/go-fast/validator"
 	"github.com/duxweb/go-fast/views"
@@ -23,6 +24,7 @@ func Init() {
 	cache.Init()
 	validator.Init()
 	views.Init()
+	i18n.Init()
 	if Server.Database {
 		database.GormInit()
 	}

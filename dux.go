@@ -2,6 +2,10 @@ package dux
 
 import (
 	"embed"
+	"golang.org/x/text/language"
+	"os"
+	"time"
+
 	"github.com/duxweb/go-fast/app"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/global"
@@ -9,8 +13,6 @@ import (
 	"github.com/duxweb/go-fast/views"
 	"github.com/duxweb/go-fast/web"
 	"github.com/spf13/cobra"
-	"os"
-	"time"
 )
 
 type Dux struct {
@@ -37,7 +39,7 @@ func (t *Dux) RegisterDir(dirs ...string) {
 	app.DirList = append(app.DirList, dirs...)
 }
 
-//go:embed template/* logger/template/*
+//go:embed template/* dashboard/template/*
 var FrameFs embed.FS
 
 // Create Universal Service
@@ -64,6 +66,11 @@ func (t *Dux) Run() {
 // SetTimezone Set Timezone
 func (t *Dux) SetTimezone(location *time.Location) {
 	time.Local = location
+}
+
+// SetLang Set Lang
+func (t *Dux) SetLang(lang language.Tag) {
+	global.Lang = lang
 }
 
 // SetTablePrefix Set Database Table Prefix

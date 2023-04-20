@@ -4,9 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/demdxx/gocast/v2"
 	"github.com/duxweb/go-fast/auth"
 	"github.com/duxweb/go-fast/config"
+	"github.com/duxweb/go-fast/dashboard"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/handlers"
 	"github.com/duxweb/go-fast/logger"
@@ -18,9 +23,6 @@ import (
 	"github.com/gookit/color"
 	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
-	"net/http"
-	"os"
-	"time"
 )
 
 func Init() {
@@ -45,9 +47,8 @@ func Init() {
 				// Other error
 				marshal, _ := json.Marshal(eris.ToJSON(eris.Wrapf(err, "error"), true))
 				logger.Log().Error().RawJSON("stack", marshal).Msg(err.Error())
+				msg = lo.Ternary[string](global.DebugMsg == "", "business is busy, please try again", global.DebugMsg)
 			}
-
-			msg = lo.Ternary[string](global.DebugMsg == "", "business is busy, please try again", global.DebugMsg)
 
 			// Asynchronous request
 			if ctx.Is("json") || ctx.XHR() {
@@ -95,13 +96,13 @@ func Init() {
 
 func Start() {
 
+	// Dashboard
+	dashboard.Init()
+
 	// Default route
 	global.App.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("template/welcome", fiber.Map{})
 	})
-
-	// Dashboard
-	logger.InitDashboard()
 
 	// Websocket route
 	global.App.Get("/ws", func(c *fiber.Ctx) error {

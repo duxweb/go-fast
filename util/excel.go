@@ -3,10 +3,11 @@ package util
 import (
 	"bytes"
 	"fmt"
-	"github.com/duxweb/go-fast/handlers"
-	"github.com/go-resty/resty/v2"
-	"github.com/xuri/excelize/v2"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/rotisserie/eris"
+	"github.com/xuri/excelize/v2"
 )
 
 func ExcelImport(url string) ([][]string, error) {
@@ -15,7 +16,7 @@ func ExcelImport(url string) ([][]string, error) {
 		return nil, err
 	}
 	if resp.StatusCode() != 200 {
-		return nil, handlers.Error(resp.String())
+		return nil, eris.New(resp.String())
 	}
 	reader := bytes.NewReader(resp.Body())
 	f, err := excelize.OpenReader(reader)
