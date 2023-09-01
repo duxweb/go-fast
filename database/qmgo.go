@@ -3,13 +3,25 @@ package database
 import (
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
-	"github.com/gookit/event"
 	"github.com/qiniu/qmgo"
 	"github.com/samber/do"
 )
 
+type QmgoService struct {
+	client *qmgo.Client
+	engine *qmgo.Database
+}
+
+func (s *QmgoService) Shutdown() error {
+	return s.client.Close(global.Ctx)
+}
+
+func Qmgo() *qmgo.Database {
+	return do.MustInvoke[*QmgoService](global.Injector).engine
+}
+
 func QmgoInit() {
-	dbConfig := config.Get("database").GetStringMapString("mongoDB")
+	dbConfig := config.Load("database").GetStringMapString("mongoDB")
 
 	var auth = ""
 	if dbConfig["username"] != "" && dbConfig["password"] != "" {
@@ -21,9 +33,8 @@ func QmgoInit() {
 		panic("qmgo error :" + err.Error())
 	}
 
-	do.ProvideValue[*qmgo.Database](nil, client.Database(dbConfig["dbname"]))
-
-	event.On("app.close", event.ListenerFunc(func(e event.Event) error {
-		return client.Close(global.Ctx)
-	}))
+	do.ProvideValue[*QmgoService](global.Injector, &QmgoService{
+		client: client,
+		engine: client.Database(dbConfig["dbname"]),
+	})
 }

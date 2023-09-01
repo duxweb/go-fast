@@ -82,7 +82,7 @@ func Url(urlString string, params map[string]any, absolutes ...bool) string {
 		absolute = absolutes[0]
 	}
 	if absolute {
-		urlBuild = do.MustInvoke[config.Config](nil)["app"].GetString("app.baseUrl") + urlBuild
+		urlBuild = config.Load("app").GetString("app.baseUrl") + urlBuild
 	}
 	return urlBuild
 }

@@ -20,7 +20,7 @@ func Init() {
 }
 
 func getLumberjack(name string) *lumberjack.Logger {
-	path := config.Get("app").GetString("logger.default.path")
+	path := config.Load("app").GetString("logger.default.path")
 	return &lumberjack.Logger{
 		Filename:   path + "/service.log",
 		MaxSize:    1,

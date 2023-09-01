@@ -11,7 +11,7 @@ import (
 
 // Middleware Authorization Middleware
 func Middleware(app string, renewals ...int64) fiber.Handler {
-	key := []byte(config.Get("app").GetString("app.safeKey"))
+	key := []byte(config.Load("app").GetString("app.safeKey"))
 	// 续期时间
 	var renewal int64 = 43200
 	if len(renewals) > 0 {

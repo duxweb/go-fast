@@ -9,7 +9,6 @@ import (
 	"github.com/duxweb/go-fast/task"
 	"github.com/duxweb/go-fast/websocket"
 	"github.com/gookit/color"
-	"github.com/gookit/event"
 	"github.com/panjf2000/ants/v2"
 	"github.com/spf13/cobra"
 	"os"
@@ -38,6 +37,7 @@ func Command(command *cobra.Command) {
 
 			task.ListenerTask("dux.monitor", monitor.Control)
 			task.ListenerScheduler("*/1 * * * *", "dux.monitor", map[string]any{}, task.PRIORITY_LOW)
+
 			// Start timing service
 			go func() {
 				task.StartScheduler()
@@ -52,22 +52,19 @@ func Command(command *cobra.Command) {
 				Start()
 			}()
 			<-ch
-			// Shut down service
-			color.Println("⇨ <orange>Stop scheduler</>")
-			task.StopScheduler()
-			color.Println("⇨ <orange>Stop queue</>")
-			task.StopQueue()
-			color.Println("⇨ <orange>Stop event</>")
-			err, _ := event.Fire("app.close", event.M{})
+			color.Println("\n⇨ <orange>Start Exit</>")
+			service.ContextCancel()
+			color.Println("⇨ <orange>Stop service</>")
+			err := global.Injector.Shutdown()
 			if err != nil {
-				logger.Log().Error().Err(err).Msg("event stop")
+				logger.Log().Error().Err(err).Msg("stop service")
 			}
 			color.Println("⇨ <orange>Stop websocket</>")
 			websocket.Release()
 			color.Println("⇨ <orange>Stop pools</>")
 			ants.Release()
 			color.Println("⇨ <orange>Stop fiber</>")
-			_ = global.App.ShutdownWithTimeout(0)
+			_ = global.App.ShutdownWithTimeout(10)
 			color.Println("⇨ <red>Server closed</>")
 		},
 	}

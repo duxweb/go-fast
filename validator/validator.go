@@ -3,20 +3,19 @@ package validator
 import (
 	"errors"
 	"github.com/go-playground/validator/v10"
-	"github.com/samber/do"
 	"reflect"
 	"regexp"
 )
 
+var injector *validator.Validate
+
 func Validator() *validator.Validate {
-	return do.MustInvoke[*validator.Validate](nil)
+	return injector
 }
 
 func Init() {
-	server := validator.New()
-	do.ProvideValue[*validator.Validate](nil, server)
-
-	err := server.RegisterValidation("cnPhone", func(f validator.FieldLevel) bool {
+	injector = validator.New()
+	err := injector.RegisterValidation("cnPhone", func(f validator.FieldLevel) bool {
 		value := f.Field().String()
 		result, _ := regexp.MatchString(`^(1\d{10})$`, value)
 		return result
@@ -30,11 +29,13 @@ func ProcessError(object any, err error) error {
 	if err == nil {
 		return nil
 	}
-	invalid, ok := err.(*validator.InvalidValidationError)
+	var invalid *validator.InvalidValidationError
+	ok := errors.As(err, &invalid)
 	if ok {
 		return errors.New("参数错误：" + invalid.Error())
 	}
-	validationErrs := err.(validator.ValidationErrors)
+	var validationErrs validator.ValidationErrors
+	errors.As(err, &validationErrs)
 	for _, item := range validationErrs {
 		fieldName := item.Field()
 		typeOf := reflect.TypeOf(object)

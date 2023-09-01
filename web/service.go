@@ -11,7 +11,6 @@ import (
 	"github.com/demdxx/gocast/v2"
 	"github.com/duxweb/go-fast/auth"
 	"github.com/duxweb/go-fast/config"
-	"github.com/duxweb/go-fast/dashboard"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/handlers"
 	"github.com/duxweb/go-fast/logger"
@@ -27,7 +26,7 @@ import (
 
 func Init() {
 
-	proxyHeader := config.Get("app").GetString("app.proxyHeader")
+	proxyHeader := config.Load("app").GetString("app.proxyHeader")
 	global.App = fiber.New(fiber.Config{
 		AppName:               "DuxGO",
 		Prefork:               false,
@@ -96,9 +95,6 @@ func Init() {
 
 func Start() {
 
-	// Dashboard
-	dashboard.Init()
-
 	// Default route
 	global.App.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("template/welcome", fiber.Map{})
@@ -113,7 +109,7 @@ func Start() {
 		return websocket.Socket.Handler(gocast.Str(data["sub"]), gocast.Str(data["id"]))(c)
 	})
 
-	port := config.Get("app").GetString("server.port")
+	port := config.Load("app").GetString("server.port")
 	banner()
 	global.BootTime = time.Now()
 	color.Println("⇨ <green>Server start http://0.0.0.0:" + port + "</>")
@@ -130,7 +126,7 @@ func Start() {
 }
 
 func banner() {
-	debugBool := config.Get("app").GetBool("server.debug")
+	debugBool := config.Load("app").GetBool("server.debug")
 
 	var banner string
 	banner += `   _____           ____ ____` + "\n"

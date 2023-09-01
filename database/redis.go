@@ -8,8 +8,20 @@ import (
 	"github.com/samber/do"
 )
 
+type RedisService struct {
+	engine *redis.Client
+}
+
+func (s *RedisService) Shutdown() error {
+	return s.engine.Close()
+}
+
+func Redis() *redis.Client {
+	return do.MustInvoke[*RedisService](global.Injector).engine
+}
+
 func RedisInit() {
-	dbConfig := config.Get("database").GetStringMapString("redis")
+	dbConfig := config.Load("database").GetStringMapString("redis")
 	client := redis.NewClient(&redis.Options{
 		Addr:     dbConfig["host"] + ":" + dbConfig["port"],
 		Password: dbConfig["password"],
@@ -19,5 +31,7 @@ func RedisInit() {
 	if err != nil {
 		panic(err.Error())
 	}
-	do.ProvideValue[*redis.Client](nil, client)
+	do.ProvideValue[*RedisService](nil, &RedisService{
+		engine: client,
+	})
 }

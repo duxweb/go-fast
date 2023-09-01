@@ -3,6 +3,7 @@ package global
 import (
 	"context"
 	"github.com/gofiber/fiber/v2"
+	"github.com/samber/do"
 	"golang.org/x/text/language"
 	"time"
 )
@@ -14,10 +15,12 @@ var (
 	TablePrefix = "app_"
 	Lang        = language.English
 
+	Injector *do.Injector
+
 	Debug        bool
 	DebugMsg     string
+	Ctx          context.Context
 	TimeLocation = time.UTC
-	Ctx          = context.Background()
 	DirList      []string
 	ConfigDir    = "./config/"
 )

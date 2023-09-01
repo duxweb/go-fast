@@ -20,13 +20,30 @@ import (
 
 var MigrateModel = make([]any, 0)
 
+// GormMigrate Register Migrating Models
+func GormMigrate(dst ...any) {
+	MigrateModel = append(MigrateModel, dst...)
+}
+
+type GormService struct {
+	engine *gorm.DB
+}
+
+func (s *GormService) Shutdown() error {
+	sqlDB, err := s.engine.DB()
+	if err != nil {
+		// log
+	}
+	return sqlDB.Close()
+}
+
 func Gorm() *gorm.DB {
-	return do.MustInvoke[*gorm.DB](nil)
+	return do.MustInvoke[*GormService](global.Injector).engine
 }
 
 func GormInit() {
 
-	dbConfig := config.Get("database").GetStringMapString("db")
+	dbConfig := config.Load("database").GetStringMapString("db")
 
 	var connect gorm.Dialector
 	if dbConfig["type"] == "mysql" {
@@ -55,15 +72,17 @@ func GormInit() {
 		panic("database error: " + err.Error())
 	}
 
-	do.ProvideValue[*gorm.DB](nil, database)
+	do.ProvideValue[*GormService](global.Injector, &GormService{
+		engine: database,
+	})
 
 	// Set Connection Pool
 	sqlDB, err := do.MustInvoke[*gorm.DB](nil).DB()
 	if err != nil {
 		panic("database error: " + err.Error())
 	}
-	sqlDB.SetMaxIdleConns(config.Get("app").GetInt("database.maxIdleConns"))
-	sqlDB.SetMaxOpenConns(config.Get("app").GetInt("database.maxOpenConns"))
+	sqlDB.SetMaxIdleConns(config.Load("app").GetInt("database.maxIdleConns"))
+	sqlDB.SetMaxOpenConns(config.Load("app").GetInt("database.maxOpenConns"))
 
 }
 
@@ -79,7 +98,7 @@ type Logger struct {
 func GormLogger() *Logger {
 	vLog := coreLogger.New(
 		coreLogger.GetWriter(
-			config.Get("app").GetString("logger.db.level"),
+			config.Load("app").GetString("logger.db.level"),
 			"gorm",
 			true,
 		)).With().Caller().CallerWithSkipFrameCount(5).Timestamp().Logger()
@@ -140,9 +159,4 @@ func (l *Logger) Trace(ctx context.Context, begin time.Time, fc func() (string, 
 	case l.LogLevel >= gormLogger.Info:
 		l.Logger.Debug().Fields(fields).Msgf("[GORM] query")
 	}
-}
-
-// GormMigrate Register Migrating Models
-func GormMigrate(dst ...any) {
-	MigrateModel = append(MigrateModel, dst...)
 }

@@ -1,16 +1,20 @@
 package service
 
 import (
+	"context"
 	"github.com/duxweb/go-fast/cache"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/database"
+	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/logger"
 	"github.com/duxweb/go-fast/validator"
 	"github.com/duxweb/go-fast/views"
+	"github.com/samber/do"
 )
 
 var Server = ServerStatus{}
+var ContextCancel context.CancelFunc
 
 type ServerStatus struct {
 	Database bool
@@ -19,6 +23,8 @@ type ServerStatus struct {
 }
 
 func Init() {
+	global.Ctx, ContextCancel = context.WithCancel(context.Background())
+	global.Injector = do.New()
 	config.Init()
 	logger.Init()
 	cache.Init()

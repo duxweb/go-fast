@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-type MonitorInfo struct {
+type Monitor struct {
 	OsName      string // OS
 	BootTime    string // Startup time
 	LogSize     uint64 // The size of the log directory
@@ -29,8 +29,8 @@ type MonitorInfo struct {
 }
 
 // GetMonitorInfo Retrieve monitoring information
-func GetMonitorInfo() *MonitorInfo {
-	data := MonitorInfo{}
+func GetMonitorInfo() *Monitor {
+	data := Monitor{}
 	data.LogSize = getDirSize("/logs")
 	data.LogSizeF = humanize.Bytes(data.LogSize)
 	data.UploadSize = getDirSize("/public/uploads")
@@ -71,7 +71,7 @@ func GetMonitorData() *MonitorData {
 
 // GetMonitorLog Retrieve monitoring logs
 func GetMonitorLog() []map[string]any {
-	path := config.Get("app").GetString("logger.default.path")
+	path := config.Load("app").GetString("logger.default.path")
 	loadFiles, _ := filepath.Glob(path + "/monitor/*.log")
 	loadData := passingFiles(loadFiles)
 	return loadData

@@ -16,15 +16,29 @@ import (
 	"time"
 )
 
+type TaskService struct {
+	Server    *asynq.Server
+	ServeMux  *asynq.ServeMux
+	Client    *asynq.Client
+	Inspector *asynq.Inspector
+	Scheduler *asynq.Scheduler
+}
+
+func (s *TaskService) Shutdown() error {
+	s.Server.Shutdown()
+	s.Scheduler.Shutdown()
+	return nil
+}
+
 func Init() {
-	dbConfig := config.Get("database").GetStringMapString("redis")
+	dbConfig := config.Load("database").GetStringMapString("redis")
 	res := asynq.RedisClientOpt{
 		Addr:     dbConfig["host"] + ":" + dbConfig["port"],
 		Password: dbConfig["password"],
 		DB:       gocast.Number[int](dbConfig["db"]),
 	}
 
-	srv := asynq.NewServer(
+	server := asynq.NewServer(
 		res,
 		asynq.Config{
 			Logger: &TaskLogger{
@@ -46,16 +60,11 @@ func Init() {
 		},
 	)
 
-	mux := asynq.NewServeMux()
+	serveMux := asynq.NewServeMux()
 	client := asynq.NewClient(res)
 	inspector := asynq.NewInspector(res)
 
-	do.ProvideValue[*asynq.Server](nil, srv)
-	do.ProvideValue[*asynq.ServeMux](nil, mux)
-	do.ProvideValue[*asynq.Client](nil, client)
-	do.ProvideValue[*asynq.Inspector](nil, inspector)
-
-	mux.HandleFunc("ping", func(ctx context.Context, t *asynq.Task) error {
+	serveMux.HandleFunc("ping", func(ctx context.Context, t *asynq.Task) error {
 		color.Print("⇨ <green>Task server start</>\n")
 		return nil
 	})
@@ -70,7 +79,14 @@ func Init() {
 			logger.Log().Error().Msgf("scheduler: ", err.Error())
 		},
 	})
-	do.ProvideValue[*asynq.Scheduler](nil, scheduler)
+
+	do.ProvideValue[*TaskService](global.Injector, &TaskService{
+		Server:    server,
+		ServeMux:  serveMux,
+		Client:    client,
+		Inspector: inspector,
+		Scheduler: scheduler,
+	})
 }
 
 type Priority string
@@ -82,26 +98,15 @@ const (
 )
 
 func StartQueue() {
-	if err := do.MustInvoke[*asynq.Server](nil).Run(do.MustInvoke[*asynq.ServeMux](nil)); err != nil {
+	if err := do.MustInvoke[*TaskService](global.Injector).Server.Run(do.MustInvoke[*TaskService](global.Injector).ServeMux); err != nil {
 		logger.Log().Error().Msgf("Queue service cannot be started: %v", err)
 	}
-	do.MustInvoke[*asynq.Server](nil).Shutdown()
 }
 
 func StartScheduler() {
-	if err := do.MustInvoke[*asynq.Scheduler](nil).Run(); err != nil {
+	if err := do.MustInvoke[*TaskService](global.Injector).Scheduler.Run(); err != nil {
 		logger.Log().Error().Msgf("Scheduler service cannot be started: %v", err)
 	}
-	do.MustInvoke[*asynq.Scheduler](nil).Shutdown()
-}
-
-func StopQueue() {
-	do.MustInvoke[*asynq.Server](nil).Shutdown()
-}
-
-func StopScheduler() {
-	do.MustInvoke[*asynq.Scheduler](nil).Shutdown()
-
 }
 
 func Add(typename string, params any, priority ...Priority) *asynq.TaskInfo {
@@ -135,7 +140,7 @@ func AddTask(typename string, params any, opts ...asynq.Option) *asynq.TaskInfo 
 	opts = append(opts, asynq.Timeout(1*time.Minute)) // Timeout period
 	opts = append(opts, asynq.Retention(2*time.Hour)) // Retention time
 
-	info, err := do.MustInvoke[*asynq.Client](nil).Enqueue(task, opts...)
+	info, err := do.MustInvoke[*TaskService](global.Injector).Client.Enqueue(task, opts...)
 	if err != nil {
 		logger.Log().Error().Msg("Queue add error :" + err.Error())
 	}
@@ -143,7 +148,7 @@ func AddTask(typename string, params any, opts ...asynq.Option) *asynq.TaskInfo 
 }
 
 func DelTask(priority Priority, id string) error {
-	err := do.MustInvoke[*asynq.Inspector](nil).DeleteTask(string(priority), id)
+	err := do.MustInvoke[*TaskService](global.Injector).Inspector.DeleteTask(string(priority), id)
 	if errors.Is(err, asynq.ErrQueueNotFound) {
 		return nil
 	}
@@ -173,7 +178,7 @@ func ListenerScheduler(cron string, typename string, params any, priority ...Pri
 		group = priority[0]
 	}
 	opts = append(opts, asynq.Queue(string(group)))
-	_, err := do.MustInvoke[*asynq.Scheduler](nil).Register(cron, task, opts...)
+	_, err := do.MustInvoke[*TaskService](global.Injector).Scheduler.Register(cron, task, opts...)
 	if err != nil {
 		panic("Scheduler add error :" + err.Error())
 	}
@@ -181,7 +186,7 @@ func ListenerScheduler(cron string, typename string, params any, priority ...Pri
 
 // ListenerTask registers a task to be executed on a queue
 func ListenerTask(pattern string, handler func(context.Context, *asynq.Task) error) {
-	do.MustInvoke[*asynq.ServeMux](nil).HandleFunc(pattern, handler)
+	do.MustInvoke[*TaskService](global.Injector).ServeMux.HandleFunc(pattern, handler)
 }
 
 type TaskLogger struct {

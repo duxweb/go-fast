@@ -3,6 +3,7 @@ module github.com/duxweb/go-fast
 go 1.18
 
 require (
+	github.com/BurntSushi/toml v1.0.0
 	github.com/coocood/freecache v1.2.3
 	github.com/demdxx/gocast/v2 v2.5.0
 	github.com/disintegration/imaging v1.6.2
@@ -56,7 +57,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/icza/backscanner v0.0.0-20230330133933-bf6beb754c70 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect

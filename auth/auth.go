@@ -14,7 +14,7 @@ type JWT struct {
 // NewJWT Authorization Generation and Decoding
 func NewJWT() *JWT {
 	return &JWT{
-		SigningKey: []byte(config.Get("app").GetString("app.safeKey")),
+		SigningKey: []byte(config.Load("app").GetString("app.safeKey")),
 	}
 }
 
