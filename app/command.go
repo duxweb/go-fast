@@ -1,40 +1,42 @@
 package app
 
 import (
-	"fmt"
 	"github.com/duxweb/go-fast/global"
 	"github.com/gookit/color"
 	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 	"os"
 )
 
-func Command(command *cobra.Command) {
-	version := &cobra.Command{
-		Use:   "version",
-		Short: "View the version number",
-		Run: func(cmd *cobra.Command, args []string) {
-			color.Println(fmt.Sprintf("⇨ <red>%s</>", global.Version))
+func Command() []*cli.Command {
+	version := &cli.Command{
+		Name:  "version",
+		Usage: "View the version number",
+		Action: func(cCtx *cli.Context) error {
+			color.Redf("⇨ <red>%s</>", global.Version)
+			return nil
 		},
 	}
 
-	appList := &cobra.Command{
-		Use:   "app:list",
-		Short: "Viewing the application list",
-		Run: func(cmd *cobra.Command, args []string) {
-
+	appList := &cli.Command{
+		Name:  "app:list",
+		Usage: "Viewing the application list",
+		Action: func(cCtx *cli.Context) error {
 			t := table.NewWriter()
 			t.SetOutputMirror(os.Stdout)
 			t.AppendHeader(table.Row{"Name", "Title", "Desc"})
-			rows := []table.Row{}
+			rows := make([]table.Row, 0)
 			for _, config := range List {
 				rows = append(rows, table.Row{config.Name, config.Title, config.Desc})
 			}
 			t.AppendRows(rows)
 			t.Render()
-
+			return nil
 		},
 	}
 
-	command.AddCommand(version, appList)
+	return []*cli.Command{
+		version,
+		appList,
+	}
 }

@@ -2,18 +2,18 @@ package global
 
 import (
 	"context"
-	"github.com/gofiber/fiber/v2"
+	"embed"
+	"github.com/labstack/echo/v4"
 	"github.com/samber/do"
-	"golang.org/x/text/language"
 	"time"
 )
 
 var (
-	App         *fiber.App
+	App         *echo.Echo
 	Version     = "v2.0.0"
 	BootTime    time.Time
 	TablePrefix = "app_"
-	Lang        = language.English
+	Lang        = "en-US"
 
 	Injector *do.Injector
 
@@ -23,4 +23,6 @@ var (
 	TimeLocation = time.UTC
 	DirList      []string
 	ConfigDir    = "./config/"
+
+	StaticFs *embed.FS
 )

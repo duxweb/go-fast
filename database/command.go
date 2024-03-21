@@ -2,21 +2,24 @@ package database
 
 import (
 	"github.com/gookit/color"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 )
 
-func Command(command *cobra.Command) {
-	cmd := &cobra.Command{
-		Use:   "db:sync",
-		Short: "Synchronous database structure",
-		Run: func(cmd *cobra.Command, args []string) {
+func Command() []*cli.Command {
+	sync := &cli.Command{
+		Name:  "db:sync",
+		Usage: "Synchronous database structure",
+		Action: func(cCtx *cli.Context) error {
 			for _, model := range MigrateModel {
 				err := Gorm().AutoMigrate(model)
 				if err != nil {
 					color.Println(err.Error())
 				}
 			}
+			return nil
 		},
 	}
-	command.AddCommand(cmd)
+	return []*cli.Command{
+		sync,
+	}
 }

@@ -28,9 +28,9 @@ func Init() {
 	config.Init()
 	logger.Init()
 	cache.Init()
+	i18n.Init()
 	validator.Init()
 	views.Init()
-	i18n.Init()
 	if Server.Database {
 		database.GormInit()
 	}

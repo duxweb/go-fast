@@ -2,7 +2,7 @@ package route
 
 import (
 	"github.com/duxweb/go-fast/global"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 )
 
 type RouterData struct {
@@ -11,7 +11,7 @@ type RouterData struct {
 	permission bool
 	data       []*RouterItem
 	group      []*RouterData
-	router     fiber.Router
+	router     *echo.Group
 }
 
 type RouterItem struct {
@@ -21,13 +21,13 @@ type RouterItem struct {
 	name   string
 }
 
-func New(prefix string, middle ...fiber.Handler) *RouterData {
+func New(prefix string, middle ...echo.MiddlewareFunc) *RouterData {
 	return &RouterData{
 		router: global.App.Group(prefix, middle...),
 	}
 }
 
-func (t *RouterData) Group(prefix string, title string, middle ...fiber.Handler) *RouterData {
+func (t *RouterData) Group(prefix string, title string, middle ...echo.MiddlewareFunc) *RouterData {
 	group := &RouterData{
 		title:  title,
 		prefix: prefix,
@@ -42,47 +42,47 @@ func (t *RouterData) Permission() *RouterData {
 	return t
 }
 
-func (t *RouterData) Router() fiber.Router {
+func (t *RouterData) Router() *echo.Group {
 	return t.router
 }
 
-func (t *RouterData) Get(path string, handler fiber.Handler, title string, name string) fiber.Router {
+func (t *RouterData) Get(path string, handler echo.HandlerFunc, title string, name string) *echo.Route {
 	return t.Add("GET", path, handler, title, name)
 }
 
-func (t *RouterData) Head(path string, handler fiber.Handler, title string, name string) fiber.Router {
+func (t *RouterData) Head(path string, handler echo.HandlerFunc, title string, name string) *echo.Route {
 	return t.Add("HEAD", path, handler, title, name)
 }
 
-func (t *RouterData) Post(path string, handler fiber.Handler, title string, name string) fiber.Router {
+func (t *RouterData) Post(path string, handler echo.HandlerFunc, title string, name string) *echo.Route {
 	return t.Add("POST", path, handler, title, name)
 }
 
-func (t *RouterData) Put(path string, handler fiber.Handler, title string, name string) fiber.Router {
+func (t *RouterData) Put(path string, handler echo.HandlerFunc, title string, name string) *echo.Route {
 	return t.Add("PUT", path, handler, title, name)
 }
 
-func (t *RouterData) Delete(path string, handler fiber.Handler, title string, name string) fiber.Router {
+func (t *RouterData) Delete(path string, handler echo.HandlerFunc, title string, name string) *echo.Route {
 	return t.Add("DELETE", path, handler, title, name)
 }
 
-func (t *RouterData) Connect(path string, handler fiber.Handler, title string, name string) fiber.Router {
+func (t *RouterData) Connect(path string, handler echo.HandlerFunc, title string, name string) *echo.Route {
 	return t.Add("CONNECT", path, handler, title, name)
 }
 
-func (t *RouterData) Options(path string, handler fiber.Handler, title string, name string) fiber.Router {
+func (t *RouterData) Options(path string, handler echo.HandlerFunc, title string, name string) *echo.Route {
 	return t.Add("OPTIONS", path, handler, title, name)
 }
 
-func (t *RouterData) Trace(path string, handler fiber.Handler, title string, name string) fiber.Router {
+func (t *RouterData) Trace(path string, handler echo.HandlerFunc, title string, name string) *echo.Route {
 	return t.Add("TRACE", path, handler, title, name)
 }
 
-func (t *RouterData) Patch(path string, handler fiber.Handler, title string, name string) fiber.Router {
+func (t *RouterData) Patch(path string, handler echo.HandlerFunc, title string, name string) *echo.Route {
 	return t.Add("PATH", path, handler, title, name)
 }
 
-func (t *RouterData) Add(method string, path string, handler fiber.Handler, title string, name string) fiber.Router {
+func (t *RouterData) Add(method string, path string, handler echo.HandlerFunc, title string, name string) *echo.Route {
 	item := RouterItem{
 		title:  title,
 		method: method,
@@ -90,7 +90,9 @@ func (t *RouterData) Add(method string, path string, handler fiber.Handler, titl
 		name:   name,
 	}
 	t.data = append(t.data, &item)
-	return t.router.Add(method, path, handler).Name(item.name)
+	r := t.router.Add(method, path, handler)
+	r.Name = item.name
+	return r
 }
 
 func (t *RouterData) ParseTree(prefix string) any {

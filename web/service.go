@@ -1,128 +1,171 @@
 package web
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/duxweb/go-fast/i18n"
+	"github.com/duxweb/go-fast/views"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog"
+	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
-	"github.com/demdxx/gocast/v2"
-	"github.com/duxweb/go-fast/auth"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
-	"github.com/duxweb/go-fast/handlers"
 	"github.com/duxweb/go-fast/logger"
-	"github.com/duxweb/go-fast/views"
-	"github.com/duxweb/go-fast/websocket"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gookit/color"
-	"github.com/rotisserie/eris"
 	"github.com/samber/lo"
 )
 
 func Init() {
+	global.App = echo.New()
+	global.App.Debug = config.Load("app").GetBool("app.debug")
+	global.App.Renderer = views.Render()
+	global.App.HideBanner = true
+	global.App.HidePort = true
 
-	proxyHeader := config.Load("app").GetString("app.proxyHeader")
-	global.App = fiber.New(fiber.Config{
-		AppName:               "DuxGO",
-		Prefork:               false,
-		CaseSensitive:         false,
-		StrictRouting:         false,
-		EnablePrintRoutes:     false,
-		DisableStartupMessage: true,
-		ProxyHeader:           lo.Ternary[string](proxyHeader != "", proxyHeader, "X-Real-IP"),
-		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-			code := fiber.StatusInternalServerError
-			var msg string
-			if e, ok := err.(*fiber.Error); ok {
-				// http error
-				code = e.Code
-				msg = e.Message
-			} else {
-				// Other error
-				marshal, _ := json.Marshal(eris.ToJSON(eris.Wrapf(err, "error"), true))
-				logger.Log().Error().RawJSON("stack", marshal).Msg(err.Error())
-				msg = lo.Ternary[string](global.DebugMsg == "", "business is busy, please try again", global.DebugMsg)
+	// 注册异常处理
+	global.App.HTTPErrorHandler = func(err error, c echo.Context) {
+		code := http.StatusInternalServerError
+		var msg any
+		var e *echo.HTTPError
+		if errors.As(err, &e) {
+			// http error
+			code = e.Code
+			msg = e.Message
+		} else {
+			// Other error
+			logger.Log().Error().Str("stack", fmt.Sprintf("%+v", err)).Msg(err.Error())
+			msg = lo.Ternary[string](global.Debug, i18n.Trans.Get("common.error"), err.Error())
+		}
+
+		if isAsync(c) {
+			err = c.JSON(code, map[string]any{
+				"code":    code,
+				"message": msg,
+			})
+			if err != nil {
+				logger.Log().Error().Err(err).Send()
 			}
+			return
+		}
 
-			// Asynchronous request
-			if ctx.Is("json") || ctx.XHR() {
-				ctx.Set(fiber.HeaderContentType, fiber.MIMEApplicationJSONCharsetUTF8)
-				return ctx.Status(code).JSON(handlers.New(code, err.Error()))
-			}
+		c.Set("tpl", "app")
 
-			// Web request
-			if code == http.StatusNotFound {
-				ctx.Status(code).Set(fiber.HeaderContentType, fiber.MIMETextHTML)
-				return ctx.Render("template/404", fiber.Map{})
-			} else {
-				ctx.Set(fiber.HeaderContentType, fiber.MIMETextHTML)
-				return ctx.Render("template/error", fiber.Map{
-					"code":    code,
-					"message": msg,
-				})
-			}
-		},
-		Views: views.Views,
-	})
+		if code == http.StatusNotFound {
+			err = c.Render(http.StatusNotFound, "404.html", nil)
+		} else {
+			err = c.Render(http.StatusNotFound, "500.html", map[string]any{
+				"code":    code,
+				"message": msg,
+			})
+		}
+		if err != nil {
+			logger.Log().Error().Err(err).Send()
+		}
+	}
 
-	// Exception recovery processing
-	global.App.Use(recover.New(recover.Config{
-		EnableStackTrace: true,
-		StackTraceHandler: func(c *fiber.Ctx, e interface{}) {
-			marshal, _ := json.Marshal(eris.ToJSON(eris.New("panic"), true))
-			logger.Log().Error().Interface("message", e).RawJSON("stack", marshal)
+	// 异常恢复
+	global.App.Use(middleware.Recover())
+
+	// IP 获取规则
+	global.App.IPExtractor = func(req *http.Request) string {
+		remoteAddr := req.RemoteAddr
+		if ip := req.Header.Get(echo.HeaderXRealIP); ip != "" {
+			remoteAddr = ip
+		} else if ip = req.Header.Get(echo.HeaderXForwardedFor); ip != "" {
+			remoteAddr = ip
+		} else {
+			remoteAddr, _, _ = net.SplitHostPort(remoteAddr)
+		}
+		if remoteAddr == "::1" {
+			remoteAddr = "127.0.0.1"
+		}
+		return remoteAddr
+	}
+
+	// 跨域处理
+	global.App.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:  []string{"*"},
+		AllowHeaders:  []string{"*"},
+		ExposeHeaders: []string{"*"},
+	}))
+
+	// 注册框架日志
+	global.App.Logger = EchoLoggerHeadAdaptor()
+
+	// 注册静态路由
+	global.App.Static("/uploads", "./uploads")
+
+	// 注册公共目录
+	if global.StaticFs != nil {
+		global.App.StaticFS("/", echo.MustSubFS(global.StaticFs, "public"))
+	}
+
+	// 注册请求id
+	global.App.Use(middleware.RequestID())
+
+	// 请求日志
+	global.App.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogURI:       true,
+		LogHost:      true,
+		LogStatus:    true,
+		LogMethod:    true,
+		LogLatency:   true,
+		LogRemoteIP:  true,
+		LogError:     true,
+		LogRequestID: true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			logger.Log("request").WithLevel(lo.Ternary[zerolog.Level](v.Latency > 1*time.Second, zerolog.WarnLevel, zerolog.InfoLevel)).Str("id", v.RequestID).
+				Int("status", v.Status).
+				Str("method", v.Method).
+				Str("uri", v.URI).
+				Str("ip", v.RemoteIP).
+				Dur("latency", v.Latency).
+				Err(v.Error).
+				Msg("request")
+			return nil
 		},
 	}))
 
-	// Cors process across domains
-	global.App.Use(cors.New(cors.Config{
-		AllowOrigins:  "*",
-		AllowHeaders:  "*",
-		ExposeHeaders: "*",
-	}))
-
-	// Request log
-	global.App.Use(fiberLogger())
-
-	// Registering websocket
-	websocket.Init()
+	// 注册 WS
 }
 
 func Start() {
 
-	// Default route
-	global.App.Get("/", func(c *fiber.Ctx) error {
-		return c.Render("template/welcome", fiber.Map{})
+	global.App.GET("/", func(c echo.Context) error {
+		c.Set("tpl", "app")
+		return c.Render(http.StatusOK, "welcome.html", nil)
 	})
 
-	// Websocket route
-	global.App.Get("/ws", func(c *fiber.Ctx) error {
-		data, err := auth.NewJWT().ParsingToken(c.Get("Authorization"))
-		if err != nil {
-			return err
-		}
-		return websocket.Socket.Handler(gocast.Str(data["sub"]), gocast.Str(data["id"]))(c)
-	})
+	// WS
+	//global.App.GET("/ws", func(c echo.Context) error {
+	//	data, err := auth.NewJWT().ParsingToken(c.Request().Header.Get("Authorization"))
+	//	if err != nil {
+	//		return err
+	//	}
+	//	return websocket.Socket.Handler(gocast.Str(data["sub"]), gocast.Str(data["id"]))(c)
+	//})
 
 	port := config.Load("app").GetString("server.port")
 	banner()
 	global.BootTime = time.Now()
 	color.Println("⇨ <green>Server start http://0.0.0.0:" + port + "</>")
+
 	go func() {
-		err := global.App.Listen(":" + port)
+		err := global.App.Start(":" + port)
 		if errors.Is(err, http.ErrServerClosed) {
-			color.Println("⇨ <red>Server closed</>")
 			return
 		}
 		if err != nil {
-			logger.Log().Error().Err(err).Msg("web")
+			color.Errorln(err.Error())
 		}
 	}()
+
 }
 
 func banner() {
@@ -141,8 +184,8 @@ func banner() {
 
 	var sysMaps []item
 	sysMaps = append(sysMaps, item{
-		Name:  "Fiber",
-		Value: fiber.Version,
+		Name:  "Echo",
+		Value: echo.Version,
 	})
 	sysMaps = append(sysMaps, item{
 		Name:  "Debug",
@@ -154,7 +197,7 @@ func banner() {
 	})
 	sysMaps = append(sysMaps, item{
 		Name:  "Routes",
-		Value: len(global.App.Stack()),
+		Value: len(global.App.Routes()),
 	})
 
 	banner += "⇨ "
@@ -162,4 +205,16 @@ func banner() {
 		banner += v.Name + " <green>" + fmt.Sprintf("%v", v.Value) + "</>  "
 	}
 	color.Println(banner)
+}
+
+func isAsync(ctx echo.Context) bool {
+	xr := ctx.Request().Header.Get("X-Requested-With")
+	if xr != "" && strings.Index(xr, "XMLHttpRequest") != -1 {
+		return true
+	}
+	accept := ctx.Request().Header.Get("Accept")
+	if strings.Index(accept, "/json") != -1 || strings.Index(accept, "/+json") != -1 {
+		return true
+	}
+	return false
 }

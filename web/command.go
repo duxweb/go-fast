@@ -1,27 +1,25 @@
 package web
 
 import (
+	"context"
 	"github.com/duxweb/go-fast/app"
 	"github.com/duxweb/go-fast/global"
-	"github.com/duxweb/go-fast/logger"
 	"github.com/duxweb/go-fast/monitor"
 	"github.com/duxweb/go-fast/service"
 	"github.com/duxweb/go-fast/task"
-	"github.com/duxweb/go-fast/websocket"
 	"github.com/gookit/color"
-	"github.com/panjf2000/ants/v2"
-	"github.com/spf13/cobra"
+	"github.com/urfave/cli/v2"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
-func Command(command *cobra.Command) {
-	cmd := &cobra.Command{
-		Use:   "web",
-		Short: "starting the web service",
-		Run: func(cmd *cobra.Command, args []string) {
-
+func Command() []*cli.Command {
+	cmd := &cli.Command{
+		Name:  "web",
+		Usage: "starting the web service",
+		Action: func(cCtx *cli.Context) error {
 			ch := make(chan os.Signal, 1)
 			signal.Notify(ch,
 				os.Interrupt,
@@ -38,35 +36,37 @@ func Command(command *cobra.Command) {
 			task.ListenerTask("dux.monitor", monitor.Control)
 			task.ListenerScheduler("*/1 * * * *", "dux.monitor", map[string]any{}, task.PRIORITY_LOW)
 
-			// Start timing service
+			// 启动任务服务
 			go func() {
 				task.StartScheduler()
 			}()
-			// Start queue service
+			// 启动队列服务
 			go func() {
 				task.Add("ping", &map[string]any{})
 				task.StartQueue()
 			}()
-			// Starting the web service
-			go func() {
-				Start()
-			}()
+			// 启动 web 服务
+			Start()
+
 			<-ch
-			color.Println("\n⇨ <orange>Start Exit</>")
 			service.ContextCancel()
-			color.Println("⇨ <orange>Stop service</>")
 			err := global.Injector.Shutdown()
 			if err != nil {
-				logger.Log().Error().Err(err).Msg("stop service")
+				color.Errorln("Stop service")
 			}
-			color.Println("⇨ <orange>Stop websocket</>")
-			websocket.Release()
-			color.Println("⇨ <orange>Stop pools</>")
-			ants.Release()
-			color.Println("⇨ <orange>Stop fiber</>")
-			_ = global.App.ShutdownWithTimeout(10)
-			color.Println("⇨ <red>Server closed</>")
+			//color.Println("⇨ <orange>Stop websocket</>")
+			//websocket.Release()
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := global.App.Shutdown(ctx); err != nil {
+				color.Errorln(err.Error())
+			}
+
+			return nil
 		},
 	}
-	command.AddCommand(cmd)
+
+	return []*cli.Command{
+		cmd,
+	}
 }
