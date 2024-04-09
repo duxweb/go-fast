@@ -2,6 +2,7 @@ package dux
 
 import (
 	"embed"
+	"github.com/duxweb/go-fast/annotation"
 	"github.com/duxweb/go-fast/app"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/global"
@@ -58,7 +59,7 @@ func (t *Dux) create() {
 	for _, call := range t.registerApp {
 		call()
 	}
-	t.RegisterCmd(app.Command, web.Command, database.Command)
+	t.RegisterCmd(app.Command, annotation.Command, web.Command, database.Command)
 }
 
 // Run Command
