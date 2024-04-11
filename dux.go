@@ -12,6 +12,8 @@ import (
 	"github.com/urfave/cli/v2"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -70,6 +72,11 @@ func (t *Dux) Run() {
 	for _, cmd := range t.registerCmd {
 		list = append(list, cmd()...)
 	}
+
+	if !IsRelease() {
+		annotation.Run()
+	}
+
 	appCli := &cli.App{
 		Name:     "dux",
 		Commands: list,
@@ -112,4 +119,10 @@ func (t *Dux) SetRedisStatus(status bool) {
 // SetMongodbStatus 设置mongodb开关
 func (t *Dux) SetMongodbStatus(status bool) {
 	service.Server.Mongodb = status
+}
+
+func IsRelease() bool {
+	arg1 := strings.ToLower(os.Args[0])
+	name := filepath.Base(arg1)
+	return strings.Index(name, "__") != 0 && strings.Index(arg1, "go-build") < 0
 }
