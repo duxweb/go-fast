@@ -2,8 +2,8 @@ package permission
 
 var Permissions = map[string]*PermissionData{}
 
-func Add(name string, route *PermissionData) {
-	Permissions[name] = route
+func Set(name string, data *PermissionData) {
+	Permissions[name] = data
 }
 
 func Get(name string) *PermissionData {

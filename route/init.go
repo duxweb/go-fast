@@ -2,7 +2,7 @@ package route
 
 var Routes = map[string]*RouterData{}
 
-func Add(name string, route *RouterData) *RouterData {
+func Set(name string, route *RouterData) *RouterData {
 	Routes[name] = route
 	return route
 }

@@ -16,20 +16,20 @@ func New() *PermissionData {
 	return &PermissionData{}
 }
 
-func (t *PermissionData) Group(name string, label string, order int) *PermissionData {
+func (t *PermissionData) Group(name string, order int) *PermissionData {
 	data := &PermissionData{
 		Name:  name,
-		Label: label,
+		Label: "",
 		Order: order,
 	}
 	t.Data = append(t.Data, data)
 	return data
 }
 
-func (t *PermissionData) Add(label string, name string) {
+func (t *PermissionData) Add(name string) {
 	data := &PermissionData{
-		Name:  name,
-		Label: t.Label + "." + label,
+		Name:  t.Name + "." + name,
+		Label: "",
 	}
 	t.Data = append(t.Data, data)
 }
@@ -44,7 +44,7 @@ func (t *PermissionData) Get() []map[string]any {
 		return map[string]any{
 			"label":    group.Label,
 			"order":    group.Order,
-			"name":     group.Name,
+			"name":     "group:" + group.Name,
 			"children": list,
 		}
 	})
@@ -55,7 +55,7 @@ func (t *PermissionData) Get() []map[string]any {
 }
 
 func (t *PermissionData) GetFlat() []string {
-	data := []string{}
+	data := make([]string, 0)
 	for _, datum := range t.Data {
 		for _, item := range datum.Data {
 			data = append(data, item.Label)

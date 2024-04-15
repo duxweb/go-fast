@@ -19,9 +19,9 @@ type File struct {
 }
 
 type Annotation struct {
-	Name string
-	Data map[string]any
-	Func any
+	Name   string
+	Params map[string]any
+	Func   any
 }
 
 type Import struct {
@@ -130,8 +130,8 @@ func parseDocs(text string) *Annotation {
 	name := match[1]
 	data := parseParams(match[2])
 	return &Annotation{
-		Name: name,
-		Data: data,
+		Name:   name,
+		Params: data,
 	}
 }
 
