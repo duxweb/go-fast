@@ -6,6 +6,7 @@ import (
 	"github.com/duxweb/go-fast/app"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/global"
+	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/service"
 	"github.com/duxweb/go-fast/views"
 	"github.com/duxweb/go-fast/web"
@@ -19,6 +20,9 @@ import (
 
 //go:embed template/*
 var TplFs embed.FS
+
+//go:embed lang/*.yaml
+var LangFs embed.FS
 
 // Dux 基础结构
 type Dux struct {
@@ -55,9 +59,15 @@ func (t *Dux) RegisterTplFS(name string, fs embed.FS) {
 	views.FsList[name] = fs
 }
 
+// RegisterLangFS 注册语言包
+func (t *Dux) RegisterLangFS(fs embed.FS) {
+	i18n.FsList = append(i18n.FsList, fs)
+}
+
 // 创建公共服务
 func (t *Dux) create() {
 	t.RegisterTplFS("app", TplFs)
+	t.RegisterLangFS(LangFs)
 	for _, call := range t.registerApp {
 		call()
 	}

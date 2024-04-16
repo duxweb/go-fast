@@ -3,7 +3,7 @@ package auth
 import (
 	"errors"
 	"github.com/duxweb/go-fast/config"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"time"
 )
 
@@ -11,41 +11,45 @@ type JWT struct {
 	SigningKey []byte
 }
 
-// NewJWT Authorization Generation and Decoding
+type JwtClaims struct {
+	Refresh bool `json:"refresh"`
+	jwt.RegisteredClaims
+}
+
 func NewJWT() *JWT {
 	return &JWT{
 		SigningKey: []byte(config.Load("app").GetString("app.safeKey")),
 	}
 }
 
-func (j *JWT) MakeToken(app string, params jwt.MapClaims, expires ...int64) (tokenString string, err error) {
-	var expire int64 = 86400
+func (j *JWT) MakeToken(app string, expires ...time.Duration) (tokenString string, err error) {
+	expire := 86400 * time.Second
 	if len(expires) > 0 {
 		expire = expires[0]
 	}
-	claim := jwt.MapClaims{
-		"sub": app,
-		"exp": time.Now().Add(time.Duration(expire) * time.Minute).Unix(), // Expiration Time
-		"iat": time.Now().Unix(),                                          // Issued At Time
-	}
-	for key, value := range params {
-		claim[key] = value
+	claim := JwtClaims{
+		Refresh: true,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   app,
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expire)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 	tokenString, err = token.SignedString(j.SigningKey)
 	return tokenString, err
 }
 
-func (j *JWT) ParsingToken(token string, app ...string) (claims jwt.MapClaims, err error) {
-	data := jwt.MapClaims{}
+func (j *JWT) ParsingToken(token string, app ...string) (claims *JwtClaims, err error) {
+	data := JwtClaims{}
 	_, err = jwt.ParseWithClaims(token, &data, func(token *jwt.Token) (interface{}, error) {
 		return j.SigningKey, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	if len(app) > 0 && data["sub"] != app[0] {
+	if len(app) > 0 && data.Subject != app[0] {
 		return nil, errors.New("token type error")
 	}
-	return data, nil
+	return &data, nil
 }

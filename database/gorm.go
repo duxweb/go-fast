@@ -20,7 +20,6 @@ import (
 
 var MigrateModel = make([]any, 0)
 
-// GormMigrate Register Migrating Models
 func GormMigrate(dst ...any) {
 	MigrateModel = append(MigrateModel, dst...)
 }

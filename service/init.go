@@ -14,7 +14,6 @@ import (
 )
 
 var Server = ServerStatus{}
-var ContextCancel context.CancelFunc
 
 type ServerStatus struct {
 	Database bool
@@ -23,7 +22,7 @@ type ServerStatus struct {
 }
 
 func Init() {
-	global.Ctx, ContextCancel = context.WithCancel(context.Background())
+	global.Ctx, global.CtxCancel = context.WithCancel(context.Background())
 	global.Injector = do.New()
 	config.Init()
 	logger.Init()

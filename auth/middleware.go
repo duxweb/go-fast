@@ -1,46 +1,63 @@
 package auth
 
 import (
-	"github.com/demdxx/gocast/v2"
+	"errors"
 	"github.com/duxweb/go-fast/config"
-	"github.com/gofiber/fiber/v2"
-	fiberJwt "github.com/gofiber/jwt/v3"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/labstack/echo-jwt/v4"
+	"github.com/labstack/echo/v4"
 	"time"
 )
 
-// Middleware Authorization Middleware
-func Middleware(app string, renewals ...int64) fiber.Handler {
-	key := []byte(config.Load("app").GetString("app.safeKey"))
-	// 续期时间
-	var renewal int64 = 43200
+func AuthMiddleware(app string, renewals ...time.Duration) echo.MiddlewareFunc {
+	var renewal time.Duration = 0
 	if len(renewals) > 0 {
 		renewal = renewals[0]
 	}
-
-	return fiberJwt.New(fiberJwt.Config{
-		SigningKey: key,
-		SuccessHandler: func(c *fiber.Ctx) error {
-			user := c.Locals("user").(*jwt.Token)
-			claims := user.Claims.(jwt.MapClaims)
-			c.Locals("auth", gocast.Map[string, any](claims))
-			// Determine the Routing Application
-			sub, ok := claims["sub"].(string)
-			if !ok || sub != app {
-				return c.Status(fiber.StatusUnauthorized).SendString("token type error jwt")
+	key := config.Load("app").GetString("app.safeKey")
+	middle := echojwt.Config{
+		SigningKey:  key,
+		TokenLookup: "header:" + echo.HeaderAuthorization + ",query:auth",
+		ParseTokenFunc: func(c echo.Context, token string) (interface{}, error) {
+			data := JwtClaims{}
+			jwtToken, err := jwt.ParseWithClaims(token, &data, func(token *jwt.Token) (interface{}, error) {
+				return key, nil
+			})
+			if err != nil {
+				return nil, err
 			}
-			// Auto Refresh
-			iat := claims["iat"].(int64)
-			exp := claims["exp"].(int64)
-			unix := time.Now().Unix()
-			if iat+renewal <= unix {
-				expire := exp - iat
-				claims["exp"] = unix + expire
-				token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-				tokenString, _ := token.SignedString(token)
-				c.Set(fiber.HeaderAuthorization, "Bearer "+tokenString)
+			if data.Subject != app {
+				return nil, errors.New("token type error")
 			}
-			return c.Next()
+			return jwtToken, nil
 		},
-	})
+		SuccessHandler: func(c echo.Context) {
+			user := c.Get("user").(*jwt.Token)
+			claims := user.Claims.(JwtClaims)
+			c.Set("auth", claims)
+			if !claims.Refresh {
+				return
+			}
+
+			issuedAt, _ := claims.GetIssuedAt()
+			if issuedAt == nil {
+				return
+			}
+			expiredAt, _ := claims.GetExpirationTime()
+			if expiredAt == nil {
+				return
+			}
+
+			if expiredAt.Add(-renewal).After(time.Now()) {
+				return
+			}
+			expire := expiredAt.Sub(issuedAt.Time)
+			newToken, _ := NewJWT().MakeToken(claims.Subject, expire)
+			c.Response().Header().Set(echo.HeaderAuthorization, "Bearer "+newToken)
+		},
+		ErrorHandler: func(c echo.Context, err error) error {
+			return echo.ErrUnauthorized
+		},
+	}
+	return echojwt.WithConfig(middle)
 }

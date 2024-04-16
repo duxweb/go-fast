@@ -20,6 +20,7 @@ var (
 	Debug        bool
 	DebugMsg     string
 	Ctx          context.Context
+	CtxCancel    context.CancelFunc
 	TimeLocation = time.UTC
 	DirList      []string
 	ConfigDir    = "./config/"

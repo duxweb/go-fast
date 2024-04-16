@@ -143,30 +143,21 @@ import (
 	{{- range .imports}}
 	{{.As}}	"{{.Name}}"
 	{{- end}}
+	"github.com/duxweb/go-fast/annotation"
 )
 
 
-type Annotation struct {
-	Name string
-	Params map[string]any
-	Func any
-}
 
-type File struct {
-	Name        string
-	Annotations []*Annotation
-}
-
-var Annotations = []*File{
+var Annotations = []*annotation.File{
 	{{- range $file := .files}}
 	{
 		Name: "{{$file.Name}}",
-		Annotations: []*Annotation{
+		Annotations: []*annotation.Annotation{
 			{{- range $item := $file.Annotations }}
 			{
 				Name: "{{$item.Name}}",
 				Params: map[string]any{
-					{{- range $key, $value := $item.Data }}
+					{{- range $key, $value := $item.Params }}
 					"{{ $key }}": {{ $value }},
 					{{- end }}
 				},

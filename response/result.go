@@ -1,37 +1,32 @@
 package response
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 )
 
-type Result struct {
-	Ctx *fiber.Ctx
+func Render(ctx echo.Context, name string, bind any, code ...int) error {
+	statusCode := 200
+	if len(code) > 0 {
+		statusCode = code[0]
+	}
+	return ctx.Render(statusCode, name, bind)
 }
 
-func New(ctx *fiber.Ctx) *Result {
-	return &Result{Ctx: ctx}
-}
-
-type ResultData struct {
+type Data struct {
 	Code    int    `json:"code" example:"200"`
 	Message string `json:"message" example:"ok"`
 	Data    any    `json:"data"`
+	Meta    any    `json:"meta"`
 }
 
-func (r *Result) Render(name string, bind any) error {
-	return r.Ctx.Render(name, bind)
-}
-
-func (r *Result) Send(message string, data ...any) error {
-	var params any
-	if len(data) > 0 {
-		params = data[0]
-	} else {
-		params = map[string]any{}
+func Send(ctx echo.Context, data Data, code ...int) error {
+	statusCode := 200
+	if len(code) > 0 {
+		statusCode = code[0]
 	}
-	res := ResultData{}
-	res.Code = 200
-	res.Message = message
-	res.Data = params
-	return r.Ctx.Status(fiber.StatusOK).JSON(res)
+	if data.Meta == nil {
+		data.Meta = echo.Map{}
+	}
+	data.Code = statusCode
+	return ctx.JSON(statusCode, data)
 }

@@ -1,18 +1,17 @@
 package web
 
 import (
-	"context"
 	"github.com/duxweb/go-fast/app"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/monitor"
 	"github.com/duxweb/go-fast/service"
 	"github.com/duxweb/go-fast/task"
+	"github.com/duxweb/go-fast/websocket"
 	"github.com/gookit/color"
 	"github.com/urfave/cli/v2"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 func Command() []*cli.Command {
@@ -25,12 +24,14 @@ func Command() []*cli.Command {
 				os.Interrupt,
 				syscall.SIGINT,
 				syscall.SIGQUIT,
-				syscall.SIGTERM)
+				syscall.SIGTERM,
+			)
 
 			service.Init()
 			task.Init()
 			Init()
 			monitor.Init()
+			websocket.Init()
 			app.Init()
 
 			task.ListenerTask("dux.monitor", monitor.Control)
@@ -49,16 +50,12 @@ func Command() []*cli.Command {
 			Start()
 
 			<-ch
-			service.ContextCancel()
 			err := global.Injector.Shutdown()
 			if err != nil {
 				color.Errorln("Stop service")
 			}
-			//color.Println("⇨ <orange>Stop websocket</>")
-			//websocket.Release()
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			if err := global.App.Shutdown(ctx); err != nil {
+			defer global.CtxCancel()
+			if err := global.App.Shutdown(global.Ctx); err != nil {
 				color.Errorln(err.Error())
 			}
 

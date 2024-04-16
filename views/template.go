@@ -3,6 +3,7 @@ package views
 import (
 	"embed"
 	"encoding/json"
+	"github.com/duxweb/go-fast/i18n"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
@@ -31,6 +32,9 @@ var funcMap = template.FuncMap{
 	"marshal": func(v interface{}) template.JS {
 		a, _ := json.Marshal(v)
 		return template.JS(a)
+	},
+	"t": func(s string) string {
+		return i18n.Trans.Get(s)
 	},
 }
 

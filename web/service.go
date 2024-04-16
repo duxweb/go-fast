@@ -4,10 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/duxweb/go-fast/i18n"
+	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/views"
+	"github.com/duxweb/go-fast/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog"
+	"github.com/spf13/cast"
 	"net"
 	"net/http"
 	"os"
@@ -131,8 +134,6 @@ func Init() {
 			return nil
 		},
 	}))
-
-	// 注册 WS
 }
 
 func Start() {
@@ -142,14 +143,31 @@ func Start() {
 		return c.Render(http.StatusOK, "welcome.html", nil)
 	})
 
-	// WS
-	//global.App.GET("/ws", func(c echo.Context) error {
-	//	data, err := auth.NewJWT().ParsingToken(c.Request().Header.Get("Authorization"))
-	//	if err != nil {
-	//		return err
-	//	}
-	//	return websocket.Socket.Handler(gocast.Str(data["sub"]), gocast.Str(data["id"]))(c)
-	//})
+	// websocket
+	global.App.GET("/ws", func(c echo.Context) error {
+		token := c.QueryParam("token")
+		app := c.QueryParam("app")
+		if token == "" {
+			logger.Log("websocket").Debug().Str("token", token).Msg("Token Not Found")
+			return response.Send(c, response.Data{
+				Message: "token does not exist",
+			})
+		}
+		if app == "" {
+			logger.Log("websocket").Debug().Str("app", token).Msg("App Not Found")
+			return response.Send(c, response.Data{
+				Message: "app does not exist",
+			})
+		}
+		c.Request().Header.Set("token", cast.ToString(token))
+		err := websocket.Service.Websocket.HandleRequest(c.Response().Writer, c.Request())
+		if err != nil {
+			return response.Send(c, response.Data{
+				Message: err.Error(),
+			})
+		}
+		return nil
+	})
 
 	port := config.Load("app").GetString("server.port")
 	banner()

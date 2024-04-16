@@ -5,49 +5,44 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"github.com/demdxx/gocast/v2"
-	"github.com/duxweb/go-fast/helper"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 	"strings"
 	"time"
 )
 
-// margin of error in seconds
-const diffTime float64 = 5
+const diffTime float64 = 10
 
-// Middleware Signature Verification
-func Middleware(secretCallback func(id string) string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		date := c.GetRespHeader("Content-Date")
-		timeNow := time.Now()
-		t := time.Unix(gocast.Number[int64](date), 0)
-		if timeNow.Sub(t).Seconds() > diffTime {
-			return fiber.ErrRequestTimeout
-		}
+func ApiMiddleware(secretCallback func(id string) string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			date := c.Response().Header().Get("Content-Date")
+			timeNow := time.Now()
+			t := time.Unix(gocast.Number[int64](date), 0)
+			if timeNow.Sub(t).Seconds() > diffTime {
+				return echo.ErrRequestTimeout
+			}
 
-		sign := c.GetRespHeader("Content-MD5")
-		id := c.GetRespHeader("AccessKey")
+			sign := c.Request().Header.Get("Content-MD5")
+			id := c.Request().Header.Get("AccessKey")
 
-		secretKey := secretCallback(id)
-		if secretKey == "" {
-			return fiber.ErrUnauthorized
+			secretKey := secretCallback(id)
+			if secretKey == "" {
+				return echo.ErrUnauthorized
+			}
+			signData := []string{
+				c.Path(),
+				c.QueryString(),
+				date,
+			}
+			h := sha256.New
+			mac := hmac.New(h, []byte(secretKey))
+			mac.Write([]byte(strings.Join(signData, "\n")))
+			digest := mac.Sum(nil)
+			hexDigest := hex.EncodeToString(digest)
+			if sign != hexDigest {
+				return echo.ErrUnauthorized
+			}
+			return next(c)
 		}
-		body := c.Body()
-		md5 := strings.ToLower(helper.Md5(string(body)))
-
-		signData := []string{
-			c.Path(),
-			c.Context().QueryArgs().String(),
-			md5,
-			date,
-		}
-		h := sha256.New
-		mac := hmac.New(h, []byte(secretKey))
-		mac.Write([]byte(strings.Join(signData, "\n")))
-		digest := mac.Sum(nil)
-		hexDigest := hex.EncodeToString(digest)
-		if sign != hexDigest {
-			return fiber.ErrUnauthorized
-		}
-		return c.Next()
 	}
 }

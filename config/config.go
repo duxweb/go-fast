@@ -33,7 +33,6 @@ func Init() {
 
 }
 
-// LoadFile Configuration from Specified File
 func LoadFile(name string) *viper.Viper {
 	config := viper.New()
 	config.SetConfigName(name)
@@ -46,7 +45,6 @@ func LoadFile(name string) *viper.Viper {
 	return config
 }
 
-// Load File Configuration
 func Load(name string) *viper.Viper {
 	if t, ok := data[name]; ok {
 		return t
