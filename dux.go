@@ -26,8 +26,8 @@ var LangFs embed.FS
 
 // Dux 基础结构
 type Dux struct {
-	registerApp []func()
-	registerCmd []func() []*cli.Command
+	apps []func()
+	cmds []func() []*cli.Command
 }
 
 func New() *Dux {
@@ -36,12 +36,12 @@ func New() *Dux {
 
 // RegisterApp 注册模块
 func (t *Dux) RegisterApp(calls ...func()) {
-	t.registerApp = append(t.registerApp, calls...)
+	t.apps = append(t.apps, calls...)
 }
 
 // RegisterCmd 注册命令
 func (t *Dux) RegisterCmd(calls ...func() []*cli.Command) {
-	t.registerCmd = append(t.registerCmd, calls...)
+	t.cmds = append(t.cmds, calls...)
 }
 
 // RegisterDir 注册目录
@@ -64,11 +64,16 @@ func (t *Dux) RegisterLangFS(fs embed.FS) {
 	i18n.FsList = append(i18n.FsList, fs)
 }
 
+// RegisterAnnotations 注册索引
+func (t *Dux) RegisterAnnotations(data []*annotation.File) {
+	annotation.Annotations = data
+}
+
 // 创建公共服务
 func (t *Dux) create() {
 	t.RegisterTplFS("app", TplFs)
 	t.RegisterLangFS(LangFs)
-	for _, call := range t.registerApp {
+	for _, call := range t.apps {
 		call()
 	}
 	t.RegisterCmd(app.Command, annotation.Command, web.Command, database.Command)
@@ -79,7 +84,7 @@ func (t *Dux) Run() {
 	t.create()
 
 	list := make([]*cli.Command, 0)
-	for _, cmd := range t.registerCmd {
+	for _, cmd := range t.cmds {
 		list = append(list, cmd()...)
 	}
 

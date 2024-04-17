@@ -26,7 +26,7 @@ import (
 
 func Init() {
 	global.App = echo.New()
-	global.App.Debug = config.Load("app").GetBool("app.debug")
+	global.App.Debug = config.Load("app").GetBool("app.server.debug")
 	global.App.Renderer = views.Render()
 	global.App.HideBanner = true
 	global.App.HidePort = true

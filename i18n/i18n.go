@@ -2,7 +2,6 @@ package i18n
 
 import (
 	"embed"
-	"fmt"
 	"github.com/duxweb/go-fast/global"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
@@ -34,9 +33,6 @@ func Register(file embed.FS) {
 			return nil
 		}
 		_, err = Bundle.LoadMessageFileFS(file, path)
-		if err != nil {
-			fmt.Println(err)
-		}
 		return nil
 	})
 }

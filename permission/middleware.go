@@ -1,32 +1,37 @@
 package permission
 
 import (
-	"github.com/demdxx/gocast/v2"
-	"github.com/gofiber/fiber/v2"
+	duxAuth "github.com/duxweb/go-fast/auth"
+	"github.com/duxweb/go-fast/route"
+	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
+	"github.com/spf13/cast"
 	"sync"
 )
 
-// Middleware permission
-func Middleware(app string, callback func(id int64) []string) fiber.Handler {
+func PermissionMiddleware(app string, getPermission func(id int64) []string) echo.MiddlewareFunc {
 	var doOnce sync.Once
 	var permissions []string
-	return func(c *fiber.Ctx) error {
-		auth, ok := c.Locals("auth").(map[string]any)
-		if !ok {
-			return fiber.ErrUnauthorized
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+
+			auth, ok := c.Get("auth").(duxAuth.JwtClaims)
+			if !ok {
+				return echo.ErrUnauthorized
+			}
+			doOnce.Do(func() {
+				permissions = Get(app).GetData()
+			})
+			routeItem := c.Get("route").(*route.RouterItem)
+			routeName := routeItem.Name
+			if routeName == "" || lo.IndexOf[string](permissions, routeName) == -1 {
+				return next(c)
+			}
+			permissions = getPermission(cast.ToInt64(auth.ID))
+			if len(permissions) > 0 && lo.IndexOf[string](permissions, routeName) == -1 {
+				return echo.ErrForbidden
+			}
+			return next(c)
 		}
-		doOnce.Do(func() {
-			permissions = Get(app).GetFlat()
-		})
-		routeName := c.Route().Name
-		if routeName == "" || lo.IndexOf[string](permissions, routeName) == -1 {
-			return c.Next()
-		}
-		permissions = callback(gocast.Number[int64](auth["id"]))
-		if len(permissions) > 0 && lo.IndexOf[string](permissions, routeName) == -1 {
-			return fiber.ErrForbidden
-		}
-		return c.Next()
 	}
 }

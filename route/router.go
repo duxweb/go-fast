@@ -6,37 +6,37 @@ import (
 )
 
 type RouterData struct {
-	name   string
-	prefix string
-	data   []*RouterItem
-	group  []*RouterData
-	router *echo.Group
+	Name        string
+	Prefix      string
+	Data        []*RouterItem
+	Groups      []*RouterData
+	GroupRouter *echo.Group
 }
 
 type RouterItem struct {
-	method string
-	path   string
-	name   string
+	Method string
+	Path   string
+	Name   string
 }
 
 func New(prefix string, middle ...echo.MiddlewareFunc) *RouterData {
 	return &RouterData{
-		router: global.App.Group(prefix, middle...),
+		GroupRouter: global.App.Group(prefix, middle...),
 	}
 }
 
 func (t *RouterData) Group(prefix string, name string, middle ...echo.MiddlewareFunc) *RouterData {
 	group := &RouterData{
-		prefix: prefix,
-		router: t.router.Group(prefix, middle...),
-		name:   name,
+		Prefix:      prefix,
+		GroupRouter: t.GroupRouter.Group(prefix, middle...),
+		Name:        name,
 	}
-	t.group = append(t.group, group)
+	t.Groups = append(t.Groups, group)
 	return group
 }
 
 func (t *RouterData) Router() *echo.Group {
-	return t.router
+	return t.GroupRouter
 }
 
 func (t *RouterData) Get(path string, handler echo.HandlerFunc, name string) *echo.Route {
@@ -81,27 +81,27 @@ func (t *RouterData) Any(path string, handler echo.HandlerFunc, name string) *ec
 
 func (t *RouterData) Add(method string, path string, handler echo.HandlerFunc, name string) *echo.Route {
 	item := RouterItem{
-		method: method,
-		path:   path,
-		name:   name,
+		Method: method,
+		Path:   path,
+		Name:   name,
 	}
-	t.data = append(t.data, &item)
-	r := t.router.Add(method, path, handler)
-	r.Name = item.name
+	t.Data = append(t.Data, &item)
+	r := t.GroupRouter.Add(method, path, handler, AppMiddleware(&item))
+	r.Name = item.Name
 	return r
 }
 
 func (t *RouterData) ParseTree(prefix string) any {
 	var all []any
-	for _, datum := range t.data {
+	for _, datum := range t.Data {
 		all = append(all, map[string]any{
-			"name":   datum.name,
-			"method": datum.method,
-			"path":   prefix + datum.path,
+			"name":   datum.Name,
+			"method": datum.Method,
+			"path":   prefix + datum.Path,
 		})
 	}
-	for _, item := range t.group {
-		gpath := prefix + item.prefix
+	for _, item := range t.Groups {
+		gpath := prefix + item.Prefix
 		all = append(all, item.ParseTree(gpath))
 	}
 	return map[string]any{
@@ -112,15 +112,15 @@ func (t *RouterData) ParseTree(prefix string) any {
 
 func (t *RouterData) ParseData(prefix string) []map[string]any {
 	var all []map[string]any
-	for _, datum := range t.data {
+	for _, datum := range t.Data {
 		all = append(all, map[string]any{
-			"name":   datum.name,
-			"method": datum.method,
-			"path":   prefix + datum.path,
+			"name":   datum.Name,
+			"method": datum.Method,
+			"path":   prefix + datum.Path,
 		})
 	}
-	for _, item := range t.group {
-		gpath := prefix + item.prefix
+	for _, item := range t.Groups {
+		gpath := prefix + item.Prefix
 		data := item.ParseData(gpath)
 		all = append(all, data...)
 	}

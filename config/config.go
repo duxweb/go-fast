@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"github.com/duxweb/go-fast/global"
 	"github.com/spf13/viper"
 	"os"
@@ -39,7 +38,6 @@ func LoadFile(name string) *viper.Viper {
 	config.SetConfigType("yaml")
 	config.AddConfigPath(global.ConfigDir)
 	if err := config.ReadInConfig(); err != nil {
-		fmt.Println("config", name)
 		panic(err)
 	}
 	return config

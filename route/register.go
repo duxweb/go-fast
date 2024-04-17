@@ -16,9 +16,8 @@ func Get(name string) *RouterData {
 	return Routes[name]
 }
 
-func Register(files []*annotation.File) {
-
-	for _, file := range files {
+func Register() {
+	for _, file := range annotation.Annotations {
 		// 获取资源数据
 		var info *annotation.Annotation
 		for _, item := range file.Annotations {
@@ -32,7 +31,10 @@ func Register(files []*annotation.File) {
 		var routeGroup *RouterData
 		var routeData *RouterData
 		if info != nil {
-			appName := info.Params["app"].(string)
+			appName, ok := info.Params["app"].(string)
+			if !ok {
+				panic("the routing group does not have app parameters set: " + file.Name)
+			}
 			resName := info.Params["name"].(string)
 			routeData = Get(appName)
 			if routeData != nil {
@@ -46,10 +48,27 @@ func Register(files []*annotation.File) {
 				continue
 			}
 			params := item.Params
+
+			method, ok := params["method"].(string)
+			if !ok {
+				panic("routing method not set: " + file.Name)
+			}
+			match, ok := params["route"].(string)
+			if !ok {
+				panic("routing route not set: " + file.Name)
+			}
+			name, ok := params["name"].(string)
+			if !ok {
+				panic("routing name not set: " + file.Name)
+			}
+			function, ok := item.Func.(func(ctx echo.Context) error)
+			if !ok {
+				panic("routing func not set: " + file.Name)
+			}
 			if routeGroup != nil {
-				routeGroup.Add(params["method"].(string), params["route"].(string), item.Func.(echo.HandlerFunc), params["name"].(string))
+				routeGroup.Add(method, match, function, name)
 			} else if routeData != nil {
-				routeData.Add(params["method"].(string), params["route"].(string), item.Func.(echo.HandlerFunc), params["name"].(string))
+				routeData.Add(method, match, function, name)
 			}
 		}
 

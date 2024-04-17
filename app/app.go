@@ -11,8 +11,6 @@ var (
 type Config struct {
 	Name     string
 	Config   any
-	Title    string
-	Desc     string
 	Init     func()
 	Register func()
 	Boot     func()

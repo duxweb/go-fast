@@ -4,34 +4,33 @@
 </a>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-Alpha-red.svg?cacheSeconds=2592000" />
+  <img alt="Version" src="https://img.shields.io/badge/version-lpha-red.svg?cacheSeconds=2592000" />
   <a href="https://github.com/duxweb/go-storage/blob/main/LICENSE" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
   </a>
     <a title="Go Reference" target="_blank" href="https://pkg.go.dev"><img src="https://img.shields.io/github/go-mod/go-version/duxweb/go-storage"></a>
 </p>
 
-<p align="center"><code>DuxFast</code> is a fast development framework based on GoFiber, integrated with mainstream third-party packages, simple, easy to develop, and high-performance integrated framework.</p>
-<p align="center">
-<a href="https://github.com/duxphp/duxgo/blob/master/README_zh-CN.md">中文说明</a>
-</p>
-
-# 💥 Version
-
-Warning: This version is for development purposes only. Some features are still under development and there may be inevitable bugs. Please do not use it in a production environment.
-
-# 🎯 Features
-
-- 📦 High-performance Web framework based on GoFiber Fasthttp.
-- 📚 Integrated Gorm as the main database driver to provide good database operation support.
-- 📡 Not overly encapsulated, making it easy for developers to flexibly choose and upgrade with the version.
-- 🔧 Integrating major popular packages and encapsulating commonly used tool packages such as logs, exceptions, and permissions.
-- 📡 Adopt an application modular design to improve the maintainability and scalability of the application.
-- 📡 Uniform registration of application entry points, facilitating the overall architecture and management of the application.
-- 🏷 Developing command assistants and scaffolding tools, providing basic code generation.
+<p align="center"><code>DuxFast</code> 是一款基于 GoFiber 的快速开发框架，集成主流三方包，简单、易开发、高性能的集成框架。</p>
 
 
-#  ⚡ Quick start
+
+# 💥 版本
+
+警告：该版本作为开发版，尚有功能正在开发中并有不可避免的 bug，请勿在正式环境中使用。
+
+# 🎯 特点
+
+- 📦 基于 GoFiber 的 Fasthttp 高性能 Web 框架。
+- 📚 整合 Gorm 作为主要数据库驱动，提供良好的数据库操作支持。
+- 📡 不做过度封装，便于开发者灵活选择和随版本升级。
+- 🔧 集成各大流行包，并封装常用日志、异常、权限等工具包。
+- 📡 采用应用模块化设计，提高应用程序的可维护性和可扩展性。
+- 📡 统一注册应用入口，方便应用程序的整体架构和管理。
+- 🏷 开发命令助手与脚手架工具，提供基础的代码生成。
+
+
+#  ⚡ 快速开始
 
 ```go
 package main
@@ -56,7 +55,7 @@ package home
 import (
 	"github.com/duxweb/go-fast/app"
 	"github.com/duxweb/go-fast/route"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 )
 
 var config = struct {
@@ -79,22 +78,22 @@ func Init() {
 
 func Register() {
 	group := route.Get("web")
-	group.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("I'm a GET request!")
-	}, "index", "web.home")
+	group.Get("/", func(c *echo.Context) error {
+		return c.String(200, "I'm a GET request!")
+	}, "web.home")
 
 }
 
 ```
 
-#  ⚙ Installation
+#  ⚙ 安装
 
-Please make sure that the current Golang environment version is higher than `1.18`, create the project directory and initialize it.
+请确保当前 Golang 环境版本高于 `1.18` 版本，建立项目目录并初始化。
 
 ```sh
 go get github.com/duxweb/go-fast
 ```
 
-# 💡Philosophy
+# 💡思想
 
-This framework follows the architectural design of DuxLite, applying each functional module and highly decoupling through `application entry points` and `event scheduling`, ensuring the minimization of basic framework and system required to avoid cumbersome framework designs.
+该框架遵循与 DuxLite 一致化架构设计，将各个功能模块应用化，并通过 `应用入口` 与 `事件调度` 进行高度解耦，并保证基础框架与系统必备最小化，避免大而全的臃肿框架设计。

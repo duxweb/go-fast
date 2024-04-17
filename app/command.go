@@ -20,14 +20,14 @@ func Command() []*cli.Command {
 
 	appList := &cli.Command{
 		Name:  "app:list",
-		Usage: "Viewing the application list",
+		Usage: "viewing the application list",
 		Action: func(cCtx *cli.Context) error {
 			t := table.NewWriter()
 			t.SetOutputMirror(os.Stdout)
-			t.AppendHeader(table.Row{"Name", "Title", "Desc"})
+			t.AppendHeader(table.Row{"Name"})
 			rows := make([]table.Row, 0)
 			for _, config := range List {
-				rows = append(rows, table.Row{config.Name, config.Title, config.Desc})
+				rows = append(rows, table.Row{config.Name})
 			}
 			t.AppendRows(rows)
 			t.Render()

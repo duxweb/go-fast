@@ -1,8 +1,13 @@
 package app
 
 import (
+	"github.com/duxweb/go-fast/database"
+	"github.com/duxweb/go-fast/event"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/helper"
+	"github.com/duxweb/go-fast/resources"
+	"github.com/duxweb/go-fast/route"
+	"github.com/duxweb/go-fast/task"
 )
 
 var DirList = []string{
@@ -52,5 +57,11 @@ func Init() {
 			appConfig.Boot()
 		}
 	}
+
+	database.Register()
+	event.Register()
+	task.Register()
+	resources.Register()
+	route.Register()
 
 }

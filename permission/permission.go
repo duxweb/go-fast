@@ -54,11 +54,11 @@ func (t *PermissionData) Get() []map[string]any {
 	return data
 }
 
-func (t *PermissionData) GetFlat() []string {
+func (t *PermissionData) GetData() []string {
 	data := make([]string, 0)
 	for _, datum := range t.Data {
 		for _, item := range datum.Data {
-			data = append(data, item.Label)
+			data = append(data, item.Name)
 		}
 	}
 	return data

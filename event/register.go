@@ -7,14 +7,22 @@ import (
 	"github.com/spf13/cast"
 )
 
-func Register(files []*annotation.File) {
+func Register() {
 
-	for _, file := range files {
+	for _, file := range annotation.Annotations {
 		for _, item := range file.Annotations {
 			if item.Name != "Listener" {
 				continue
 			}
 			params := item.Params
+			name, ok := params["name"].(string)
+			if !ok {
+				panic("event name not set: " + file.Name)
+			}
+			function, ok := item.Func.(event.Listener)
+			if !ok {
+				panic("event func not set: " + file.Name)
+			}
 
 			levelName := cast.ToString(params["level"])
 
@@ -29,7 +37,7 @@ func Register(files []*annotation.File) {
 			if item.Func == nil {
 				continue
 			}
-			event.On(params["name"].(string), item.Func.(event.Listener), level)
+			event.On(name, function, level)
 		}
 
 	}

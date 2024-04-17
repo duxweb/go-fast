@@ -1,7 +1,6 @@
 package annotation
 
 import (
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"text/template"
 )
+
+var Annotations []*File
 
 type File struct {
 	Name        string
@@ -137,7 +138,7 @@ func parseDocs(text string) *Annotation {
 
 func generateIndexFile(files []*File, imports []*Import) {
 	tmpl := `
-package main
+package runtime
 
 import (
 	{{- range .imports}}
@@ -188,8 +189,6 @@ var Annotations = []*annotation.File{
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("Index file generated successfully.")
 }
 
 func parseParams(paramString string) map[string]interface{} {
