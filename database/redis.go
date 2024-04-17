@@ -27,7 +27,7 @@ func RedisInit() {
 		Password: dbConfig["password"],
 		DB:       gocast.Number[int](dbConfig["db"]),
 	})
-	_, err := client.Ping(global.Ctx).Result()
+	_, err := client.Ping(global.CtxBackground).Result()
 	if err != nil {
 		panic(err.Error())
 	}

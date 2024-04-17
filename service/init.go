@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"github.com/duxweb/go-fast/cache"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/database"
@@ -22,7 +21,6 @@ type ServerStatus struct {
 }
 
 func Init() {
-	global.Ctx, global.CtxCancel = context.WithCancel(context.Background())
 	global.Injector = do.New()
 	config.Init()
 	logger.Init()

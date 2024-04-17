@@ -137,6 +137,7 @@ func parseDocs(text string) *Annotation {
 }
 
 func generateIndexFile(files []*File, imports []*Import) {
+
 	tmpl := `
 package runtime
 

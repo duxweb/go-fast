@@ -10,8 +10,9 @@ import (
 
 func Command() []*cli.Command {
 	version := &cli.Command{
-		Name:  "version",
-		Usage: "View the version number",
+		Name:     "version",
+		Category: "dev",
+		Usage:    "View the version number",
 		Action: func(cCtx *cli.Context) error {
 			color.Redf("⇨ <red>%s</>", global.Version)
 			return nil
@@ -19,8 +20,9 @@ func Command() []*cli.Command {
 	}
 
 	appList := &cli.Command{
-		Name:  "app:list",
-		Usage: "viewing the application list",
+		Name:     "app:list",
+		Category: "app",
+		Usage:    "viewing the application list",
 		Action: func(cCtx *cli.Context) error {
 			t := table.NewWriter()
 			t.SetOutputMirror(os.Stdout)

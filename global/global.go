@@ -10,20 +10,19 @@ import (
 
 var (
 	App         *echo.Echo
-	Version     = "v2.0.0"
+	Version     = "v0.0.1"
 	BootTime    time.Time
 	TablePrefix = "app_"
 	Lang        = "en-US"
 
 	Injector *do.Injector
 
-	Debug        bool
-	DebugMsg     string
-	Ctx          context.Context
-	CtxCancel    context.CancelFunc
-	TimeLocation = time.UTC
-	DirList      []string
-	ConfigDir    = "./config/"
+	Debug         bool
+	DebugMsg      string
+	CtxBackground = context.Background()
+	TimeLocation  = time.UTC
+	DirList       []string
+	ConfigDir     = "./config/"
 
 	StaticFs *embed.FS
 )

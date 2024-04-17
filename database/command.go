@@ -7,8 +7,9 @@ import (
 
 func Command() []*cli.Command {
 	sync := &cli.Command{
-		Name:  "db:sync",
-		Usage: "Synchronous database structure",
+		Name:     "db:sync",
+		Usage:    "Synchronous database structure",
+		Category: "database",
 		Action: func(cCtx *cli.Context) error {
 			for _, model := range MigrateModel {
 				err := Gorm().AutoMigrate(model)

@@ -76,7 +76,7 @@ func (t *Dux) create() {
 	for _, call := range t.apps {
 		call()
 	}
-	t.RegisterCmd(app.Command, annotation.Command, web.Command, database.Command)
+	t.RegisterCmd(web.Command, app.Command, annotation.Command, database.Command)
 }
 
 // Run Command

@@ -13,7 +13,7 @@ type QmgoService struct {
 }
 
 func (s *QmgoService) Shutdown() error {
-	return s.client.Close(global.Ctx)
+	return s.client.Close(global.CtxBackground)
 }
 
 func Qmgo() *qmgo.Database {
@@ -28,7 +28,7 @@ func QmgoInit() {
 		auth = dbConfig["username"] + ":" + dbConfig["password"] + "@"
 	}
 
-	client, err := qmgo.NewClient(global.Ctx, &qmgo.Config{Uri: "mongodb://" + auth + dbConfig["host"] + ":" + dbConfig["port"]})
+	client, err := qmgo.NewClient(global.CtxBackground, &qmgo.Config{Uri: "mongodb://" + auth + dbConfig["host"] + ":" + dbConfig["port"]})
 	if err != nil {
 		panic("qmgo error :" + err.Error())
 	}

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"github.com/duxweb/go-fast/app"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/monitor"
@@ -14,20 +15,21 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func Command() []*cli.Command {
 	cmd := &cli.Command{
-		Name:  "web",
-		Usage: "starting the web service",
+		Category: "service",
+		Name:     "web",
+		Usage:    "starting the web service",
 		Action: func(cCtx *cli.Context) error {
-			ch := make(chan os.Signal, 1)
-			signal.Notify(ch,
+			ctx, stop := signal.NotifyContext(context.Background(),
 				os.Interrupt,
 				syscall.SIGINT,
 				syscall.SIGQUIT,
-				syscall.SIGTERM,
-			)
+				syscall.SIGTERM)
+			defer stop()
 
 			service.Init()
 			task.Init()
@@ -35,7 +37,6 @@ func Command() []*cli.Command {
 			monitor.Init()
 			websocket.Init()
 			app.Init()
-			//annotation.Init()
 
 			task.ListenerTask("dux.monitor", monitor.Control)
 			task.ListenerScheduler("*/1 * * * *", "dux.monitor", map[string]any{}, task.PRIORITY_LOW)
@@ -52,23 +53,24 @@ func Command() []*cli.Command {
 			// 启动 web 服务
 			Start()
 
-			<-ch
+			<-ctx.Done()
 			err := global.Injector.Shutdown()
 			if err != nil {
 				color.Errorln("Stop service")
 			}
-			defer global.CtxCancel()
-			if err := global.App.Shutdown(global.Ctx); err != nil {
+			ctx, cancel := context.WithTimeout(global.CtxBackground, 10*time.Second)
+			defer cancel()
+			if err = global.App.Shutdown(ctx); err != nil {
 				color.Errorln(err.Error())
 			}
-
 			return nil
 		},
 	}
 
 	routeList := &cli.Command{
-		Name:  "route:list",
-		Usage: "viewing the route list",
+		Name:     "route:list",
+		Usage:    "viewing the route list",
+		Category: "dev",
 		Action: func(ctx *cli.Context) error {
 			service.Init()
 			Init()
