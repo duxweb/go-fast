@@ -11,7 +11,7 @@
     <a title="Go Reference" target="_blank" href="https://pkg.go.dev"><img src="https://img.shields.io/github/go-mod/go-version/duxweb/go-storage"></a>
 </p>
 
-<p align="center"><code>DuxFast</code> 是一款基于 GoFiber 的快速开发框架，集成主流三方包，简单、易开发、高性能的集成框架。</p>
+<p align="center"><code>DuxFast</code> 是一款基于 GoEcho 的快速开发框架，集成主流三方包，简单、易开发、高性能的集成框架。</p>
 
 
 
@@ -23,6 +23,7 @@
 
 - 📦 基于 GoFiber 的 Fasthttp 高性能 Web 框架。
 - 📚 整合 Gorm 作为主要数据库驱动，提供良好的数据库操作支持。
+- 🧭 自动注解，自动生成注解索引，用于路由、任务、事件等自动化处理。
 - 📡 不做过度封装，便于开发者灵活选择和随版本升级。
 - 🔧 集成各大流行包，并封装常用日志、异常、权限等工具包。
 - 📡 采用应用模块化设计，提高应用程序的可维护性和可扩展性。
