@@ -29,7 +29,7 @@ func Register(file embed.FS) {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() {
+		if d.IsDir() {
 			return nil
 		}
 		_, err = Bundle.LoadMessageFileFS(file, path)

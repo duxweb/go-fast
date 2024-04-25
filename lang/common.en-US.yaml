@@ -1,4 +1,5 @@
 common:
+  welcome: Welcome
   encryption:
     failure: Encryption failed
   message:
@@ -27,5 +28,5 @@ common:
     notFoundMessage: The page you are trying to access does not exist or has been deleted
     errorTitle: System Error
     errorMessage: An error occurred while processing your request. Please try again later
-    home: Back to home
-    back: Go back to the previous page
+    home: Home
+    back: Go back

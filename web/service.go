@@ -43,7 +43,7 @@ func Init() {
 		} else {
 			// Other error
 			logger.Log().Error().Str("stack", fmt.Sprintf("%+v", err)).Msg(err.Error())
-			msg = lo.Ternary[string](global.Debug, i18n.Trans.Get("common.error"), err.Error())
+			msg = lo.Ternary[string](global.Debug, i18n.Trans.Get("common.errorMessage"), err.Error())
 		}
 
 		if isAsync(c) {
