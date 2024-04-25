@@ -11,6 +11,7 @@ func Command() []*cli.Command {
 		Usage:    "Synchronous database structure",
 		Category: "database",
 		Action: func(cCtx *cli.Context) error {
+			Register()
 			for _, model := range MigrateModel {
 				err := Gorm().AutoMigrate(model)
 				if err != nil {

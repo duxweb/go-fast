@@ -92,6 +92,8 @@ func (t *Dux) Run() {
 		annotation.Run()
 	}
 
+	service.Init()
+
 	appCli := &cli.App{
 		Name:     "dux",
 		Commands: list,

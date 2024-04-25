@@ -76,7 +76,7 @@ func GormInit() {
 	})
 
 	// Set Connection Pool
-	sqlDB, err := do.MustInvoke[*gorm.DB](nil).DB()
+	sqlDB, err := database.DB()
 	if err != nil {
 		panic("database error: " + err.Error())
 	}

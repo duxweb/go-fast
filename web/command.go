@@ -6,7 +6,6 @@ import (
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/monitor"
 	"github.com/duxweb/go-fast/route"
-	"github.com/duxweb/go-fast/service"
 	"github.com/duxweb/go-fast/task"
 	"github.com/duxweb/go-fast/websocket"
 	"github.com/gookit/color"
@@ -31,7 +30,6 @@ func Command() []*cli.Command {
 				syscall.SIGTERM)
 			defer stop()
 
-			service.Init()
 			task.Init()
 			Init()
 			monitor.Init()
@@ -72,7 +70,6 @@ func Command() []*cli.Command {
 		Usage:    "viewing the route list",
 		Category: "dev",
 		Action: func(ctx *cli.Context) error {
-			service.Init()
 			Init()
 			app.Init()
 

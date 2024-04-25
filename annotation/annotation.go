@@ -34,6 +34,7 @@ func Run() {
 	files := make([]*File, 0)
 	imports := make([]*Import, 0)
 	dir := "./app"
+	existingImports := make(map[string]bool)
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -51,7 +52,11 @@ func Run() {
 					Name:        fileImport.Name,
 					Annotations: fileAnnotations,
 				})
-				imports = append(imports, fileImport)
+
+				if !existingImports[fileImport.Name] {
+					imports = append(imports, fileImport)
+					existingImports[fileImport.Name] = true
+				}
 			}
 		}
 
@@ -91,27 +96,40 @@ func parseGoFile(dir string, path string) ([]*Annotation, *Import) {
 
 	for _, comment := range file.Comments {
 		var annotation *Annotation
+
 		for _, decl := range file.Decls {
-			declFun, ok := decl.(*ast.FuncDecl)
-			if !ok {
-				// 不为函数跳过
-				continue
-			}
-			// 判断函数所属注释
-			if strings.TrimSpace(comment.Text()) == strings.TrimSpace(declFun.Doc.Text()) {
-				funName := declFun.Name.Name
+			switch d := decl.(type) {
+			case *ast.FuncDecl:
+				if strings.TrimSpace(comment.Text()) != strings.TrimSpace(d.Doc.Text()) {
+					continue
+				}
+				funName := d.Name.Name
 				annotation = parseDocs(comment.Text())
 				annotation.Func = asPackage + "." + funName
 				break
+			case *ast.GenDecl:
+				if strings.TrimSpace(comment.Text()) != strings.TrimSpace(d.Doc.Text()) {
+					continue
+				}
+				for _, spec := range d.Specs {
+					if ts, ok := spec.(*ast.TypeSpec); ok {
+						if _, ok = ts.Type.(*ast.StructType); ok {
+							structName := ts.Name.Name
+							annotation = parseDocs(comment.Text())
+							annotation.Func = asPackage + "." + structName + "{}"
+							break
+						}
+					}
+				}
+
 			}
+
 		}
 
-		// 如果不是函数或方法的注释，则直接解析注释内容
+		// 如果不是函数或结构体的注释，则直接解析注释内容
 		if annotation == nil {
 			annotation = parseDocs(comment.Text())
-		}
-
-		if annotation != nil {
+		} else {
 			fileAnnotations = append(fileAnnotations, annotation)
 		}
 	}
