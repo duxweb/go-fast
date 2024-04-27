@@ -1,16 +1,18 @@
 package web
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/views"
 	"github.com/duxweb/go-fast/websocket"
+	"github.com/go-errors/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/rs/zerolog"
+	"github.com/lmittmann/tint"
 	"github.com/spf13/cast"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -41,8 +43,23 @@ func Init() {
 			code = e.Code
 			msg = e.Message
 		} else {
+			var exceptions *errors.Error
+			if errors.As(err, &exceptions) {
+				stacks := exceptions.StackFrames()
+				logger.Log().Error("core", tint.Err(err),
+					slog.String("file", lo.Ternary[string](len(stacks) > 0, stacks[0].File+":"+cast.ToString(stacks[0].LineNumber), "")),
+					slog.Any("stack", lo.Map[errors.StackFrame, map[string]any](stacks, func(item errors.StackFrame, index int) map[string]any {
+						return map[string]any{
+							"file": item.File + ":" + cast.ToString(item.LineNumber),
+							"func": item.Name,
+						}
+					})),
+				)
+			} else {
+				logger.Log().Error("core", tint.Err(err))
+			}
+
 			// Other error
-			logger.Log().Error().Str("stack", fmt.Sprintf("%+v", err)).Msg(err.Error())
 			msg = lo.Ternary[string](global.Debug, i18n.Trans.Get("common.errorMessage"), err.Error())
 		}
 
@@ -52,7 +69,7 @@ func Init() {
 				"message": msg,
 			})
 			if err != nil {
-				logger.Log().Error().Err(err).Send()
+				logger.Log().Error("err", err)
 			}
 			return
 		}
@@ -68,7 +85,7 @@ func Init() {
 			})
 		}
 		if err != nil {
-			logger.Log().Error().Err(err).Send()
+			logger.Log().Error("err", err)
 		}
 	}
 
@@ -99,7 +116,7 @@ func Init() {
 	}))
 
 	// 注册框架日志
-	global.App.Logger = EchoLoggerHeadAdaptor()
+	//global.App.Logger = EchoLoggerHeadAdaptor()
 
 	// 注册静态路由
 	global.App.Static("/uploads", "./uploads")
@@ -109,10 +126,8 @@ func Init() {
 		global.App.StaticFS("/", echo.MustSubFS(global.StaticFs, "public"))
 	}
 
-	// 注册请求id
-	global.App.Use(middleware.RequestID())
-
 	// 请求日志
+	global.App.Use(middleware.RequestID())
 	global.App.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:       true,
 		LogHost:      true,
@@ -123,17 +138,36 @@ func Init() {
 		LogError:     true,
 		LogRequestID: true,
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			logger.Log("request").WithLevel(lo.Ternary[zerolog.Level](v.Latency > 1*time.Second, zerolog.WarnLevel, zerolog.InfoLevel)).Str("id", v.RequestID).
-				Int("status", v.Status).
-				Str("method", v.Method).
-				Str("uri", v.URI).
-				Str("ip", v.RemoteIP).
-				Dur("latency", v.Latency).
-				Err(v.Error).
-				Msg("request")
+
+			var level slog.Level
+			attr := []slog.Attr{
+				slog.Int("status", v.Status),
+				slog.String("method", v.Method),
+				slog.String("uri", v.URI),
+				slog.String("ip", v.RemoteIP),
+				slog.Duration("latency", v.Latency),
+				slog.String("id", v.RequestID),
+			}
+
+			if v.Error != nil {
+				level = slog.LevelError
+				attr = append([]slog.Attr{tint.Err(v.Error)}, attr...)
+			} else {
+				level = lo.Ternary[slog.Level](v.Latency > 1*time.Second, slog.LevelWarn, slog.LevelInfo)
+			}
+
+			logger.Log("request").LogAttrs(
+				context.Background(),
+				level,
+				"request",
+				attr...,
+			)
+
 			return nil
 		},
 	}))
+
+	global.App.Use(middleware.Timeout())
 }
 
 func Start() {
@@ -148,13 +182,13 @@ func Start() {
 		token := c.QueryParam("token")
 		app := c.QueryParam("app")
 		if token == "" {
-			logger.Log("websocket").Debug().Str("token", token).Msg("Token Not Found")
+			logger.Log("websocket").Debug("Token Not Found", slog.String("token", token))
 			return response.Send(c, response.Data{
 				Message: "token does not exist",
 			})
 		}
 		if app == "" {
-			logger.Log("websocket").Debug().Str("app", token).Msg("App Not Found")
+			logger.Log("websocket").Debug("App Not Found", slog.String("token", token))
 			return response.Send(c, response.Data{
 				Message: "app does not exist",
 			})

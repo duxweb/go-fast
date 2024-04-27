@@ -7,6 +7,7 @@ import (
 	"github.com/duxweb/go-fast/logger"
 	"github.com/olahol/melody"
 	"github.com/spf13/cast"
+	"log/slog"
 	"sync"
 )
 
@@ -44,10 +45,10 @@ func GetClient(clientID string) (*Client, error) {
 func SendClient(clientID string, message map[string]any) error {
 	client, err := GetClient(clientID)
 	if err != nil {
-		logger.Log("websocket").Error().Any("message", message).Err(err).Msg("Send Client")
+		logger.Log("websocket").Error("Send Client", err, slog.Any("message", message))
 		return err
 	}
-	logger.Log("websocket").Debug().Str("client", clientID).Any("message", message).Msg("Send Client")
+	logger.Log("websocket").Debug("Send Client", slog.String("client", clientID), slog.Any("message", message))
 	content, _ := json.Marshal(message)
 	err = client.conn.Write(content)
 	if err != nil {
@@ -59,7 +60,7 @@ func SendClient(clientID string, message map[string]any) error {
 // AddClient 添加客户端
 func AddClient(app string, client *melody.Session, clientID string, token string, data map[string]any) {
 	client.Set("clientID", clientID)
-	logger.Log("websocket").Debug().Str("client", clientID).Msg("Add Client")
+	logger.Log("websocket").Debug("Add Client", slog.String("client", clientID))
 	Service.Clients.Store(clientID, &Client{
 		conn:     client,
 		clientID: clientID,
@@ -92,5 +93,5 @@ func RemoveClient(clientID string) {
 	client.Unsub()
 
 	Service.Clients.Delete(clientID)
-	logger.Log("websocket").Debug().Str("client", clientID).Msg("Del Client")
+	logger.Log("websocket").Debug("Del Client", slog.String("client", clientID))
 }

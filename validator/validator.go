@@ -2,6 +2,7 @@ package validator
 
 import (
 	"errors"
+	"github.com/duxweb/go-fast/response"
 	"github.com/go-playground/validator/v10"
 	"reflect"
 	"regexp"
@@ -32,7 +33,7 @@ func ProcessError(object any, err error) error {
 	var invalid *validator.InvalidValidationError
 	ok := errors.As(err, &invalid)
 	if ok {
-		return errors.New("参数错误：" + invalid.Error())
+		return response.BusinessError(invalid.Error())
 	}
 	var validationErrs validator.ValidationErrors
 	errors.As(err, &validationErrs)
@@ -46,13 +47,13 @@ func ProcessError(object any, err error) error {
 		if ok {
 			msg := field.Tag.Get("validateMsg")
 			if msg != "" {
-				return errors.New(msg)
+				return response.BusinessError(msg)
 			} else {
-				return errors.New(item.Error())
+				return response.BusinessError(item.Error())
 			}
 
 		} else {
-			return errors.New(item.Error())
+			return response.BusinessError(item.Error())
 		}
 	}
 	return nil

@@ -11,8 +11,8 @@ import (
 	"github.com/duxweb/go-fast/logger"
 	"github.com/gookit/color"
 	"github.com/hibiken/asynq"
-	"github.com/rs/zerolog"
 	"github.com/samber/do"
+	"log/slog"
 	"time"
 )
 
@@ -42,13 +42,7 @@ func Init() {
 		res,
 		asynq.Config{
 			Logger: &TaskLogger{
-				Logger: logger.New(
-					logger.GetWriter(
-						zerolog.LevelDebugValue,
-						"task",
-						true,
-					),
-				).With().Timestamp().Logger(),
+				Logger: logger.Log("task"),
 			},
 			LogLevel:    asynq.WarnLevel,
 			Concurrency: 20,
@@ -76,7 +70,7 @@ func Init() {
 			if err == nil {
 				return
 			}
-			logger.Log().Error().Msgf("scheduler: ", err.Error())
+			logger.Log().Error("scheduler", err)
 		},
 	})
 
@@ -99,13 +93,13 @@ const (
 
 func StartQueue() {
 	if err := do.MustInvoke[*TaskService](global.Injector).Server.Run(do.MustInvoke[*TaskService](global.Injector).ServeMux); err != nil {
-		logger.Log().Error().Msgf("Queue service cannot be started: %v", err)
+		logger.Log().Error("Queue service cannot be started: %v", err)
 	}
 }
 
 func StartScheduler() {
 	if err := do.MustInvoke[*TaskService](global.Injector).Scheduler.Run(); err != nil {
-		logger.Log().Error().Msgf("Scheduler service cannot be started: %v", err)
+		logger.Log().Error("Scheduler service cannot be started: %v", err)
 	}
 }
 
@@ -142,7 +136,7 @@ func AddTask(typename string, params any, opts ...asynq.Option) *asynq.TaskInfo 
 
 	info, err := do.MustInvoke[*TaskService](global.Injector).Client.Enqueue(task, opts...)
 	if err != nil {
-		logger.Log().Error().Msg("Queue add error :" + err.Error())
+		logger.Log().Error("Queue add error", err.Error())
 	}
 	return info
 }
@@ -190,28 +184,28 @@ func ListenerTask(pattern string, handler func(context.Context, *asynq.Task) err
 }
 
 type TaskLogger struct {
-	Logger zerolog.Logger
+	Logger *slog.Logger
 }
 
 func (t *TaskLogger) Debug(args ...interface{}) {
-	t.Logger.Debug().Msg(fmt.Sprint(args...))
+	t.Logger.Debug(fmt.Sprint(args...))
 }
 
 func (t *TaskLogger) Info(args ...interface{}) {
-	t.Logger.Info().Msg(fmt.Sprint(args...))
+	t.Logger.Info(fmt.Sprint(args...))
 
 }
 
 func (t *TaskLogger) Warn(args ...interface{}) {
-	t.Logger.Warn().Msg(fmt.Sprint(args...))
+	t.Logger.Warn(fmt.Sprint(args...))
 
 }
 
 func (t *TaskLogger) Error(args ...interface{}) {
-	t.Logger.Error().Msg(fmt.Sprint(args...))
+	t.Logger.Error(fmt.Sprint(args...))
 
 }
 
 func (t *TaskLogger) Fatal(args ...interface{}) {
-	t.Logger.Fatal().Msg(fmt.Sprint(args...))
+	t.Logger.Error(fmt.Sprint(args...))
 }

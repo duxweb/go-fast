@@ -3,17 +3,19 @@ package logger
 import (
 	"fmt"
 	"github.com/duxweb/go-fast/config"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/pkgerrors"
+	"github.com/lmittmann/tint"
+	"github.com/mattn/go-colorable"
+	"github.com/samber/lo"
+	slogmulti "github.com/samber/slog-multi"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"io"
+	"log/slog"
 	"os"
 	"time"
 )
 
-var logs = map[string]*zerolog.Logger{}
+var logs = map[string]*slog.Logger{}
 
-func Log(names ...string) *zerolog.Logger {
+func Log(names ...string) *slog.Logger {
 	name := "default"
 	if len(names) > 0 {
 		name = names[0]
@@ -21,55 +23,52 @@ func Log(names ...string) *zerolog.Logger {
 	if t, ok := logs[name]; ok {
 		return t
 	}
-	writerList := make([]io.Writer, 0)
-	writerList = append(writerList, GetWriter(
-		config.Load("app").GetString("logger.default.level"),
-		name,
-		true,
-	))
-	log := New(writerList...).With().Caller().Logger()
-	logs[name] = &log
-	return &log
+
+	logger := slog.New(
+		slogmulti.Fanout(
+			tint.NewHandler(colorable.NewColorable(os.Stdout), &tint.Options{
+				Level:      slog.LevelDebug,
+				TimeFormat: time.RFC3339,
+				AddSource:  true,
+				ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
+					if attr.Key == "stack" {
+						attr.Value = slog.AnyValue("")
+					}
+					return attr
+				},
+			}),
+			GetWriterHeader(
+				config.Load("app").GetString("logger.default.level"),
+				name,
+			),
+		),
+	)
+	logs[name] = logger
+	return logger
 }
 
 func Init() {
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	slog.SetDefault(Log("default"))
 }
 
-func New(writers ...io.Writer) zerolog.Logger {
-	console := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	writers = append(writers, &console)
-	multi := zerolog.MultiLevelWriter(writers...)
-	return zerolog.New(multi)
-}
+func GetWriterHeader(level string, name string) *slog.JSONHandler {
 
-func GetWriter(level string, name string, recursion bool) *LevelWriter {
-	parseLevel, _ := zerolog.ParseLevel(level)
-	return &LevelWriter{zerolog.MultiLevelWriter(&lumberjack.Logger{
+	r := &lumberjack.Logger{
 		Filename:   fmt.Sprintf("./data/logs/%s.log", name),                // Log file path.
 		MaxSize:    config.Load("app").GetInt("logger.default.maxSize"),    // Maximum size of each log file to be saved, unit: M.
 		MaxBackups: config.Load("app").GetInt("logger.default.maxBackups"), // Number of file backups.
 		MaxAge:     config.Load("app").GetInt("logger.default.maxAge"),     // Maximum number of days to keep the files.
 		Compress:   config.Load("app").GetBool("logger.default.compress"),  // Compression status.
-	}), parseLevel, recursion}
-}
-
-type LevelWriter struct {
-	w         zerolog.LevelWriter
-	level     zerolog.Level
-	recursion bool
-}
-
-func (w *LevelWriter) Write(p []byte) (n int, err error) {
-	return w.w.Write(p)
-}
-func (w *LevelWriter) WriteLevel(level zerolog.Level, p []byte) (n int, err error) {
-	if level >= w.level && w.recursion {
-		return w.w.WriteLevel(level, p)
 	}
-	if level == w.level && !w.recursion {
-		return w.w.WriteLevel(level, p)
-	}
-	return len(p), nil
+
+	slogLevel := lo.Switch[string, slog.Leveler](level).
+		Case("debug", slog.LevelDebug).
+		Case("info", slog.LevelInfo).
+		Case("warn", slog.LevelWarn).
+		Case("error", slog.LevelError).
+		Default(slog.LevelDebug)
+
+	return slog.NewJSONHandler(r, &slog.HandlerOptions{
+		Level: slogLevel,
+	})
 }

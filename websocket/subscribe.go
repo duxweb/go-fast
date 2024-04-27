@@ -5,6 +5,7 @@ import (
 	"github.com/duxweb/go-fast/logger"
 	"github.com/panjf2000/ants/v2"
 	"github.com/spf13/cast"
+	"log/slog"
 	"time"
 )
 
@@ -14,7 +15,7 @@ func (p *Client) Sub(channels ...string) error {
 		return errors.New("empty channel")
 	}
 
-	logger.Log("websocket").Debug().Str("client", p.clientID).Any("channels", channels).Msg("Client Sub")
+	logger.Log("websocket").Debug("Client Sub", slog.String("client", p.clientID), slog.Any("channels", channels))
 
 	for _, topic := range channels {
 		// 判断客户是否订阅该频道
@@ -54,7 +55,7 @@ func (p *Client) Unsub(args ...string) {
 		topics = args
 	}
 
-	logger.Log("websocket").Debug().Str("client", p.clientID).Any("channels", topics).Msg("Client Unsub")
+	logger.Log("websocket").Debug("Client Unsub", slog.String("client", p.clientID), slog.Any("topics", topics))
 
 	for _, topic := range topics {
 		// 判断频道是否存在

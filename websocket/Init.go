@@ -5,6 +5,7 @@ import (
 	"github.com/duxweb/go-fast/logger"
 	"github.com/olahol/melody"
 	"github.com/spf13/cast"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -60,12 +61,12 @@ func (t *ServiceT) Run() {
 		agent, ok := t.Agents[app]
 		if !ok {
 			msg := "applications are not registered"
-			logger.Log("websocket").Error().Msg(msg)
+			logger.Log("websocket").Error(msg)
 			_ = session.CloseWithMsg([]byte(msg))
 		}
 		data, err := agent.auth(token)
 		if err != nil {
-			logger.Log("websocket").Error().Msg(err.Error())
+			logger.Log("websocket").Error("error", err)
 			_ = session.CloseWithMsg([]byte(err.Error()))
 			return
 		}
@@ -80,7 +81,7 @@ func (t *ServiceT) Run() {
 		// 设置客户端在线
 		err = EventOnline(clientID)
 		if err != nil {
-			logger.Log("websocket").Error().Err(err).Msg("Client Online")
+			logger.Log("websocket").Error("Client Online", err)
 			_ = session.CloseWithMsg([]byte(err.Error()))
 			return
 		}
@@ -93,7 +94,7 @@ func (t *ServiceT) Run() {
 			return
 		}
 		clientID := cast.ToString(str)
-		logger.Log("websocket").Debug().Str("clientID", clientID).Msg("Client Disconnect")
+		logger.Log("websocket").Debug("Client Disconnect", slog.String("client", clientID))
 
 		// 移除客户端
 		RemoveConnClient(session)
@@ -101,7 +102,7 @@ func (t *ServiceT) Run() {
 		// 发送离线
 		err := EventOffline(clientID)
 		if err != nil {
-			logger.Log("websocket").Error().Err(err).Msg("Client Online")
+			logger.Log("websocket").Error("Client Online", err)
 		}
 	})
 
@@ -112,7 +113,7 @@ func (t *ServiceT) Run() {
 			return
 		}
 		clientID := cast.ToString(str)
-		logger.Log("websocket").Debug().Str("clientID", clientID).Msg("ping")
+		logger.Log("websocket").Debug("ping", slog.String("client", clientID))
 		_ = EventPing(clientID)
 	})
 
@@ -120,12 +121,12 @@ func (t *ServiceT) Run() {
 	t.Websocket.HandleMessage(func(s *melody.Session, msg []byte) {
 		name, _ := s.Get("clientID")
 		clientID := cast.ToString(name)
-		logger.Log("websocket").Debug().Str("clientID", clientID).Str("message", string(msg)).Msg("Ws Received")
+		logger.Log("websocket").Debug("Ws Received", slog.String("client", clientID), slog.String("message", string(msg)))
 
 		data := Message{}
 		err := json.Unmarshal(msg, &data)
 		if err != nil {
-			logger.Log("websocket").Error().Str("clientID", clientID).Str("message", string(msg)).Err(err).Msg("Ws Received")
+			logger.Log("websocket").Error("Ws Received", err, slog.String("client", clientID), slog.String("message", string(msg)))
 			return
 		}
 		client, err := GetClient(clientID)
@@ -136,7 +137,7 @@ func (t *ServiceT) Run() {
 		agent := Service.Agents[client.app]
 		err = agent.message(&data, client)
 		if err != nil {
-			logger.Log("websocket").Error().Err(err).Msg("Ws Received")
+			logger.Log("websocket").Error("Ws Received", err)
 			return
 		}
 
@@ -148,7 +149,7 @@ func (t *ServiceT) Run() {
 			},
 		}
 
-		logger.Log("websocket").Debug().Any("data", msgData).Msg("ws send")
+		logger.Log("websocket").Debug("ws send", slog.Any("data", msgData))
 		client.Send(msgData)
 	})
 

@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/duxweb/go-fast/global"
+	"github.com/golang-module/carbon/v2"
 	"github.com/spf13/viper"
 	"os"
 	"path"
@@ -30,6 +31,13 @@ func Init() {
 	global.Debug = Load("app").GetBool("server.debug")
 	global.DebugMsg = Load("app").GetString("server.debugMsg")
 
+	// Set time
+	carbon.SetDefault(carbon.Default{
+		Layout:       carbon.DateTimeLayout,
+		Timezone:     global.TimeLocation.String(),
+		WeekStartsAt: carbon.Monday,
+		Locale:       global.Lang,
+	})
 }
 
 func LoadFile(name string) *viper.Viper {

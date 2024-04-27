@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"github.com/demdxx/gocast/v2"
 	"github.com/duxweb/go-fast/config"
+	"github.com/duxweb/go-fast/logger"
 	"github.com/gofrs/uuid"
-	"github.com/rs/zerolog"
-	"github.com/samber/do"
 	"golang.org/x/crypto/bcrypt"
 	"math"
 	"math/rand"
@@ -140,7 +139,7 @@ func IsExist(f string) bool {
 func CreateDir(dirName string) bool {
 	err := os.MkdirAll(dirName, 0777)
 	if err != nil {
-		do.MustInvoke[*zerolog.Logger](nil).Error().Err(err).Msg(dirName)
+		logger.Log().Error(dirName, err)
 		return false
 	}
 	return true
