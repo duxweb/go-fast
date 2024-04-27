@@ -52,7 +52,7 @@ func AuthMiddleware(app string, renewals ...time.Duration) echo.MiddlewareFunc {
 				return
 			}
 			expire := expiredAt.Sub(issuedAt.Time)
-			newToken, _ := NewJWT().MakeToken(claims.Subject, expire)
+			newToken, _ := NewJWT().MakeToken(claims.Subject, claims.ID, expire)
 			c.Response().Header().Set(echo.HeaderAuthorization, "Bearer "+newToken)
 		},
 		ErrorHandler: func(c echo.Context, err error) error {

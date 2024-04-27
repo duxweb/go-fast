@@ -121,17 +121,18 @@ func parseGoFile(dir string, path string) ([]*Annotation, *Import) {
 						}
 					}
 				}
-
 			}
 
 		}
 
 		// 如果不是函数或结构体的注释，则直接解析注释内容
 		if annotation == nil {
-			annotation = parseDocs(comment.Text())
-		} else {
-			fileAnnotations = append(fileAnnotations, annotation)
+			common := parseDocs(comment.Text())
+			if common != nil {
+				annotation = common
+			}
 		}
+		fileAnnotations = append(fileAnnotations, annotation)
 	}
 
 	return fileAnnotations, Imports

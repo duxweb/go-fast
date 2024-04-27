@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"github.com/duxweb/go-fast/action"
 	"github.com/duxweb/go-fast/annotation"
 	"github.com/duxweb/go-fast/permission"
 	"github.com/duxweb/go-fast/route"
@@ -31,6 +32,11 @@ func Register() {
 			continue
 		}
 
+		resFunc, ok := info.Func.(func() action.Result)
+		if !ok {
+			panic("resource fun not set: " + file.Name)
+		}
+
 		appName, ok := info.Params["app"].(string)
 		if !ok {
 			panic("resource app not set: " + file.Name)
@@ -51,8 +57,36 @@ func Register() {
 		// 设置权限组
 		if permissionData != nil {
 			permissionGroup = permissionData.Group(resName, 0)
-
 		}
+
+		// 设置内置资源
+		resFuncMap := resFunc()
+		if resFuncMap["list"] != nil {
+			routeGroup.Add("GET", "", resFuncMap["list"], resName+".list")
+		}
+		if resFuncMap["show"] != nil {
+			routeGroup.Add("GET", "/{id:[0-9]+}", resFuncMap["show"], resName+".show")
+		}
+		if resFuncMap["create"] != nil {
+			routeGroup.Add("POST", "", resFuncMap["create"], resName+".create")
+		}
+		if resFuncMap["edit"] != nil {
+			routeGroup.Add("PUT", "/{id:[0-9]+}", resFuncMap["edit"], resName+".edit")
+		}
+		if resFuncMap["store"] != nil {
+			routeGroup.Add("PATH", "/{id:[0-9]+}", resFuncMap["store"], resName+".store")
+		}
+		if resFuncMap["delete"] != nil {
+			routeGroup.Add("DELETE", "/{id:[0-9]+}", resFuncMap["delete"], resName+".delete")
+			routeGroup.Add("DELETE", "", resFuncMap["deleteMany"], resName+".deleteMany")
+		}
+		if resFuncMap["trash"] != nil {
+			routeGroup.Add("PATH", "/{id:[0-9]+}/trash", resFuncMap["trash"], resName+".trash")
+		}
+		if resFuncMap["restore"] != nil {
+			routeGroup.Add("PATH", "/{id:[0-9]+}/restore", resFuncMap["restore"], resName+".restore")
+		}
+
 		// 设置资源动作
 		for _, item := range file.Annotations {
 			if item.Name != "Action" {
@@ -78,7 +112,7 @@ func Register() {
 			}
 
 			if routeGroup != nil {
-				routeGroup.Add(method, match, function, name)
+				routeGroup.Add(method, match, function, resName+"."+name)
 			}
 			if permissionGroup != nil {
 				permissionGroup.Add(name)

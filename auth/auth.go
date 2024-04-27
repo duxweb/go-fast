@@ -22,7 +22,7 @@ func NewJWT() *JWT {
 	}
 }
 
-func (j *JWT) MakeToken(app string, expires ...time.Duration) (tokenString string, err error) {
+func (j *JWT) MakeToken(app string, id string, expires ...time.Duration) (tokenString string, err error) {
 	expire := 86400 * time.Second
 	if len(expires) > 0 {
 		expire = expires[0]
@@ -31,6 +31,7 @@ func (j *JWT) MakeToken(app string, expires ...time.Duration) (tokenString strin
 		Refresh: true,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   app,
+			ID:        id,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expire)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},

@@ -24,6 +24,9 @@ func Send(ctx echo.Context, data Data, code ...int) error {
 	if len(code) > 0 {
 		statusCode = code[0]
 	}
+	if data.Message == "" {
+		data.Message = "ok"
+	}
 	if data.Meta == nil {
 		data.Meta = echo.Map{}
 	}

@@ -1,7 +1,9 @@
-package admin
+package action
 
 import (
 	"github.com/duxweb/go-fast/database"
+	"github.com/duxweb/go-fast/helper"
+	"github.com/duxweb/go-fast/response"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
@@ -9,8 +11,7 @@ import (
 	"strings"
 )
 
-func (t *Resources[TModel, TParams]) List(ctx echo.Context) error {
-
+func (t *Resources[T]) List(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
 		initFun := *t.initFun
@@ -29,9 +30,9 @@ func (t *Resources[TModel, TParams]) List(ctx echo.Context) error {
 		t.Pagination.Status = false
 	}
 
-	var limit uint = 0
+	pageSize := 0
 	if t.Pagination.Status {
-		limit = lo.Ternary[uint](params["pageSize"] != nil, cast.ToUint(params["pageSize"]), t.Pagination.PageSize)
+		pageSize = lo.Ternary[int](params["pageSize"] != nil, cast.ToInt(params["pageSize"]), t.Pagination.PageSize)
 	}
 
 	query := database.Gorm().Model(t.Model)
@@ -68,5 +69,29 @@ func (t *Resources[TModel, TParams]) List(ctx echo.Context) error {
 	for k, v := range sorts {
 		query.Order(k + " " + cast.ToString(v))
 	}
-	return nil
+
+	models := make([]T, 0)
+	var pagination *helper.Pagination
+	if t.Pagination.Status {
+		pagination = helper.NewPagination(cast.ToInt(params["page"]), pageSize)
+		err = query.Scopes(helper.Paginate(pagination)).Find(&models).Error
+	} else {
+		err = query.Find(&models).Error
+	}
+	if err != nil {
+		return err
+	}
+
+	var data []map[string]any
+	var meta map[string]any
+	if t.formatFun != nil {
+		data, meta = helper.FormatData[T](models, *t.formatFun, lo.Ternary[*helper.Pagination](pagination != nil, pagination, nil))
+	}
+
+	data = t.filterData(data, t.IncludesMany, t.ExcludesMany)
+
+	return response.Send(ctx, response.Data{
+		Data: data,
+		Meta: meta,
+	})
 }

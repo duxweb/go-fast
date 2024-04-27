@@ -74,12 +74,13 @@ func Command() []*cli.Command {
 			app.Init()
 
 			for name, list := range route.Routes {
+
 				color.Println(name)
 				t := table.NewWriter()
 				t.SetOutputMirror(os.Stdout)
 				t.AppendHeader(table.Row{"Name", "Method", "Path"})
 				rows := make([]table.Row, 0)
-				for _, item := range list.ParseData("") {
+				for _, item := range list.ParseData(list.Prefix) {
 					rows = append(rows, table.Row{item["name"], item["method"], item["path"]})
 				}
 				t.AppendRows(rows)

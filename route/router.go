@@ -21,6 +21,7 @@ type RouterItem struct {
 
 func New(prefix string, middle ...echo.MiddlewareFunc) *RouterData {
 	return &RouterData{
+		Prefix:      prefix,
 		GroupRouter: global.App.Group(prefix, middle...),
 	}
 }

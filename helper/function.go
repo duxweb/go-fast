@@ -20,7 +20,7 @@ import (
 
 // HashEncode Ciphertext Encryption
 func HashEncode(content []byte) string {
-	hash, err := bcrypt.GenerateFromPassword(content, bcrypt.MinCost)
+	hash, err := bcrypt.GenerateFromPassword(content, bcrypt.DefaultCost)
 	if err != nil {
 		return ""
 	}
@@ -28,9 +28,9 @@ func HashEncode(content []byte) string {
 }
 
 // HashVerify Ciphertext Verification
-func HashVerify(hashedPwd string, password []byte) bool {
+func HashVerify(hashedPwd string, password string) bool {
 	byteHash := []byte(hashedPwd)
-	err := bcrypt.CompareHashAndPassword(byteHash, password)
+	err := bcrypt.CompareHashAndPassword(byteHash, []byte(password))
 	if err != nil {
 		return false
 	}

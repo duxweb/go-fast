@@ -1,7 +1,8 @@
-package admin
+package action
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/samber/lo"
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
 	"strings"
@@ -9,12 +10,11 @@ import (
 
 type Pagination struct {
 	Status   bool
-	PageSize uint
+	PageSize int
 }
 
-type Resources[TModel any, TParams any] struct {
+type Resources[T any] struct {
 	Model        any
-	Params       any
 	Key          string
 	Tree         bool
 	Pagination   Pagination
@@ -23,25 +23,24 @@ type Resources[TModel any, TParams any] struct {
 	IncludesOne  []string
 	ExcludesOne  []string
 	initFun      *InitFun
-	transformFun *TransformFun[TModel]
+	transformFun *TransformFun[T]
 	queryFun     *QueryFun
 	queryManyFun *QueryRequestFun
 	queryOneFun  *QueryRequestFun
-	metaManyFun  *MetaManyFun[TModel]
-	metaOneFun   *MetaOneFun[TModel]
-	validatorFun *ValidatorFun[TParams]
-	formatFun    *FormatFun[TParams]
+	metaManyFun  *MetaManyFun[T]
+	metaOneFun   *MetaOneFun[T]
+	validatorFun *ValidatorFun
+	formatFun    *FormatFun[T]
 	ActionList   bool
 	ActionShow   bool
 	Extend       map[string]any
 }
 
-func New[TModel any, TParams any](model any, params any) *Resources[TModel, TParams] {
-	return &Resources[TModel, TParams]{
-		Key:    "id",
-		Tree:   false,
-		Model:  model,
-		Params: params,
+func New[T any](model any) *Resources[T] {
+	return &Resources[T]{
+		Key:   "id",
+		Tree:  false,
+		Model: model,
 		Pagination: Pagination{
 			Status:   true,
 			PageSize: 10,
@@ -59,66 +58,66 @@ func New[TModel any, TParams any](model any, params any) *Resources[TModel, TPar
 type InitFun func(e echo.Context) error
 
 // Init 初始化回调
-func (t *Resources[TModel, TParams]) Init(call *InitFun) {
+func (t *Resources[T]) Init(call *InitFun) {
 	t.initFun = call
 }
 
 type TransformFun[T any] func(item T) map[string]any
 
 // Transform 字段转换
-func (t *Resources[TModel, TParams]) Transform(call *TransformFun[TModel]) {
+func (t *Resources[T]) Transform(call *TransformFun[T]) {
 	t.transformFun = call
 }
 
 type QueryFun func(orm *gorm.DB)
 
 // Query 通用查询
-func (t *Resources[TModel, TParams]) Query(call *QueryFun) {
+func (t *Resources[T]) Query(call *QueryFun) {
 	t.queryFun = call
 }
 
 type QueryRequestFun func(orm *gorm.DB, e echo.Context)
 
 // QueryMany 多条数据查询
-func (t *Resources[TModel, TParams]) QueryMany(call *QueryRequestFun) {
+func (t *Resources[T]) QueryMany(call *QueryRequestFun) {
 	t.queryManyFun = call
 }
 
 // QueryOne 单条数据查询
-func (t *Resources[TModel, TParams]) QueryOne(call *QueryRequestFun) {
+func (t *Resources[T]) QueryOne(call *QueryRequestFun) {
 	t.queryOneFun = call
 }
 
 type MetaManyFun[T any] func(orm *gorm.DB, data []T, e echo.Context)
 
 // MetaMany 多条元数据
-func (t *Resources[TModel, TParams]) MetaMany(call *MetaManyFun[TModel]) {
+func (t *Resources[T]) MetaMany(call *MetaManyFun[T]) {
 	t.metaManyFun = call
 }
 
 type MetaOneFun[T any] func(data T, e echo.Context)
 
 // MetaOne 单条元数据
-func (t *Resources[TModel, TParams]) MetaOne(call *MetaManyFun[TModel]) {
+func (t *Resources[T]) MetaOne(call *MetaManyFun[T]) {
 	t.metaManyFun = call
 }
 
-type ValidatorFun[T any] func(data T, e echo.Context)
+type ValidatorFun func(data any, e echo.Context)
 
 // Validator 数据验证
-func (t *Resources[TModel, TParams]) Validator(call *ValidatorFun[TParams]) {
+func (t *Resources[T]) Validator(call *ValidatorFun) {
 	t.validatorFun = call
 }
 
-type FormatFun[T any] func(params T, e echo.Context) any
+type FormatFun[T any] func(item T, index int) map[string]any
 
 // Format 数据格式化
-func (t *Resources[TModel, TParams]) Format(call *FormatFun[TParams]) {
+func (t *Resources[T]) Format(call *FormatFun[T]) {
 	t.formatFun = call
 }
 
 // getSorts 获取排序规则
-func (t *Resources[TModel, TParams]) getSorts(params map[string]any) map[string]string {
+func (t *Resources[T]) getSorts(params map[string]any) map[string]string {
 	data := map[string]string{}
 	for key, value := range params {
 		if !strings.HasSuffix(key, "_sort") {
@@ -131,4 +130,33 @@ func (t *Resources[TModel, TParams]) getSorts(params map[string]any) map[string]
 		data[field] = cast.ToString(value)
 	}
 	return data
+}
+
+func (t *Resources[T]) filterData(data []map[string]any, includes []string, excludes []string) []map[string]any {
+	result := make([]map[string]any, 0)
+	for _, item := range data {
+		datum := item
+		if len(includes) > 0 {
+			datum = lo.PickBy[string, any](item, func(key string, value any) bool {
+				return lo.IndexOf[string](includes, key) != -1
+			})
+		}
+		if len(excludes) > 0 {
+			datum = lo.PickBy[string, any](datum, func(key string, value any) bool {
+				return lo.IndexOf[string](excludes, key) == -1
+			})
+		}
+		result = append(result, datum)
+	}
+	return result
+}
+
+type Result map[string]func(ctx echo.Context) error
+
+func (t *Resources[T]) Result() Result {
+	result := Result{}
+	if t.ActionList {
+		result["list"] = t.List
+	}
+	return result
 }
