@@ -28,10 +28,12 @@ import (
 
 func Init() {
 	global.App = echo.New()
-	global.App.Debug = config.Load("app").GetBool("app.server.debug")
+	global.App.Debug = global.Debug
 	global.App.Renderer = views.Render()
 	global.App.HideBanner = true
 	global.App.HidePort = true
+
+	global.App.Logger = EchoLoggerHeadAdaptor()
 
 	// 注册异常处理
 	global.App.HTTPErrorHandler = func(err error, c echo.Context) {
@@ -60,7 +62,7 @@ func Init() {
 			}
 
 			// Other error
-			msg = lo.Ternary[string](global.Debug, i18n.Trans.Get("common.errorMessage"), err.Error())
+			msg = lo.Ternary[string](!global.Debug, i18n.Trans.Get("common.error.errorMessage"), err.Error())
 		}
 
 		if isAsync(c) {
@@ -79,7 +81,7 @@ func Init() {
 		if code == http.StatusNotFound {
 			err = c.Render(http.StatusNotFound, "404.html", nil)
 		} else {
-			err = c.Render(http.StatusNotFound, "500.html", map[string]any{
+			err = c.Render(http.StatusInternalServerError, "error.html", map[string]any{
 				"code":    code,
 				"message": msg,
 			})
@@ -115,15 +117,12 @@ func Init() {
 		ExposeHeaders: []string{"*"},
 	}))
 
-	// 注册框架日志
-	//global.App.Logger = EchoLoggerHeadAdaptor()
-
 	// 注册静态路由
-	global.App.Static("/uploads", "./uploads")
+	global.App.Static("/", "./public")
 
 	// 注册公共目录
 	if global.StaticFs != nil {
-		global.App.StaticFS("/", echo.MustSubFS(global.StaticFs, "public"))
+		global.App.StaticFS("/", echo.MustSubFS(*global.StaticFs, ""))
 	}
 
 	// 请求日志
@@ -167,7 +166,14 @@ func Init() {
 		},
 	}))
 
-	global.App.Use(middleware.Timeout())
+	timeout := 60 * time.Second
+	if config.IsLoad("use") {
+		timeout = config.Load("use").GetDuration("server.timeout") * time.Second
+	}
+
+	global.App.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+		Timeout: timeout,
+	}))
 }
 
 func Start() {
@@ -203,10 +209,14 @@ func Start() {
 		return nil
 	})
 
-	port := config.Load("app").GetString("server.port")
+	port := "8900"
+	if config.IsLoad("use") {
+		port = config.Load("use").GetString("server.port")
+	}
+
 	banner()
 	global.BootTime = time.Now()
-	color.Println("⇨ <green>Server start http://0.0.0.0:" + port + "</>")
+	color.Println("⇨ <green>Server start http://localhost:" + port + "</>")
 
 	go func() {
 		err := global.App.Start(":" + port)
@@ -221,7 +231,6 @@ func Start() {
 }
 
 func banner() {
-	debugBool := config.Load("app").GetBool("server.debug")
 
 	var banner string
 	banner += `   _____           ____ ____` + "\n"
@@ -241,7 +250,7 @@ func banner() {
 	})
 	sysMaps = append(sysMaps, item{
 		Name:  "Debug",
-		Value: lo.Ternary[string](debugBool, "enabled", "disabled"),
+		Value: lo.Ternary[string](global.Debug, "enabled", "disabled"),
 	})
 	sysMaps = append(sysMaps, item{
 		Name:  "PID",

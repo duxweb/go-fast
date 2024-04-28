@@ -26,7 +26,7 @@ common:
   error:
     notFound: 页面不存在
     notFoundMessage: 您访问的页面不存在或者已被删除
-    errorTitle: 操作错误
-    errorMessage: 操作遇到了错误，请稍后再试
+    errorTitle: 响应错误
+    errorMessage: 响应遇到了错误，请稍后再试
     home: 首页
     back: 返回

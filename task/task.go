@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/demdxx/gocast/v2"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/logger"
 	"github.com/gookit/color"
 	"github.com/hibiken/asynq"
+	"github.com/lmittmann/tint"
 	"github.com/samber/do"
+	"github.com/spf13/cast"
 	"log/slog"
 	"time"
 )
@@ -31,13 +32,16 @@ func (s *TaskService) Shutdown() error {
 }
 
 func Init() {
-	dbConfig := config.Load("database").GetStringMapString("redis")
+	do.ProvideNamed(global.Injector, "task", NewTask)
+}
+
+func NewTask(i *do.Injector) (*TaskService, error) {
+	dbConfig := config.Load("database").GetStringMapString("redis.drivers.default")
 	res := asynq.RedisClientOpt{
 		Addr:     dbConfig["host"] + ":" + dbConfig["port"],
 		Password: dbConfig["password"],
-		DB:       gocast.Number[int](dbConfig["db"]),
+		DB:       cast.ToInt(dbConfig["db"]),
 	}
-
 	server := asynq.NewServer(
 		res,
 		asynq.Config{
@@ -70,17 +74,17 @@ func Init() {
 			if err == nil {
 				return
 			}
-			logger.Log().Error("scheduler", err)
+			logger.Log("task").Error("scheduler", err)
 		},
 	})
 
-	do.ProvideValue[*TaskService](global.Injector, &TaskService{
+	return &TaskService{
 		Server:    server,
 		ServeMux:  serveMux,
 		Client:    client,
 		Inspector: inspector,
 		Scheduler: scheduler,
-	})
+	}, nil
 }
 
 type Priority string
@@ -92,14 +96,17 @@ const (
 )
 
 func StartQueue() {
-	if err := do.MustInvoke[*TaskService](global.Injector).Server.Run(do.MustInvoke[*TaskService](global.Injector).ServeMux); err != nil {
-		logger.Log().Error("Queue service cannot be started: %v", err)
+	service := do.MustInvokeNamed[*TaskService](global.Injector, "task")
+	if err := service.Server.Run(service.ServeMux); err != nil {
+		logger.Log("task").Error("Queue run", tint.Err(err))
 	}
+
 }
 
 func StartScheduler() {
-	if err := do.MustInvoke[*TaskService](global.Injector).Scheduler.Run(); err != nil {
-		logger.Log().Error("Scheduler service cannot be started: %v", err)
+	service := do.MustInvokeNamed[*TaskService](global.Injector, "task")
+	if err := service.Scheduler.Run(); err != nil {
+		logger.Log().Error("Scheduler run", err)
 	}
 }
 
@@ -134,15 +141,15 @@ func AddTask(typename string, params any, opts ...asynq.Option) *asynq.TaskInfo 
 	opts = append(opts, asynq.Timeout(1*time.Minute)) // Timeout period
 	opts = append(opts, asynq.Retention(2*time.Hour)) // Retention time
 
-	info, err := do.MustInvoke[*TaskService](global.Injector).Client.Enqueue(task, opts...)
+	info, err := do.MustInvokeNamed[*TaskService](global.Injector, "task").Client.Enqueue(task, opts...)
 	if err != nil {
-		logger.Log().Error("Queue add error", err.Error())
+		logger.Log("task").Error("Queue add error", err.Error())
 	}
 	return info
 }
 
 func DelTask(priority Priority, id string) error {
-	err := do.MustInvoke[*TaskService](global.Injector).Inspector.DeleteTask(string(priority), id)
+	err := do.MustInvokeNamed[*TaskService](global.Injector, "task").Inspector.DeleteTask(string(priority), id)
 	if errors.Is(err, asynq.ErrQueueNotFound) {
 		return nil
 	}
@@ -172,7 +179,7 @@ func ListenerScheduler(cron string, typename string, params any, priority ...Pri
 		group = priority[0]
 	}
 	opts = append(opts, asynq.Queue(string(group)))
-	_, err := do.MustInvoke[*TaskService](global.Injector).Scheduler.Register(cron, task, opts...)
+	_, err := do.MustInvokeNamed[*TaskService](global.Injector, "task").Scheduler.Register(cron, task, opts...)
 	if err != nil {
 		panic("Scheduler add error :" + err.Error())
 	}
@@ -180,7 +187,7 @@ func ListenerScheduler(cron string, typename string, params any, priority ...Pri
 
 // ListenerTask registers a task to be executed on a queue
 func ListenerTask(pattern string, handler func(context.Context, *asynq.Task) error) {
-	do.MustInvoke[*TaskService](global.Injector).ServeMux.HandleFunc(pattern, handler)
+	do.MustInvokeNamed[*TaskService](global.Injector, "task").ServeMux.HandleFunc(pattern, handler)
 }
 
 type TaskLogger struct {

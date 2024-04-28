@@ -3,6 +3,7 @@ package logger
 import (
 	"fmt"
 	"github.com/duxweb/go-fast/config"
+	"github.com/duxweb/go-fast/global"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-colorable"
 	"github.com/samber/lo"
@@ -38,7 +39,7 @@ func Log(names ...string) *slog.Logger {
 				},
 			}),
 			GetWriterHeader(
-				config.Load("app").GetString("logger.default.level"),
+				config.Load("logger").GetString(name+".level"),
 				name,
 			),
 		),
@@ -54,11 +55,11 @@ func Init() {
 func GetWriterHeader(level string, name string) *slog.JSONHandler {
 
 	r := &lumberjack.Logger{
-		Filename:   fmt.Sprintf("./data/logs/%s.log", name),                // Log file path.
-		MaxSize:    config.Load("app").GetInt("logger.default.maxSize"),    // Maximum size of each log file to be saved, unit: M.
-		MaxBackups: config.Load("app").GetInt("logger.default.maxBackups"), // Number of file backups.
-		MaxAge:     config.Load("app").GetInt("logger.default.maxAge"),     // Maximum number of days to keep the files.
-		Compress:   config.Load("app").GetBool("logger.default.compress"),  // Compression status.
+		Filename:   fmt.Sprintf(global.DataDir+"logs/%s.log", name),    // Log file path.
+		MaxSize:    config.Load("logger").GetInt("default.maxSize"),    // Maximum size of each log file to be saved, unit: M.
+		MaxBackups: config.Load("logger").GetInt("default.maxBackups"), // Number of file backups.
+		MaxAge:     config.Load("logger").GetInt("default.maxAge"),     // Maximum number of days to keep the files.
+		Compress:   config.Load("logger").GetBool("default.compress"),  // Compression status.
 	}
 
 	slogLevel := lo.Switch[string, slog.Leveler](level).

@@ -1,25 +1,24 @@
 package helper
 
 import (
+	"crypto/aes"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"github.com/demdxx/gocast/v2"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/logger"
 	"github.com/gofrs/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"math"
 	"math/rand"
-	"net/url"
 	"os"
 	"time"
 	"unicode"
 )
 
 // HashEncode Ciphertext Encryption
-func HashEncode(content []byte) string {
-	hash, err := bcrypt.GenerateFromPassword(content, bcrypt.DefaultCost)
+func HashEncode(content string) string {
+	hash, err := bcrypt.GenerateFromPassword([]byte(content), bcrypt.DefaultCost)
 	if err != nil {
 		return ""
 	}
@@ -28,15 +27,62 @@ func HashEncode(content []byte) string {
 
 // HashVerify Ciphertext Verification
 func HashVerify(hashedPwd string, password string) bool {
-	byteHash := []byte(hashedPwd)
-	err := bcrypt.CompareHashAndPassword(byteHash, []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(hashedPwd), []byte(password))
 	if err != nil {
 		return false
 	}
 	return true
 }
 
-// PageLimit Pagination Calculation
+func Encryption(str string, keys ...string) (string, error) {
+	var key string
+
+	if len(keys) == 1 {
+		key = keys[0]
+	}
+
+	if key == "" {
+		key = config.Load("use").GetString("app.secret")
+	}
+
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", err
+	}
+
+	ciphertext := make([]byte, len(str))
+	block.Encrypt(ciphertext, []byte(str))
+	return hex.EncodeToString(ciphertext), nil
+}
+
+func Decryption(str string, keys ...string) (string, error) {
+	var key string
+
+	if len(keys) == 1 {
+		key = keys[0]
+	}
+
+	if key == "" {
+		key = config.Load("use").GetString("app.secret")
+	}
+
+	ciphertext, err := hex.DecodeString(str)
+	if err != nil {
+		return "", err
+	}
+
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", err
+	}
+
+	plaintext := make([]byte, len(ciphertext))
+	block.Decrypt(plaintext, ciphertext)
+
+	return string(plaintext), nil
+}
+
+// PageLimit Calculation
 func PageLimit(page int, total int, limit int) (int, int) {
 	if page <= 0 {
 		page = 1
@@ -66,24 +112,6 @@ func LcFirst(str string) string {
 		return string(unicode.ToLower(v)) + str[i+1:]
 	}
 	return ""
-}
-
-// Url Compile URL
-func Url(urlString string, params map[string]any, absolutes ...bool) string {
-	var uri url.URL
-	q := uri.Query()
-	for k, v := range params {
-		q.Add(k, gocast.Str(v))
-	}
-	urlBuild := urlString + "?" + q.Encode()
-	var absolute bool
-	if len(absolutes) > 0 {
-		absolute = absolutes[0]
-	}
-	if absolute {
-		urlBuild = config.Load("app").GetString("app.baseUrl") + urlBuild
-	}
-	return urlBuild
 }
 
 // FormatFileSize Format File Size

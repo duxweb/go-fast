@@ -14,7 +14,7 @@ func AuthMiddleware(app string, renewals ...time.Duration) echo.MiddlewareFunc {
 	if len(renewals) > 0 {
 		renewal = renewals[0]
 	}
-	key := config.Load("app").GetString("app.safeKey")
+	key := config.Load("use").GetString("app.secret")
 	middle := echojwt.Config{
 		SigningKey:  key,
 		TokenLookup: "header:" + echo.HeaderAuthorization + ",query:auth",

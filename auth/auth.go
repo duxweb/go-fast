@@ -18,7 +18,7 @@ type JwtClaims struct {
 
 func NewJWT() *JWT {
 	return &JWT{
-		SigningKey: []byte(config.Load("app").GetString("app.safeKey")),
+		SigningKey: []byte(config.Load("use").GetString("app.secret")),
 	}
 }
 
@@ -41,7 +41,7 @@ func (j *JWT) MakeToken(app string, id string, expires ...time.Duration) (tokenS
 	return tokenString, err
 }
 
-func (j *JWT) ParsingToken(token string, app ...string) (claims *JwtClaims, err error) {
+func (j *JWT) ParsingToken(token string, app string) (claims *JwtClaims, err error) {
 	data := JwtClaims{}
 	_, err = jwt.ParseWithClaims(token, &data, func(token *jwt.Token) (interface{}, error) {
 		return j.SigningKey, nil
@@ -49,7 +49,7 @@ func (j *JWT) ParsingToken(token string, app ...string) (claims *JwtClaims, err 
 	if err != nil {
 		return nil, err
 	}
-	if len(app) > 0 && data.Subject != app[0] {
+	if data.Subject != app {
 		return nil, errors.New("token type error")
 	}
 	return &data, nil

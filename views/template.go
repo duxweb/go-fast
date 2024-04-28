@@ -49,7 +49,7 @@ func New(name string, dir string) *template.Template {
 // NewFS 创建虚拟模板
 func NewFS(name string, fs embed.FS) *template.Template {
 	if Views[name] == nil {
-		Views[name] = template.Must(template.New("").Funcs(funcMap).ParseFS(fs, "*/**"))
+		Views[name] = template.Must(template.New("").Funcs(funcMap).ParseFS(fs, "**/*"))
 	}
 	return Views[name]
 }

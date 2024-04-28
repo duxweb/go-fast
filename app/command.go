@@ -14,7 +14,7 @@ func Command() []*cli.Command {
 		Category: "dev",
 		Usage:    "View the version number",
 		Action: func(cCtx *cli.Context) error {
-			color.Redf("⇨ <red>%s</>", global.Version)
+			color.Redln(global.Version)
 			return nil
 		},
 	}

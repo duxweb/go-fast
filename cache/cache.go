@@ -10,7 +10,11 @@ var cache *freecache.Cache
 
 func Init() {
 	// Cache Size, Unit: M
-	cacheSize := config.Load("app").GetInt("cache.size") * 1024 * 1024
+	size := 100
+	if config.IsLoad("cache") {
+		size = config.Load("cache").GetInt("size")
+	}
+	cacheSize := size * 1024 * 1024
 	cache = freecache.NewCache(cacheSize)
 	debug.SetGCPercent(20)
 }

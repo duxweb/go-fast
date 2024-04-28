@@ -1,6 +1,9 @@
 package auth
 
-import "github.com/labstack/echo/v4"
+import (
+	"github.com/labstack/echo/v4"
+	"strings"
+)
 
 type Service struct {
 	app string
@@ -13,6 +16,7 @@ func NewService(app string, ctx echo.Context) *Service {
 
 func (t *Service) ID() string {
 	token := t.ctx.Request().Header.Get("Authorization")
+	token = strings.ReplaceAll(token, "Bearer ", "")
 	if token == "" {
 		return ""
 	}

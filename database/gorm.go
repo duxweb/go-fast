@@ -7,6 +7,7 @@ import (
 	coreLogger "github.com/duxweb/go-fast/logger"
 	slogGorm "github.com/orandin/slog-gorm"
 	"github.com/samber/do"
+	"github.com/spf13/cast"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -32,14 +33,22 @@ func (s *GormService) Shutdown() error {
 	return sqlDB.Close()
 }
 
-func Gorm() *gorm.DB {
-	return do.MustInvoke[*GormService](global.Injector).engine
+func Gorm(name ...string) *gorm.DB {
+	n := "default"
+	if len(name) > 0 {
+		n = name[0]
+	}
+
+	client, err := do.InvokeNamed[*GormService](global.Injector, "orm."+n)
+	if err != nil {
+		client = NewGorm(n)
+		do.ProvideNamedValue[*GormService](global.Injector, "orm."+n, client)
+	}
+	return client.engine
 }
 
-func GormInit() {
-
-	dbConfig := config.Load("database").GetStringMapString("db")
-
+func NewGorm(name string) *GormService {
+	dbConfig := config.Load("database").GetStringMapString("db.drivers." + name)
 	var connect gorm.Dialector
 	if dbConfig["type"] == "mysql" {
 		connect = mysql.Open(dbConfig["username"] + ":" + dbConfig["password"] + "@tcp(" + dbConfig["host"] + ":" + dbConfig["port"] + ")/" + dbConfig["dbname"] + "?charset=utf8mb4&parseTime=True&loc=Local")
@@ -61,22 +70,22 @@ func GormInit() {
 			TablePrefix:   global.TablePrefix,
 			SingularTable: true,
 		},
-		Logger: slogGorm.New(slogGorm.WithHandler(coreLogger.GetWriterHeader(config.Load("app").GetString("logger.db.level"), "database"))),
+		DisableForeignKeyConstraintWhenMigrating: false,
+		Logger:                                   slogGorm.New(slogGorm.WithHandler(coreLogger.GetWriterHeader(config.Load("logger").GetString("db.level"), "db"))),
 	})
 	if err != nil {
 		panic("database error: " + err.Error())
 	}
-
-	do.ProvideValue[*GormService](global.Injector, &GormService{
-		engine: database,
-	})
 
 	// Set Connection Pool
 	sqlDB, err := database.DB()
 	if err != nil {
 		panic("database error: " + err.Error())
 	}
-	sqlDB.SetMaxIdleConns(config.Load("app").GetInt("database.maxIdleConns"))
-	sqlDB.SetMaxOpenConns(config.Load("app").GetInt("database.maxOpenConns"))
+	sqlDB.SetMaxIdleConns(cast.ToInt(dbConfig["maxIdleConns"]))
+	sqlDB.SetMaxOpenConns(cast.ToInt(dbConfig["maxOpenConns"]))
 
+	return &GormService{
+		engine: database,
+	}
 }

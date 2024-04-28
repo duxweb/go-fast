@@ -2,8 +2,8 @@ package menu
 
 var Menus = map[string]*MenuData{}
 
-func Add(name string, route *MenuData) {
-	Menus[name] = route
+func Set(name string, data *MenuData) {
+	Menus[name] = data
 }
 
 func Get(name string) *MenuData {

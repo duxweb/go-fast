@@ -4,33 +4,35 @@ import (
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/event"
 	"github.com/duxweb/go-fast/global"
-	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/resources"
 	"github.com/duxweb/go-fast/route"
 	"github.com/duxweb/go-fast/task"
+	"github.com/samber/do"
+	"github.com/spf13/afero"
 )
 
 var DirList = []string{
-	"./uploads",
-	"./data",
-	"./config",
 	"./app",
-	"./tmp",
+	"./public",
+	"./public/uploads",
+	"./data",
+	"./data/tmp",
+	"./config",
 	"./data/logs",
-	"./data/logs/default",
-	"./data/logs/request",
-	"./data/logs/service",
-	"./data/logs/database",
-	"./data/logs/task"}
+}
 
 func Init() {
 
 	// 自动创建目录
+	fs := do.MustInvokeNamed[afero.Fs](global.Injector, "os.fs")
 	for _, path := range global.DirList {
-		if !helper.IsExist(path) {
-			if !helper.CreateDir(path) {
-				panic("failed to create " + path + " directory")
-			}
+		exists, _ := afero.DirExists(fs, path)
+		if exists {
+			continue
+		}
+		err := fs.MkdirAll(path, 0777)
+		if err != nil {
+			panic("failed to create " + path + " directory")
 		}
 	}
 

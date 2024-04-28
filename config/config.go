@@ -3,6 +3,8 @@ package config
 import (
 	"github.com/duxweb/go-fast/global"
 	"github.com/golang-module/carbon/v2"
+	"github.com/samber/do"
+	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 	"os"
 	"path"
@@ -28,8 +30,10 @@ func Init() {
 	}
 
 	// Set Framework Configuration
-	global.Debug = Load("app").GetBool("server.debug")
-	global.DebugMsg = Load("app").GetString("server.debugMsg")
+	if IsLoad("use") {
+		global.Debug = Load("use").GetBool("app.debug")
+		global.Lang = Load("use").GetString("app.lang")
+	}
 
 	// Set time
 	carbon.SetDefault(carbon.Default{
@@ -37,6 +41,12 @@ func Init() {
 		Timezone:     global.TimeLocation.String(),
 		WeekStartsAt: carbon.Monday,
 		Locale:       global.Lang,
+	})
+
+	// set OsFs
+	do.ProvideNamed[afero.Fs](global.Injector, "os.fs", func(injector *do.Injector) (afero.Fs, error) {
+		fs := afero.NewOsFs()
+		return fs, nil
 	})
 }
 
@@ -57,4 +67,9 @@ func Load(name string) *viper.Viper {
 	} else {
 		panic("configuration (" + name + ") not found")
 	}
+}
+
+func IsLoad(name string) bool {
+	_, ok := data[name]
+	return ok
 }

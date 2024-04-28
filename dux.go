@@ -28,6 +28,7 @@ var LangFs embed.FS
 type Dux struct {
 	apps []func()
 	cmds []func() []*cli.Command
+	Lang string
 }
 
 func New() *Dux {
@@ -57,6 +58,11 @@ func (t *Dux) RegisterTpl(name string, dir string) {
 // RegisterTplFS 注册虚拟模板目录
 func (t *Dux) RegisterTplFS(name string, fs embed.FS) {
 	views.FsList[name] = fs
+}
+
+// RegisterStaticFs 注册静态目录
+func (t *Dux) RegisterStaticFs(fs embed.FS) {
+	global.StaticFs = &fs
 }
 
 // RegisterLangFS 注册语言包
@@ -108,11 +114,6 @@ func (t *Dux) SetTimezone(location *time.Location) {
 	time.Local = location
 }
 
-// SetLang 设置语言
-func (t *Dux) SetLang(lang string) {
-	global.Lang = lang
-}
-
 // SetTablePrefix 设置表前缀
 func (t *Dux) SetTablePrefix(prefix string) {
 	global.TablePrefix = prefix
@@ -123,19 +124,9 @@ func (t *Dux) SetConfigDir(dir string) {
 	global.ConfigDir = dir
 }
 
-// SetDatabaseStatus 设置数据库开关
-func (t *Dux) SetDatabaseStatus(status bool) {
-	service.Server.Database = status
-}
-
-// SetRedisStatus 设置redis开关
-func (t *Dux) SetRedisStatus(status bool) {
-	service.Server.Redis = status
-}
-
-// SetMongodbStatus 设置mongodb开关
-func (t *Dux) SetMongodbStatus(status bool) {
-	service.Server.Mongodb = status
+// SetDataDir 设置数据目录
+func (t *Dux) SetDataDir(dir string) {
+	global.DataDir = dir
 }
 
 func IsRelease() bool {

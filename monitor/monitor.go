@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"github.com/dustin/go-humanize"
-	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/helper"
+	"github.com/samber/do"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/process"
+	"github.com/spf13/afero"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -71,8 +73,7 @@ func GetMonitorData() *MonitorData {
 
 // GetMonitorLog Retrieve monitoring logs
 func GetMonitorLog() []map[string]any {
-	path := config.Load("app").GetString("logger.default.path")
-	loadFiles, _ := filepath.Glob(path + "/monitor/*.log")
+	loadFiles, _ := filepath.Glob(global.DataDir + "logs/monitor-*.log")
 	loadData := passingFiles(loadFiles)
 	return loadData
 }
@@ -80,10 +81,14 @@ func GetMonitorLog() []map[string]any {
 func getDirSize(path string) uint64 {
 	var size int64
 	wd, _ := os.Getwd()
-	if !helper.IsExist(wd + path) {
+
+	ofs := do.MustInvokeNamed[afero.Fs](global.Injector, "os.fs")
+
+	exists, _ := afero.Exists(ofs, wd+path)
+	if !exists {
 		return 0
 	}
-	_ = filepath.Walk(wd+path, func(_ string, info os.FileInfo, err error) error {
+	_ = afero.Walk(ofs, wd+path, func(path string, info fs.FileInfo, err error) error {
 		if !info.IsDir() {
 			size += info.Size()
 		}
@@ -105,7 +110,9 @@ func passingFiles(files []string) []map[string]any {
 }
 
 func parsingFile(file string) ([]map[string]any, error) {
-	fd, err := os.Open(file)
+
+	ofs := do.MustInvokeNamed[afero.Fs](global.Injector, "os.fs")
+	fd, err := ofs.Open(file)
 	if err != nil {
 		return nil, err
 	}

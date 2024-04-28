@@ -52,7 +52,7 @@ func (t *MenuData) Item(name string, url string, order int) {
 	t.Data = append(t.Data, data)
 }
 
-func (t *MenuData) Get() map[string]any {
+func (t *MenuData) Get() []map[string]any {
 	// Reset the menu
 	var menu []map[string]any
 	for _, appData := range t.Data {
@@ -100,8 +100,5 @@ func (t *MenuData) Get() map[string]any {
 		return menu[i]["order"].(int) < menu[j]["order"].(int)
 	})
 
-	return map[string]any{
-		"list": menu,
-		"app":  []any{},
-	}
+	return menu
 }

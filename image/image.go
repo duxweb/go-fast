@@ -3,8 +3,10 @@ package image
 import (
 	"bytes"
 	"github.com/disintegration/imaging"
-	"github.com/duxweb/go-fast/helper"
+	"github.com/duxweb/go-fast/global"
 	"github.com/h2non/filetype"
+	"github.com/samber/do"
+	"github.com/spf13/afero"
 	"image"
 )
 
@@ -54,7 +56,9 @@ const (
 
 // Watermark image watermarking
 func (t *Image) Watermark(file string, pos WaterPos, quality float64, imgMargin int) error {
-	if !helper.IsExist(file) {
+	fs := do.MustInvokeNamed[afero.Fs](global.Injector, "os.fs")
+	exists, _ := afero.Exists(fs, file)
+	if !exists {
 		return nil
 	}
 
