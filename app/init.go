@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/afero"
 )
 
-var DirList = []string{
+var dirList = []string{
 	"./app",
 	"./public",
 	"./public/uploads",
@@ -21,26 +21,16 @@ var DirList = []string{
 	"./data/logs",
 }
 
-func Init() {
+func Init(t *Dux) {
 
 	// 自动创建目录
-	fs := do.MustInvokeNamed[afero.Fs](global.Injector, "os.fs")
-	for _, path := range global.DirList {
-		exists, _ := afero.DirExists(fs, path)
-		if exists {
-			continue
-		}
-		err := fs.MkdirAll(path, 0777)
-		if err != nil {
-			panic("failed to create " + path + " directory")
-		}
-	}
+	CreateDir(dirList...)
 
 	// 初始化应用模块
 	for _, name := range Indexes {
 		appConfig := List[name]
 		if appConfig.Init != nil {
-			appConfig.Init()
+			appConfig.Init(t)
 		}
 	}
 
@@ -48,7 +38,7 @@ func Init() {
 	for _, name := range Indexes {
 		appConfig := List[name]
 		if appConfig.Register != nil {
-			appConfig.Register()
+			appConfig.Register(t)
 		}
 	}
 
@@ -56,7 +46,7 @@ func Init() {
 	for _, name := range Indexes {
 		appConfig := List[name]
 		if appConfig.Boot != nil {
-			appConfig.Boot()
+			appConfig.Boot(t)
 		}
 	}
 
@@ -66,4 +56,18 @@ func Init() {
 	resources.Register()
 	route.Register()
 
+}
+
+func CreateDir(dirs ...string) {
+	fs := do.MustInvokeNamed[afero.Fs](global.Injector, "os.fs")
+	for _, path := range dirs {
+		exists, _ := afero.DirExists(fs, path)
+		if exists {
+			return
+		}
+		err := fs.MkdirAll(path, 0777)
+		if err != nil {
+			panic("failed to create " + path + " directory")
+		}
+	}
 }

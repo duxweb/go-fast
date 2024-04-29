@@ -48,10 +48,12 @@ func Register() {
 
 		// 设置路由组
 		routeData := route.Get(appName)
-		var routeGroup *route.RouterData
-		if routeData != nil {
-			routeGroup = routeData.Group(info.Params["route"].(string), resName)
+
+		if routeData == nil {
+			panic("route app not set: " + appName)
 		}
+
+		routeGroup := routeData.Group(info.Params["route"].(string), resName)
 		permissionData := permission.Get(appName)
 		var permissionGroup *permission.PermissionData
 		// 设置权限组
@@ -65,26 +67,26 @@ func Register() {
 			routeGroup.Add("GET", "", resFuncMap["list"], resName+".list")
 		}
 		if resFuncMap["show"] != nil {
-			routeGroup.Add("GET", "/{id:[0-9]+}", resFuncMap["show"], resName+".show")
+			routeGroup.Add("GET", "/:id", resFuncMap["show"], resName+".show")
 		}
 		if resFuncMap["create"] != nil {
 			routeGroup.Add("POST", "", resFuncMap["create"], resName+".create")
 		}
 		if resFuncMap["edit"] != nil {
-			routeGroup.Add("PUT", "/{id:[0-9]+}", resFuncMap["edit"], resName+".edit")
+			routeGroup.Add("PUT", "/:id", resFuncMap["edit"], resName+".edit")
 		}
 		if resFuncMap["store"] != nil {
-			routeGroup.Add("PATH", "/{id:[0-9]+}", resFuncMap["store"], resName+".store")
+			routeGroup.Add("PATH", "/:id", resFuncMap["store"], resName+".store")
 		}
 		if resFuncMap["delete"] != nil {
-			routeGroup.Add("DELETE", "/{id:[0-9]+}", resFuncMap["delete"], resName+".delete")
+			routeGroup.Add("DELETE", "/:id", resFuncMap["delete"], resName+".delete")
 			routeGroup.Add("DELETE", "", resFuncMap["deleteMany"], resName+".deleteMany")
 		}
 		if resFuncMap["trash"] != nil {
-			routeGroup.Add("PATH", "/{id:[0-9]+}/trash", resFuncMap["trash"], resName+".trash")
+			routeGroup.Add("PATH", "/:id/trash", resFuncMap["trash"], resName+".trash")
 		}
 		if resFuncMap["restore"] != nil {
-			routeGroup.Add("PATH", "/{id:[0-9]+}/restore", resFuncMap["restore"], resName+".restore")
+			routeGroup.Add("PATH", "/:id/restore", resFuncMap["restore"], resName+".restore")
 		}
 
 		// 设置资源动作

@@ -2,12 +2,10 @@ package web
 
 import (
 	"context"
-	"github.com/duxweb/go-fast/app"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/monitor"
 	"github.com/duxweb/go-fast/route"
 	"github.com/duxweb/go-fast/task"
-	"github.com/duxweb/go-fast/websocket"
 	"github.com/gookit/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/urfave/cli/v2"
@@ -30,12 +28,6 @@ func Command() []*cli.Command {
 				syscall.SIGTERM)
 			defer stop()
 
-			task.Init()
-			Init()
-			monitor.Init()
-			websocket.Init()
-			app.Init()
-
 			task.ListenerTask("dux.monitor", monitor.Control)
 			task.ListenerScheduler("*/1 * * * *", "dux.monitor", map[string]any{}, task.PRIORITY_LOW)
 
@@ -48,6 +40,7 @@ func Command() []*cli.Command {
 				task.Add("ping", &map[string]any{})
 				task.StartQueue()
 			}()
+
 			// 启动 web 服务
 			Start()
 
@@ -70,11 +63,7 @@ func Command() []*cli.Command {
 		Usage:    "viewing the route list",
 		Category: "dev",
 		Action: func(ctx *cli.Context) error {
-			Init()
-			app.Init()
-
 			for name, list := range route.Routes {
-
 				color.Println(name)
 				t := table.NewWriter()
 				t.SetOutputMirror(os.Stdout)

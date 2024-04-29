@@ -14,15 +14,15 @@ import (
 func (t *Resources[T]) List(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
-		initFun := *t.initFun
-		err = initFun(ctx)
+		err = t.initFun(ctx)
 		if err != nil {
 			return err
 		}
 	}
 
 	params := map[string]any{}
-	if err = ctx.Bind(&params); err != nil {
+	err = (&echo.DefaultBinder{}).BindQueryParams(ctx, &params)
+	if err != nil {
 		return err
 	}
 
@@ -38,17 +38,15 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 	query := database.Gorm().Model(t.Model)
 
 	if params["id"] != nil {
-		query.Where(t.Key+" = ?", params["id"])
+		query = query.Where(t.Key+" = ?", params["id"])
 	}
 
 	if t.queryManyFun != nil {
-		queryManyFun := *t.queryManyFun
-		queryManyFun(query, ctx)
+		query = t.queryManyFun(query, params, ctx)
 	}
 
 	if t.queryFun != nil {
-		queryFun := *t.queryFun
-		queryFun(query)
+		query = t.queryFun(query, params, ctx)
 	}
 
 	if params["ids"] != nil {
@@ -78,14 +76,15 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 	} else {
 		err = query.Find(&models).Error
 	}
+
 	if err != nil {
 		return err
 	}
 
-	var data []map[string]any
-	var meta map[string]any
-	if t.formatFun != nil {
-		data, meta = helper.FormatData[T](models, *t.formatFun, lo.Ternary[*helper.Pagination](pagination != nil, pagination, nil))
+	data := make([]map[string]any, 0)
+	meta := map[string]any{}
+	if t.transformFun != nil {
+		data, meta = helper.FormatData[T](models, t.transformFun, pagination)
 	}
 
 	data = t.filterData(data, t.IncludesMany, t.ExcludesMany)

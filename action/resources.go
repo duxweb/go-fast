@@ -1,6 +1,7 @@
 package action
 
 import (
+	"github.com/duxweb/go-fast/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
@@ -14,7 +15,7 @@ type Pagination struct {
 }
 
 type Resources[T any] struct {
-	Model        any
+	Model        T
 	Key          string
 	Tree         bool
 	Pagination   Pagination
@@ -22,21 +23,22 @@ type Resources[T any] struct {
 	ExcludesMany []string
 	IncludesOne  []string
 	ExcludesOne  []string
-	initFun      *InitFun
-	transformFun *TransformFun[T]
-	queryFun     *QueryFun
-	queryManyFun *QueryRequestFun
-	queryOneFun  *QueryRequestFun
-	metaManyFun  *MetaManyFun[T]
-	metaOneFun   *MetaOneFun[T]
-	validatorFun *ValidatorFun
-	formatFun    *FormatFun[T]
+	initFun      InitFun
+	transformFun TransformFun[T]
+	queryFun     QueryRequestFun
+	queryManyFun QueryRequestFun
+	queryOneFun  QueryRequestFun
+	metaManyFun  MetaManyFun[T]
+	metaOneFun   MetaOneFun[T]
+	validatorFun ValidatorFun
+	formatFun    FormatFun[T]
 	ActionList   bool
 	ActionShow   bool
+	ActionCreate bool
 	Extend       map[string]any
 }
 
-func New[T any](model any) *Resources[T] {
+func New[T any](model T) *Resources[T] {
 	return &Resources[T]{
 		Key:   "id",
 		Tree:  false,
@@ -51,6 +53,7 @@ func New[T any](model any) *Resources[T] {
 		ExcludesOne:  []string{},
 		ActionList:   true,
 		ActionShow:   true,
+		ActionCreate: true,
 		Extend:       map[string]any{},
 	}
 }
@@ -58,61 +61,59 @@ func New[T any](model any) *Resources[T] {
 type InitFun func(e echo.Context) error
 
 // Init 初始化回调
-func (t *Resources[T]) Init(call *InitFun) {
+func (t *Resources[T]) Init(call InitFun) {
 	t.initFun = call
 }
 
-type TransformFun[T any] func(item T) map[string]any
+type TransformFun[T any] func(item T, index int) map[string]any
 
 // Transform 字段转换
-func (t *Resources[T]) Transform(call *TransformFun[T]) {
+func (t *Resources[T]) Transform(call TransformFun[T]) {
 	t.transformFun = call
 }
 
-type QueryFun func(orm *gorm.DB)
-
 // Query 通用查询
-func (t *Resources[T]) Query(call *QueryFun) {
+func (t *Resources[T]) Query(call QueryRequestFun) {
 	t.queryFun = call
 }
 
-type QueryRequestFun func(orm *gorm.DB, e echo.Context)
+type QueryRequestFun func(tx *gorm.DB, params map[string]any, e echo.Context) *gorm.DB
 
 // QueryMany 多条数据查询
-func (t *Resources[T]) QueryMany(call *QueryRequestFun) {
+func (t *Resources[T]) QueryMany(call QueryRequestFun) {
 	t.queryManyFun = call
 }
 
 // QueryOne 单条数据查询
-func (t *Resources[T]) QueryOne(call *QueryRequestFun) {
+func (t *Resources[T]) QueryOne(call QueryRequestFun) {
 	t.queryOneFun = call
 }
 
 type MetaManyFun[T any] func(orm *gorm.DB, data []T, e echo.Context)
 
 // MetaMany 多条元数据
-func (t *Resources[T]) MetaMany(call *MetaManyFun[T]) {
+func (t *Resources[T]) MetaMany(call MetaManyFun[T]) {
 	t.metaManyFun = call
 }
 
 type MetaOneFun[T any] func(data T, e echo.Context)
 
 // MetaOne 单条元数据
-func (t *Resources[T]) MetaOne(call *MetaManyFun[T]) {
+func (t *Resources[T]) MetaOne(call MetaManyFun[T]) {
 	t.metaManyFun = call
 }
 
-type ValidatorFun func(data any, e echo.Context)
+type ValidatorFun func(data map[string]any, e echo.Context) (validator.ValidatorRule, error)
 
 // Validator 数据验证
-func (t *Resources[T]) Validator(call *ValidatorFun) {
+func (t *Resources[T]) Validator(call ValidatorFun) {
 	t.validatorFun = call
 }
 
 type FormatFun[T any] func(item T, index int) map[string]any
 
 // Format 数据格式化
-func (t *Resources[T]) Format(call *FormatFun[T]) {
+func (t *Resources[T]) Format(call FormatFun[T]) {
 	t.formatFun = call
 }
 
@@ -157,6 +158,12 @@ func (t *Resources[T]) Result() Result {
 	result := Result{}
 	if t.ActionList {
 		result["list"] = t.List
+	}
+	if t.ActionShow {
+		result["show"] = t.Show
+	}
+	if t.ActionCreate {
+		result["create"] = t.Create
 	}
 	return result
 }

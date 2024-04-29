@@ -9,19 +9,18 @@ import (
 	"io/fs"
 )
 
-var FsList = make([]embed.FS, 0)
-
 var Bundle *i18n.Bundle
 
 var Trans *Localizer
 
+//go:embed lang/*.yaml
+var langFs embed.FS
+
 func Init() {
 	Bundle = i18n.NewBundle(language.English)
 	Bundle.RegisterUnmarshalFunc("yaml", yaml.Unmarshal)
-	for _, file := range FsList {
-		Register(file)
-	}
 	Trans = &Localizer{bundle: Bundle, localizer: i18n.NewLocalizer(Bundle, global.Lang)}
+	Register(langFs)
 }
 
 func Register(file embed.FS) {

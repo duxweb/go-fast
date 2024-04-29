@@ -41,7 +41,7 @@ func NewPagination(page, pageSize int) *Pagination {
 func Paginate(pagination *Pagination) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		var totalRows int64
-		db.Count(&totalRows)
+		db.Session(&gorm.Session{}).Count(&totalRows)
 		pagination.Total = totalRows
 		totalPages := int(math.Ceil(float64(totalRows) / float64(pagination.PageSize)))
 		pagination.Pages = totalPages

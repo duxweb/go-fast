@@ -37,15 +37,16 @@ func Init() {
 
 	// 注册异常处理
 	global.App.HTTPErrorHandler = func(err error, c echo.Context) {
-		code := http.StatusInternalServerError
-		var msg any
+		result := response.Data{
+			Code: http.StatusInternalServerError,
+		}
 		var e *echo.HTTPError
 		if errors.As(err, &e) {
 			// http error
-			code = e.Code
-			msg = e.Message
+			result.Code = e.Code
 		} else {
 			var exceptions *errors.Error
+			var validator *response.ValidatorData
 			if errors.As(err, &exceptions) {
 				stacks := exceptions.StackFrames()
 				logger.Log().Error("core", tint.Err(err),
@@ -57,19 +58,18 @@ func Init() {
 						}
 					})),
 				)
+			} else if errors.As(err, &validator) {
+				result.Code = validator.Code
+				result.Data = validator.Data
 			} else {
 				logger.Log().Error("core", tint.Err(err))
 			}
 
-			// Other error
-			msg = lo.Ternary[string](!global.Debug, i18n.Trans.Get("common.error.errorMessage"), err.Error())
+			result.Message = lo.Ternary[string](!global.Debug, i18n.Trans.Get("common.error.errorMessage"), err.Error())
 		}
 
 		if isAsync(c) {
-			err = c.JSON(code, map[string]any{
-				"code":    code,
-				"message": msg,
-			})
+			err = response.Send(c, result, result.Code)
 			if err != nil {
 				logger.Log().Error("err", err)
 			}
@@ -78,12 +78,12 @@ func Init() {
 
 		c.Set("tpl", "app")
 
-		if code == http.StatusNotFound {
-			err = c.Render(http.StatusNotFound, "404.html", nil)
+		if result.Code == http.StatusNotFound {
+			err = c.Render(http.StatusNotFound, "404.gohtml", nil)
 		} else {
-			err = c.Render(http.StatusInternalServerError, "error.html", map[string]any{
-				"code":    code,
-				"message": msg,
+			err = c.Render(http.StatusInternalServerError, "error.gohtml", map[string]any{
+				"code":    result.Code,
+				"message": result.Message,
 			})
 		}
 		if err != nil {
@@ -180,7 +180,7 @@ func Start() {
 
 	global.App.GET("/", func(c echo.Context) error {
 		c.Set("tpl", "app")
-		return c.Render(http.StatusOK, "welcome.html", nil)
+		return c.Render(http.StatusOK, "welcome.gohtml", nil)
 	})
 
 	// websocket

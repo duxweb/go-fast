@@ -11,18 +11,13 @@ import (
 	"io"
 )
 
-var DirList = map[string]string{}
-var FsList = map[string]embed.FS{}
-
 var Views = map[string]*template.Template{}
 
+//go:embed template/*
+var TplFs embed.FS
+
 func Init() {
-	for name, dir := range DirList {
-		New(name, dir)
-	}
-	for name, fs := range FsList {
-		NewFS(name, fs)
-	}
+	NewFS("app", TplFs)
 }
 
 var funcMap = template.FuncMap{

@@ -11,9 +11,9 @@ var (
 type Config struct {
 	Name     string
 	Config   any
-	Init     func()
-	Register func()
-	Boot     func()
+	Init     func(t *Dux)
+	Register func(t *Dux)
+	Boot     func(t *Dux)
 }
 
 // Register Call this method to register the application with the framework

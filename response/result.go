@@ -30,6 +30,8 @@ func Send(ctx echo.Context, data Data, code ...int) error {
 	if data.Meta == nil {
 		data.Meta = echo.Map{}
 	}
-	data.Code = statusCode
+	if data.Code == 0 {
+		data.Code = statusCode
+	}
 	return ctx.JSON(statusCode, data)
 }

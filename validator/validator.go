@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/duxweb/go-fast/response"
 	"github.com/go-playground/validator/v10"
+	"github.com/labstack/echo/v4"
 	"reflect"
 	"regexp"
 )
@@ -16,17 +17,31 @@ func Validator() *validator.Validate {
 
 func Init() {
 	injector = validator.New()
-	err := injector.RegisterValidation("cnPhone", func(f validator.FieldLevel) bool {
+	_ = injector.RegisterValidation("cnPhone", func(f validator.FieldLevel) bool {
 		value := f.Field().String()
 		result, _ := regexp.MatchString(`^(1\d{10})$`, value)
 		return result
 	})
-	if err != nil {
-		return
-	}
+	_ = injector.RegisterValidation("message", func(f validator.FieldLevel) bool {
+		return true
+	})
 }
 
-func ProcessError(object any, err error) error {
+// RequestParser 请求解析验证
+func RequestParser(ctx echo.Context, params any) error {
+	var err error
+	if err = ctx.Bind(params); err != nil {
+		return err
+	}
+	err = Validator().Struct(params)
+	if err = ValidatorStructError(params, err); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ValidatorStructError 错误处理
+func ValidatorStructError(object any, err error) error {
 	if err == nil {
 		return nil
 	}
@@ -45,7 +60,7 @@ func ProcessError(object any, err error) error {
 		}
 		field, ok := typeOf.FieldByName(fieldName)
 		if ok {
-			msg := field.Tag.Get("validateMsg")
+			msg := field.Tag.Get("message")
 			if msg != "" {
 				return response.BusinessError(msg)
 			} else {
