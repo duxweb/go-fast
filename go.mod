@@ -16,7 +16,7 @@ require (
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/golang-module/carbon/v2 v2.3.12
-	github.com/gookit/color v1.5.3
+	github.com/gookit/color v1.5.4
 	github.com/gookit/event v1.0.6
 	github.com/h2non/filetype v1.1.3
 	github.com/hibiken/asynq v0.24.0
@@ -62,6 +62,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.4.0 // indirect
+	github.com/gookit/goutil v0.6.15 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

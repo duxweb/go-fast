@@ -2,7 +2,6 @@ package action
 
 import (
 	"errors"
-	"fmt"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/response"
 	"github.com/labstack/echo/v4"
@@ -18,35 +17,23 @@ func (t *Resources[T]) Show(ctx echo.Context) error {
 		}
 	}
 
-	id := ctx.Param("id")
-
 	params := map[string]any{}
-	err = (&echo.DefaultBinder{}).BindQueryParams(ctx, &params)
+	err = ctx.Bind(&params)
 	if err != nil {
 		return err
 	}
 
-	query := database.Gorm().Debug().Model(t.Model).Where(t.Key+" = ?", id)
-
-	if t.queryOneFun != nil {
-		query = t.queryOneFun(query, params, ctx)
-	}
-
-	if t.queryFun != nil {
-		query = t.queryFun(query, params, ctx)
-	}
-
-	isEmpty := false
+	id := ctx.Param("id")
 	var model T
-	if err = query.First(&model).Error; err != nil {
+	err = t.getOne(ctx, &model, id, params)
+	isEmpty := false
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			isEmpty = true
 		} else {
 			return err
 		}
 	}
-
-	fmt.Println("model", model)
 
 	data := map[string]any{}
 	meta := map[string]any{}
@@ -63,4 +50,15 @@ func (t *Resources[T]) Show(ctx echo.Context) error {
 		Data: data,
 		Meta: meta,
 	})
+}
+
+func (t *Resources[T]) getOne(ctx echo.Context, model *T, id string, params map[string]any) error {
+	query := database.Gorm().Unscoped().Model(t.Model).Where(t.Key+" = ?", id)
+	if t.queryOneFun != nil {
+		query = t.queryOneFun(query, params, ctx)
+	}
+	if t.queryFun != nil {
+		query = t.queryFun(query, params, ctx)
+	}
+	return query.First(model).Error
 }

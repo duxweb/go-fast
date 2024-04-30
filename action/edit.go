@@ -1,14 +1,16 @@
 package action
 
 import (
+	"errors"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/validator"
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
-func (t *Resources[T]) Create(ctx echo.Context) error {
+func (t *Resources[T]) Edit(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
 		err = t.initFun(ctx)
@@ -34,7 +36,18 @@ func (t *Resources[T]) Create(ctx echo.Context) error {
 		}
 	}
 
-	model := t.Model
+	id := ctx.Param("id")
+	var model T
+
+	err = t.getOne(ctx, &model, id, requestData)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.BusinessError(i18n.Trans.Get("common.message.emptyData"))
+		} else {
+			return err
+		}
+	}
+
 	if t.formatFun != nil {
 		err = t.formatFun(&model, requestData, ctx)
 		if err != nil {
@@ -42,42 +55,34 @@ func (t *Resources[T]) Create(ctx echo.Context) error {
 		}
 	}
 
-	if t.createBeforeFun != nil {
-		t.createBeforeFun(&model, requestData)
+	if t.editBeforeFun != nil {
+		t.editBeforeFun(&model, requestData)
 	}
 	if t.saveBeforeFun != nil {
 		t.saveBeforeFun(&model, requestData)
 	}
 
-	err = database.Gorm().Debug().Model(t.Model).Create(&model).Error
+	err = database.Gorm().Save(&model).Error
 	if err != nil {
 		return err
 	}
 
-	if t.createAfterFun != nil {
-		t.createAfterFun(&model, requestData)
+	if t.editAfterFun != nil {
+		t.editAfterFun(&model, requestData)
 	}
 	if t.saveAfterFun != nil {
 		t.saveAfterFun(&model, requestData)
 	}
 
 	return response.Send(ctx, response.Data{
-		Message: i18n.Trans.Get("common.message.create"),
+		Message: i18n.Trans.Get("common.message.edit"),
 	})
 }
 
-func (t *Resources[T]) CreateBefore(call ActionCallFun[T]) {
-	t.createBeforeFun = call
+func (t *Resources[T]) EditBefore(call ActionCallFun[T]) {
+	t.editBeforeFun = call
 }
 
-func (t *Resources[T]) CreateAfter(call ActionCallFun[T]) {
-	t.createAfterFun = call
-}
-
-func (t *Resources[T]) SaveBefore(call ActionCallFun[T]) {
-	t.saveBeforeFun = call
-}
-
-func (t *Resources[T]) SaveAfter(call ActionCallFun[T]) {
-	t.saveAfterFun = call
+func (t *Resources[T]) EditAfter(call ActionCallFun[T]) {
+	t.editAfterFun = call
 }

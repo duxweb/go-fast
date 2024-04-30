@@ -26,13 +26,14 @@ func ValidatorMaps(params map[string]any, rules ValidatorRule) error {
 }
 
 func validatorMapsError(rules ValidatorRule, errs map[string]any) error {
-	if errs == nil {
+	if len(errs) == 0 {
 		return nil
 	}
 	data := map[string]any{}
 	message := ""
 	for name, err := range errs {
 		x := err.(validator.ValidationErrors)
+
 		e := ""
 		if val, ok := rules[name]; ok {
 			e = val.Message

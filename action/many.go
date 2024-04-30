@@ -57,15 +57,15 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 			}
 			return false
 		})
-		query.Where(t.Key+" in ?", ids)
-		query.Clauses(clause.OrderBy{
+
+		query = query.Where(t.Key+" in ?", ids).Clauses(clause.OrderBy{
 			Expression: clause.Expr{SQL: "FIELD(" + t.Key + ",?)", Vars: []any{ids}, WithoutParentheses: true},
 		})
 	}
 
 	sorts := t.getSorts(params)
 	for k, v := range sorts {
-		query.Order(k + " " + cast.ToString(v))
+		query = query.Order(k + " " + cast.ToString(v))
 	}
 
 	models := make([]T, 0)
@@ -93,4 +93,39 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 		Data: data,
 		Meta: meta,
 	})
+}
+
+// getSorts 获取排序规则
+func (t *Resources[T]) getSorts(params map[string]any) map[string]string {
+	data := map[string]string{}
+	for key, value := range params {
+		if !strings.HasSuffix(key, "_sort") {
+			continue
+		}
+		if value != "asc" && value != "desc" {
+			continue
+		}
+		field := key[0 : len(key)-5]
+		data[field] = cast.ToString(value)
+	}
+	return data
+}
+
+func (t *Resources[T]) filterData(data []map[string]any, includes []string, excludes []string) []map[string]any {
+	result := make([]map[string]any, 0)
+	for _, item := range data {
+		datum := item
+		if len(includes) > 0 {
+			datum = lo.PickBy[string, any](item, func(key string, value any) bool {
+				return lo.IndexOf[string](includes, key) != -1
+			})
+		}
+		if len(excludes) > 0 {
+			datum = lo.PickBy[string, any](datum, func(key string, value any) bool {
+				return lo.IndexOf[string](excludes, key) == -1
+			})
+		}
+		result = append(result, datum)
+	}
+	return result
 }

@@ -44,6 +44,7 @@ func Init() {
 		if errors.As(err, &e) {
 			// http error
 			result.Code = e.Code
+			result.Message = cast.ToString(e.Message)
 		} else {
 			var exceptions *errors.Error
 			var validator *response.ValidatorData
@@ -61,11 +62,13 @@ func Init() {
 			} else if errors.As(err, &validator) {
 				result.Code = validator.Code
 				result.Data = validator.Data
+				result.Message = validator.Message
 			} else {
 				logger.Log().Error("core", tint.Err(err))
+				result.Message = err.Error()
 			}
 
-			result.Message = lo.Ternary[string](!global.Debug, i18n.Trans.Get("common.error.errorMessage"), err.Error())
+			result.Message = lo.Ternary[string](!global.Debug, i18n.Trans.Get("common.error.errorMessage"), result.Message)
 		}
 
 		if isAsync(c) {

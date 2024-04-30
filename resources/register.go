@@ -76,17 +76,19 @@ func Register() {
 			routeGroup.Add("PUT", "/:id", resFuncMap["edit"], resName+".edit")
 		}
 		if resFuncMap["store"] != nil {
-			routeGroup.Add("PATH", "/:id", resFuncMap["store"], resName+".store")
+			routeGroup.Add("PATCH", "/:id", resFuncMap["store"], resName+".store")
 		}
 		if resFuncMap["delete"] != nil {
 			routeGroup.Add("DELETE", "/:id", resFuncMap["delete"], resName+".delete")
 			routeGroup.Add("DELETE", "", resFuncMap["deleteMany"], resName+".deleteMany")
 		}
 		if resFuncMap["trash"] != nil {
-			routeGroup.Add("PATH", "/:id/trash", resFuncMap["trash"], resName+".trash")
+			routeGroup.Add("DELETE", "/:id/trash", resFuncMap["trash"], resName+".trash")
+			routeGroup.Add("DELETE", "/trashs", resFuncMap["trashMany"], resName+".trashMany")
 		}
 		if resFuncMap["restore"] != nil {
-			routeGroup.Add("PATH", "/:id/restore", resFuncMap["restore"], resName+".restore")
+			routeGroup.Add("PUT", "/:id/restore", resFuncMap["restore"], resName+".restore")
+			routeGroup.Add("PUT", "/restore", resFuncMap["restoreMany"], resName+".restoreMany")
 		}
 
 		// 设置资源动作

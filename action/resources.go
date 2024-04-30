@@ -3,10 +3,7 @@ package action
 import (
 	"github.com/duxweb/go-fast/validator"
 	"github.com/labstack/echo/v4"
-	"github.com/samber/lo"
-	"github.com/spf13/cast"
 	"gorm.io/gorm"
-	"strings"
 )
 
 type Pagination struct {
@@ -15,27 +12,45 @@ type Pagination struct {
 }
 
 type Resources[T any] struct {
-	Model        T
-	Key          string
-	Tree         bool
-	Pagination   Pagination
-	IncludesMany []string
-	ExcludesMany []string
-	IncludesOne  []string
-	ExcludesOne  []string
-	initFun      InitFun
-	transformFun TransformFun[T]
-	queryFun     QueryRequestFun
-	queryManyFun QueryRequestFun
-	queryOneFun  QueryRequestFun
-	metaManyFun  MetaManyFun[T]
-	metaOneFun   MetaOneFun[T]
-	validatorFun ValidatorFun
-	formatFun    FormatFun[T]
-	ActionList   bool
-	ActionShow   bool
-	ActionCreate bool
-	Extend       map[string]any
+	Model            T
+	Key              string
+	Tree             bool
+	Pagination       Pagination
+	IncludesMany     []string
+	ExcludesMany     []string
+	IncludesOne      []string
+	ExcludesOne      []string
+	initFun          InitFun
+	transformFun     TransformFun[T]
+	queryFun         QueryRequestFun
+	queryManyFun     QueryRequestFun
+	queryOneFun      QueryRequestFun
+	metaManyFun      MetaManyFun[T]
+	metaOneFun       MetaOneFun[T]
+	validatorFun     ValidatorFun
+	formatFun        FormatFun[T]
+	createBeforeFun  ActionCallFun[T]
+	createAfterFun   ActionCallFun[T]
+	editBeforeFun    ActionCallFun[T]
+	editAfterFun     ActionCallFun[T]
+	saveBeforeFun    ActionCallFun[T]
+	saveAfterFun     ActionCallFun[T]
+	deleteBeforeFun  ActionCallFun[T]
+	deleteAfterFun   ActionCallFun[T]
+	storeBeforeFun   ActionCallFun[T]
+	storeAfterFun    ActionCallFun[T]
+	trashBeforeFun   ActionCallFun[T]
+	trashAfterFun    ActionCallFun[T]
+	restoreBeforeFun ActionCallFun[T]
+	restoreAfterFun  ActionCallFun[T]
+	ActionList       bool
+	ActionShow       bool
+	ActionCreate     bool
+	ActionEdit       bool
+	ActionDelete     bool
+	ActionStore      bool
+	ActionSoftDelete bool
+	Extend           map[string]any
 }
 
 func New[T any](model T) *Resources[T] {
@@ -47,14 +62,18 @@ func New[T any](model T) *Resources[T] {
 			Status:   true,
 			PageSize: 10,
 		},
-		IncludesMany: []string{},
-		ExcludesMany: []string{},
-		IncludesOne:  []string{},
-		ExcludesOne:  []string{},
-		ActionList:   true,
-		ActionShow:   true,
-		ActionCreate: true,
-		Extend:       map[string]any{},
+		IncludesMany:     []string{},
+		ExcludesMany:     []string{},
+		IncludesOne:      []string{},
+		ExcludesOne:      []string{},
+		ActionList:       true,
+		ActionShow:       true,
+		ActionCreate:     true,
+		ActionEdit:       true,
+		ActionDelete:     true,
+		ActionStore:      true,
+		ActionSoftDelete: false,
+		Extend:           map[string]any{},
 	}
 }
 
@@ -106,51 +125,19 @@ func (t *Resources[T]) MetaOne(call MetaManyFun[T]) {
 type ValidatorFun func(data map[string]any, e echo.Context) (validator.ValidatorRule, error)
 
 // Validator 数据验证
+// Docs github.com/go-playground/validator/v10
 func (t *Resources[T]) Validator(call ValidatorFun) {
 	t.validatorFun = call
 }
 
-type FormatFun[T any] func(item T, index int) map[string]any
+type FormatFun[T any] func(model *T, data map[string]any, e echo.Context) error
 
 // Format 数据格式化
 func (t *Resources[T]) Format(call FormatFun[T]) {
 	t.formatFun = call
 }
 
-// getSorts 获取排序规则
-func (t *Resources[T]) getSorts(params map[string]any) map[string]string {
-	data := map[string]string{}
-	for key, value := range params {
-		if !strings.HasSuffix(key, "_sort") {
-			continue
-		}
-		if value != "asc" && value != "desc" {
-			continue
-		}
-		field := key[0 : len(key)-5]
-		data[field] = cast.ToString(value)
-	}
-	return data
-}
-
-func (t *Resources[T]) filterData(data []map[string]any, includes []string, excludes []string) []map[string]any {
-	result := make([]map[string]any, 0)
-	for _, item := range data {
-		datum := item
-		if len(includes) > 0 {
-			datum = lo.PickBy[string, any](item, func(key string, value any) bool {
-				return lo.IndexOf[string](includes, key) != -1
-			})
-		}
-		if len(excludes) > 0 {
-			datum = lo.PickBy[string, any](datum, func(key string, value any) bool {
-				return lo.IndexOf[string](excludes, key) == -1
-			})
-		}
-		result = append(result, datum)
-	}
-	return result
-}
+type ActionCallFun[T any] func(model *T, params map[string]any)
 
 type Result map[string]func(ctx echo.Context) error
 
@@ -164,6 +151,22 @@ func (t *Resources[T]) Result() Result {
 	}
 	if t.ActionCreate {
 		result["create"] = t.Create
+	}
+	if t.ActionEdit {
+		result["edit"] = t.Edit
+	}
+	if t.ActionDelete {
+		result["delete"] = t.Delete
+		result["deleteMany"] = t.DeleteMany
+	}
+	if t.ActionStore {
+		result["store"] = t.Store
+	}
+	if t.ActionSoftDelete {
+		result["trash"] = t.Trash
+		result["trashMany"] = t.TrashMany
+		result["restore"] = t.Restore
+		result["restoreMany"] = t.RestoreMany
 	}
 	return result
 }
