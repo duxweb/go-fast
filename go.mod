@@ -18,11 +18,13 @@ require (
 	github.com/golang-module/carbon/v2 v2.3.12
 	github.com/gookit/color v1.5.4
 	github.com/gookit/event v1.0.6
+	github.com/gookit/goutil v0.6.15
 	github.com/h2non/filetype v1.1.3
 	github.com/hibiken/asynq v0.24.0
 	github.com/jedib0t/go-pretty/v6 v6.4.6
 	github.com/labstack/echo-jwt/v4 v4.2.0
 	github.com/labstack/echo/v4 v4.11.4
+	github.com/labstack/gommon v0.4.2
 	github.com/lmittmann/tint v1.0.4
 	github.com/mattn/go-colorable v0.1.13
 	github.com/nicksnyder/go-i18n/v2 v2.2.1
@@ -34,6 +36,7 @@ require (
 	github.com/samber/lo v1.38.1
 	github.com/samber/slog-multi v1.0.2
 	github.com/shirou/gopsutil/v3 v3.23.3
+	github.com/spf13/afero v1.11.0
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/viper v1.15.0
 	github.com/urfave/cli/v2 v2.27.1
@@ -62,7 +65,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.4.0 // indirect
-	github.com/gookit/goutil v0.6.15 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -71,7 +73,6 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.16.5 // indirect
-	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leodido/go-urn v1.2.3 // indirect
 	github.com/lufia/plan9stats v0.0.0-20230326075908-cb1d2100619a // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
@@ -89,13 +90,11 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shoenig/go-m1cpu v0.1.5 // indirect
-	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/tklauser/go-sysconf v0.3.11 // indirect
 	github.com/tklauser/numcpus v0.6.0 // indirect
-	github.com/traefik/yaegi v0.16.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
