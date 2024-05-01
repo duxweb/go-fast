@@ -3,7 +3,7 @@ package database
 import (
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
-	"github.com/samber/do"
+	"github.com/samber/do/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -17,17 +17,21 @@ func (s *MongoService) Shutdown() error {
 	return s.client.Disconnect(global.CtxBackground)
 }
 
+func MongoInit() {
+	dbConfig := config.Load("database").GetStringMap("mongodb.drivers")
+	for name, _ := range dbConfig {
+		do.ProvideNamed[*MongoService](global.Injector, "mongodb."+name, func(injector do.Injector) (*MongoService, error) {
+			return NewMongo(name), nil
+		})
+	}
+}
+
 func Mongo(name ...string) *mongo.Database {
 	n := "default"
 	if len(name) > 0 {
 		n = name[0]
 	}
-
-	client, err := do.InvokeNamed[*MongoService](global.Injector, "mongodb."+n)
-	if err != nil {
-		client = NewMongo(n)
-		do.ProvideNamedValue[*MongoService](global.Injector, "mongodb."+n, client)
-	}
+	client := do.MustInvokeNamed[*MongoService](global.Injector, "mongodb."+n)
 	return client.engine
 }
 

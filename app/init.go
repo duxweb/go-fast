@@ -7,7 +7,7 @@ import (
 	"github.com/duxweb/go-fast/resources"
 	"github.com/duxweb/go-fast/route"
 	"github.com/duxweb/go-fast/task"
-	"github.com/samber/do"
+	"github.com/samber/do/v2"
 	"github.com/spf13/afero"
 )
 

@@ -6,6 +6,7 @@ import (
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/i18n"
+	"github.com/duxweb/go-fast/permission"
 	"github.com/duxweb/go-fast/views"
 	"github.com/duxweb/go-fast/web"
 	"github.com/gookit/color"
@@ -58,7 +59,7 @@ func (t *Dux) create() {
 	for _, call := range t.apps {
 		call()
 	}
-	t.RegisterCmd(web.Command, Command, annotation.Command, database.Command)
+	t.RegisterCmd(Command, web.Command, permission.Command, annotation.Command, database.Command)
 }
 
 // Run Command
@@ -72,6 +73,11 @@ func (t *Dux) Run() {
 
 	if !IsRelease() {
 		annotation.Run()
+
+		if global.AnnotationUpdate {
+			color.Redln("⇨ runtime found an update, please restart")
+			os.Exit(0)
+		}
 	}
 
 	Start(t)

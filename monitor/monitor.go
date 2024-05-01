@@ -6,7 +6,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/helper"
-	"github.com/samber/do"
+	"github.com/samber/do/v2"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/spf13/afero"

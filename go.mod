@@ -32,7 +32,7 @@ require (
 	github.com/orandin/slog-gorm v1.3.2
 	github.com/panjf2000/ants/v2 v2.7.3
 	github.com/rotisserie/eris v0.5.4
-	github.com/samber/do v1.6.0
+	github.com/samber/do/v2 v2.0.0-beta.5
 	github.com/samber/lo v1.38.1
 	github.com/samber/slog-multi v1.0.2
 	github.com/shirou/gopsutil/v3 v3.23.3
@@ -89,6 +89,7 @@ require (
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/samber/go-type-to-string v1.2.0 // indirect
 	github.com/shoenig/go-m1cpu v0.1.5 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

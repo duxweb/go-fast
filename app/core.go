@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/duxweb/go-fast/cache"
 	"github.com/duxweb/go-fast/config"
+	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/logger"
@@ -12,7 +13,7 @@ import (
 	"github.com/duxweb/go-fast/views"
 	"github.com/duxweb/go-fast/web"
 	"github.com/duxweb/go-fast/websocket"
-	"github.com/samber/do"
+	"github.com/samber/do/v2"
 )
 
 func Start(t *Dux) {
@@ -22,6 +23,9 @@ func Start(t *Dux) {
 	cache.Init()
 	i18n.Init()
 	validator.Init()
+	database.GormInit()
+	database.RedisInit()
+	database.MongoInit()
 	views.Init()
 	task.Init()
 	web.Init()

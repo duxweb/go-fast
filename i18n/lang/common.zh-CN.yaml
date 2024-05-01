@@ -15,11 +15,13 @@ common:
     show: 详情
     create: 创建
     edit: 编辑
+    store: 更新
     delete: 删除
     deleteMany: 批量删除
-    store: 更新
-    trash: 彻底删除
+    trash: 清空
+    trashMany: 批量清空
     restore: 恢复
+    restoreMany: 批量回复
   validate:
     placeholder: 请输入%name%
     select: 请选择%name%

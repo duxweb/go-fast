@@ -1,13 +1,15 @@
 package validator
 
 import (
+	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/go-playground/validator/v10"
 )
 
 type ValidatorWarp struct {
-	Rule    string
-	Message string
+	Rule        string
+	Message     string
+	LangMessage string
 }
 
 type ValidatorRule map[string]ValidatorWarp
@@ -37,6 +39,11 @@ func validatorMapsError(rules ValidatorRule, errs map[string]any) error {
 		e := ""
 		if val, ok := rules[name]; ok {
 			e = val.Message
+
+			if val.LangMessage != "" {
+				i18n.Trans.Get(val.LangMessage)
+			}
+
 		} else {
 			e = x.Error()
 		}

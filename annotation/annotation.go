@@ -2,7 +2,7 @@ package annotation
 
 import (
 	"bytes"
-	"github.com/gookit/color"
+	"github.com/duxweb/go-fast/global"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -248,7 +248,7 @@ var Annotations = []*annotation.File{
 	fileSize := fileInfo.Size()
 
 	if outputSize != fileSize {
-		color.Redln("⇨ runtime found an update, please restart")
+		global.AnnotationUpdate = true
 	}
 
 	file, err := os.Create("./runtime/annotations.go")

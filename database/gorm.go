@@ -6,7 +6,7 @@ import (
 	"github.com/duxweb/go-fast/global"
 	coreLogger "github.com/duxweb/go-fast/logger"
 	slogGorm "github.com/orandin/slog-gorm"
-	"github.com/samber/do"
+	"github.com/samber/do/v2"
 	"github.com/spf13/cast"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -33,17 +33,21 @@ func (s *GormService) Shutdown() error {
 	return sqlDB.Close()
 }
 
+func GormInit() {
+	dbConfig := config.Load("database").GetStringMap("db.drivers")
+	for name, _ := range dbConfig {
+		do.ProvideNamed[*GormService](global.Injector, "orm."+name, func(injector do.Injector) (*GormService, error) {
+			return NewGorm(name), nil
+		})
+	}
+}
+
 func Gorm(name ...string) *gorm.DB {
 	n := "default"
 	if len(name) > 0 {
 		n = name[0]
 	}
-
-	client, err := do.InvokeNamed[*GormService](global.Injector, "orm."+n)
-	if err != nil {
-		client = NewGorm(n)
-		do.ProvideNamedValue[*GormService](global.Injector, "orm."+n, client)
-	}
+	client := do.MustInvokeNamed[*GormService](global.Injector, "orm."+n)
 	return client.engine
 }
 

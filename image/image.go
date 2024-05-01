@@ -5,7 +5,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/duxweb/go-fast/global"
 	"github.com/h2non/filetype"
-	"github.com/samber/do"
+	"github.com/samber/do/v2"
 	"github.com/spf13/afero"
 	"image"
 )

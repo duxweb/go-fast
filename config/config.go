@@ -3,7 +3,7 @@ package config
 import (
 	"github.com/duxweb/go-fast/global"
 	"github.com/golang-module/carbon/v2"
-	"github.com/samber/do"
+	"github.com/samber/do/v2"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 	"os"
@@ -44,7 +44,7 @@ func Init() {
 	})
 
 	// set OsFs
-	do.ProvideNamed[afero.Fs](global.Injector, "os.fs", func(injector *do.Injector) (afero.Fs, error) {
+	do.ProvideNamed[afero.Fs](global.Injector, "os.fs", func(injector do.Injector) (afero.Fs, error) {
 		fs := afero.NewOsFs()
 		return fs, nil
 	})

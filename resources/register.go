@@ -11,7 +11,7 @@ import (
 var Resources = map[string]*ResourceData{}
 
 func Set(name string, data *ResourceData) {
-	Resources[name] = data
+	Resources[name] = data.run()
 }
 
 func Get(name string) *ResourceData {
@@ -19,6 +19,7 @@ func Get(name string) *ResourceData {
 }
 
 func Register() {
+
 	for _, file := range annotation.Annotations {
 		// 获取资源数据
 		var info *annotation.Annotation
@@ -61,36 +62,6 @@ func Register() {
 			permissionGroup = permissionData.Group(resName, 0)
 		}
 
-		// 设置内置资源
-		resFuncMap := resFunc()
-		if resFuncMap["list"] != nil {
-			routeGroup.Add("GET", "", resFuncMap["list"], resName+".list")
-		}
-		if resFuncMap["show"] != nil {
-			routeGroup.Add("GET", "/:id", resFuncMap["show"], resName+".show")
-		}
-		if resFuncMap["create"] != nil {
-			routeGroup.Add("POST", "", resFuncMap["create"], resName+".create")
-		}
-		if resFuncMap["edit"] != nil {
-			routeGroup.Add("PUT", "/:id", resFuncMap["edit"], resName+".edit")
-		}
-		if resFuncMap["store"] != nil {
-			routeGroup.Add("PATCH", "/:id", resFuncMap["store"], resName+".store")
-		}
-		if resFuncMap["delete"] != nil {
-			routeGroup.Add("DELETE", "/:id", resFuncMap["delete"], resName+".delete")
-			routeGroup.Add("DELETE", "", resFuncMap["deleteMany"], resName+".deleteMany")
-		}
-		if resFuncMap["trash"] != nil {
-			routeGroup.Add("DELETE", "/:id/trash", resFuncMap["trash"], resName+".trash")
-			routeGroup.Add("DELETE", "/trashs", resFuncMap["trashMany"], resName+".trashMany")
-		}
-		if resFuncMap["restore"] != nil {
-			routeGroup.Add("PUT", "/:id/restore", resFuncMap["restore"], resName+".restore")
-			routeGroup.Add("PUT", "/restore", resFuncMap["restoreMany"], resName+".restoreMany")
-		}
-
 		// 设置资源动作
 		for _, item := range file.Annotations {
 			if item.Name != "Action" {
@@ -115,11 +86,66 @@ func Register() {
 				panic("action func not set: " + file.Name)
 			}
 
-			if routeGroup != nil {
-				routeGroup.Add(method, match, function, resName+"."+name)
-			}
+			routeGroup.Add(method, match, function, resName+"."+name)
 			if permissionGroup != nil {
 				permissionGroup.Add(name)
+			}
+		}
+
+		// 设置内置资源
+		resFuncMap := resFunc()
+		if resFuncMap["list"] != nil {
+			routeGroup.Add("GET", "", resFuncMap["list"], resName+".list")
+			if permissionGroup != nil {
+				permissionGroup.Add("list")
+			}
+		}
+		if resFuncMap["show"] != nil {
+			routeGroup.Add("GET", "/:id", resFuncMap["show"], resName+".show")
+			if permissionGroup != nil {
+				permissionGroup.Add("show")
+			}
+		}
+		if resFuncMap["create"] != nil {
+			routeGroup.Add("POST", "", resFuncMap["create"], resName+".create")
+			if permissionGroup != nil {
+				permissionGroup.Add("create")
+			}
+		}
+		if resFuncMap["edit"] != nil {
+			routeGroup.Add("PUT", "/:id", resFuncMap["edit"], resName+".edit")
+			if permissionGroup != nil {
+				permissionGroup.Add("edit")
+			}
+		}
+		if resFuncMap["store"] != nil {
+			routeGroup.Add("PATCH", "/:id", resFuncMap["store"], resName+".store")
+			if permissionGroup != nil {
+				permissionGroup.Add("store")
+			}
+		}
+		if resFuncMap["delete"] != nil {
+			routeGroup.Add("DELETE", "/:id", resFuncMap["delete"], resName+".delete")
+			routeGroup.Add("DELETE", "", resFuncMap["deleteMany"], resName+".deleteMany")
+			if permissionGroup != nil {
+				permissionGroup.Add("delete")
+				permissionGroup.Add("deleteMany")
+			}
+		}
+		if resFuncMap["trash"] != nil {
+			routeGroup.Add("DELETE", "/:id/trash", resFuncMap["trash"], resName+".trash")
+			routeGroup.Add("DELETE", "/trashs", resFuncMap["trashMany"], resName+".trashMany")
+			if permissionGroup != nil {
+				permissionGroup.Add("trash")
+				permissionGroup.Add("trashMany")
+			}
+		}
+		if resFuncMap["restore"] != nil {
+			routeGroup.Add("PUT", "/:id/restore", resFuncMap["restore"], resName+".restore")
+			routeGroup.Add("PUT", "/restore", resFuncMap["restoreMany"], resName+".restoreMany")
+			if permissionGroup != nil {
+				permissionGroup.Add("restore")
+				permissionGroup.Add("restoreMany")
 			}
 		}
 

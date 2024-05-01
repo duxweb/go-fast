@@ -45,13 +45,12 @@ func Command() []*cli.Command {
 			Start()
 
 			<-ctx.Done()
-			err := global.Injector.Shutdown()
-			if err != nil {
+			if err := global.Injector.Shutdown(); err != nil {
 				color.Errorln("Stop service")
 			}
 			ctx, cancel := context.WithTimeout(global.CtxBackground, 10*time.Second)
 			defer cancel()
-			if err = global.App.Shutdown(ctx); err != nil {
+			if err := global.App.Shutdown(ctx); err != nil {
 				color.Errorln(err.Error())
 			}
 			return nil
@@ -67,10 +66,11 @@ func Command() []*cli.Command {
 				color.Println(name)
 				t := table.NewWriter()
 				t.SetOutputMirror(os.Stdout)
-				t.AppendHeader(table.Row{"Name", "Method", "Path"})
+				t.AppendHeader(table.Row{"Name", "Method", "Path", "Label"})
 				rows := make([]table.Row, 0)
+
 				for _, item := range list.ParseData(list.Prefix) {
-					rows = append(rows, table.Row{item["name"], item["method"], item["path"]})
+					rows = append(rows, table.Row{item["name"], item["method"], item["path"], item["label"]})
 				}
 				t.AppendRows(rows)
 				t.Render()

@@ -11,7 +11,7 @@ import (
 	"github.com/gookit/color"
 	"github.com/hibiken/asynq"
 	"github.com/lmittmann/tint"
-	"github.com/samber/do"
+	"github.com/samber/do/v2"
 	"github.com/spf13/cast"
 	"log/slog"
 	"time"
@@ -35,7 +35,7 @@ func Init() {
 	do.ProvideNamed(global.Injector, "task", NewTask)
 }
 
-func NewTask(i *do.Injector) (*TaskService, error) {
+func NewTask(i do.Injector) (*TaskService, error) {
 	dbConfig := config.Load("database").GetStringMapString("redis.drivers.default")
 	res := asynq.RedisClientOpt{
 		Addr:     dbConfig["host"] + ":" + dbConfig["port"],

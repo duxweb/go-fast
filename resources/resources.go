@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"github.com/duxweb/go-fast/menu"
 	"github.com/duxweb/go-fast/permission"
 	"github.com/duxweb/go-fast/route"
 	"github.com/labstack/echo/v4"
@@ -13,8 +14,11 @@ type ResourceData struct {
 	middleware     []echo.MiddlewareFunc
 }
 
-func New() *ResourceData {
-	return &ResourceData{}
+func New(name, path string) *ResourceData {
+	return &ResourceData{
+		name: name,
+		path: path,
+	}
 }
 
 func (t *ResourceData) addMiddleware(middle ...echo.MiddlewareFunc) *ResourceData {
@@ -39,7 +43,9 @@ func (t *ResourceData) getAllMiddleware() []echo.MiddlewareFunc {
 	return append(t.middleware, t.authMiddleware...)
 }
 
-func (t *ResourceData) run() {
+func (t *ResourceData) run() *ResourceData {
 	route.Set(t.name, route.New(t.path))
 	permission.Set(t.name, permission.New())
+	menu.Set(t.name, menu.New())
+	return t
 }
