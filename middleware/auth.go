@@ -1,7 +1,8 @@
-package auth
+package middleware
 
 import (
 	"errors"
+	"github.com/duxweb/go-fast/auth"
 	"github.com/duxweb/go-fast/config"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo-jwt/v4"
@@ -17,11 +18,12 @@ func AuthMiddleware(app string, renewals ...time.Duration) echo.MiddlewareFunc {
 	key := config.Load("use").GetString("app.secret")
 	middle := echojwt.Config{
 		SigningKey:  key,
-		TokenLookup: "header:" + echo.HeaderAuthorization + ",query:auth",
+		TokenLookup: "header:Authorization:Bearer ,query:auth",
 		ParseTokenFunc: func(c echo.Context, token string) (interface{}, error) {
-			data := JwtClaims{}
+
+			data := auth.JwtClaims{}
 			jwtToken, err := jwt.ParseWithClaims(token, &data, func(token *jwt.Token) (interface{}, error) {
-				return key, nil
+				return []byte(key), nil
 			})
 			if err != nil {
 				return nil, err
@@ -33,7 +35,7 @@ func AuthMiddleware(app string, renewals ...time.Duration) echo.MiddlewareFunc {
 		},
 		SuccessHandler: func(c echo.Context) {
 			user := c.Get("user").(*jwt.Token)
-			claims := user.Claims.(JwtClaims)
+			claims := user.Claims.(*auth.JwtClaims)
 			c.Set("auth", claims)
 			if !claims.Refresh {
 				return
@@ -52,7 +54,7 @@ func AuthMiddleware(app string, renewals ...time.Duration) echo.MiddlewareFunc {
 				return
 			}
 			expire := expiredAt.Sub(issuedAt.Time)
-			newToken, _ := NewJWT().MakeToken(claims.Subject, claims.ID, expire)
+			newToken, _ := auth.NewJWT().MakeToken(claims.Subject, claims.ID, expire)
 			c.Response().Header().Set(echo.HeaderAuthorization, "Bearer "+newToken)
 		},
 		ErrorHandler: func(c echo.Context, err error) error {

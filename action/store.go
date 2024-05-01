@@ -70,7 +70,10 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 	})
 
 	if t.storeBeforeFun != nil {
-		t.storeBeforeFun(&model, requestData)
+		err = t.storeBeforeFun(&model, requestData)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = database.Gorm().Model(&model).Updates(data).Error
@@ -79,7 +82,10 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 	}
 
 	if t.storeAfterFun != nil {
-		t.storeAfterFun(&model, requestData)
+		err = t.storeAfterFun(&model, requestData)
+		if err != nil {
+			return err
+		}
 	}
 
 	return response.Send(ctx, response.Data{

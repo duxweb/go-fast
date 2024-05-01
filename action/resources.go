@@ -27,6 +27,8 @@ type Resources[T any] struct {
 	queryOneFun      QueryRequestFun
 	metaManyFun      MetaManyFun[T]
 	metaOneFun       MetaOneFun[T]
+	manyAfterFun     ManyCallFun[T]
+	oneAfterFun      OneCallFun[T]
 	validatorFun     ValidatorFun
 	formatFun        FormatFun[T]
 	createBeforeFun  ActionCallFun[T]
@@ -137,7 +139,7 @@ func (t *Resources[T]) Format(call FormatFun[T]) {
 	t.formatFun = call
 }
 
-type ActionCallFun[T any] func(model *T, params map[string]any)
+type ActionCallFun[T any] func(data *T, params map[string]any) error
 
 type Result map[string]func(ctx echo.Context) error
 

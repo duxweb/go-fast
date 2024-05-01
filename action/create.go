@@ -43,10 +43,16 @@ func (t *Resources[T]) Create(ctx echo.Context) error {
 	}
 
 	if t.createBeforeFun != nil {
-		t.createBeforeFun(&model, requestData)
+		err = t.createBeforeFun(&model, requestData)
+		if err != nil {
+			return err
+		}
 	}
 	if t.saveBeforeFun != nil {
-		t.saveBeforeFun(&model, requestData)
+		err = t.saveBeforeFun(&model, requestData)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = database.Gorm().Debug().Model(t.Model).Create(&model).Error
@@ -55,10 +61,16 @@ func (t *Resources[T]) Create(ctx echo.Context) error {
 	}
 
 	if t.createAfterFun != nil {
-		t.createAfterFun(&model, requestData)
+		err = t.createAfterFun(&model, requestData)
+		if err != nil {
+			return err
+		}
 	}
 	if t.saveAfterFun != nil {
-		t.saveAfterFun(&model, requestData)
+		err = t.saveAfterFun(&model, requestData)
+		if err != nil {
+			return err
+		}
 	}
 
 	return response.Send(ctx, response.Data{

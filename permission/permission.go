@@ -3,7 +3,6 @@ package permission
 import (
 	"github.com/duxweb/go-fast/action"
 	"github.com/duxweb/go-fast/i18n"
-	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"sort"
 )
@@ -64,18 +63,4 @@ func (t *PermissionData) GetData() []string {
 		}
 	}
 	return data
-}
-
-func Can(permissions map[string]bool, name string) error {
-	if len(permissions) == 0 {
-		return nil
-	}
-	is, ok := permissions[name]
-	if !ok {
-		return nil
-	}
-	if !is {
-		return echo.ErrForbidden
-	}
-	return nil
 }

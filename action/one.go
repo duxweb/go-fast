@@ -35,6 +35,10 @@ func (t *Resources[T]) Show(ctx echo.Context) error {
 		}
 	}
 
+	if t.oneAfterFun != nil {
+		model = t.oneAfterFun(model, params, ctx)
+	}
+
 	data := map[string]any{}
 	meta := map[string]any{}
 	if t.transformFun != nil && !isEmpty {
@@ -50,6 +54,12 @@ func (t *Resources[T]) Show(ctx echo.Context) error {
 		Data: data,
 		Meta: meta,
 	})
+}
+
+type OneCallFun[T any] func(data T, params map[string]any, ctx echo.Context) T
+
+func (t *Resources[T]) OneAfter(call OneCallFun[T]) {
+	t.oneAfterFun = call
 }
 
 func (t *Resources[T]) getOne(ctx echo.Context, model *T, id string, params map[string]any) error {

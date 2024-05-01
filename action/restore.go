@@ -57,7 +57,10 @@ func (t *Resources[T]) restoreOne(ctx echo.Context, id string, params map[string
 	}
 
 	if t.restoreBeforeFun != nil {
-		t.restoreBeforeFun(&model, params)
+		err = t.restoreBeforeFun(&model, params)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = database.Gorm().Model(&model).Unscoped().Update("deleted_at", nil).Error
@@ -66,7 +69,10 @@ func (t *Resources[T]) restoreOne(ctx echo.Context, id string, params map[string
 	}
 
 	if t.restoreAfterFun != nil {
-		t.restoreAfterFun(&model, params)
+		err = t.restoreAfterFun(&model, params)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

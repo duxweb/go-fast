@@ -76,9 +76,12 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 	} else {
 		err = query.Find(&models).Error
 	}
-
 	if err != nil {
 		return err
+	}
+
+	if t.manyAfterFun != nil {
+		models = t.manyAfterFun(models, params, ctx)
 	}
 
 	data := make([]map[string]any, 0)
@@ -93,6 +96,12 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 		Data: data,
 		Meta: meta,
 	})
+}
+
+type ManyCallFun[T any] func(data []T, params map[string]any, ctx echo.Context) []T
+
+func (t *Resources[T]) ManyAfter(call ManyCallFun[T]) {
+	t.manyAfterFun = call
 }
 
 // getSorts 获取排序规则

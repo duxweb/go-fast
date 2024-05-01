@@ -57,7 +57,10 @@ func (t *Resources[T]) deleteOne(ctx echo.Context, id string, params map[string]
 	}
 
 	if t.deleteBeforeFun != nil {
-		t.deleteBeforeFun(&model, params)
+		err = t.deleteBeforeFun(&model, params)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = database.Gorm().Delete(t.Model, id).Error
@@ -66,7 +69,10 @@ func (t *Resources[T]) deleteOne(ctx echo.Context, id string, params map[string]
 	}
 
 	if t.deleteAfterFun != nil {
-		t.deleteAfterFun(&model, params)
+		err = t.deleteAfterFun(&model, params)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -57,7 +57,10 @@ func (t *Resources[T]) trashOne(ctx echo.Context, id string, params map[string]a
 	}
 
 	if t.trashBeforeFun != nil {
-		t.trashBeforeFun(&model, params)
+		err = t.trashBeforeFun(&model, params)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = database.Gorm().Unscoped().Delete(t.Model, id).Error
@@ -66,7 +69,10 @@ func (t *Resources[T]) trashOne(ctx echo.Context, id string, params map[string]a
 	}
 
 	if t.trashAfterFun != nil {
-		t.trashAfterFun(&model, params)
+		err = t.trashAfterFun(&model, params)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

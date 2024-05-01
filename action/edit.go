@@ -56,10 +56,16 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 	}
 
 	if t.editBeforeFun != nil {
-		t.editBeforeFun(&model, requestData)
+		err = t.editBeforeFun(&model, requestData)
+		if err != nil {
+			return err
+		}
 	}
 	if t.saveBeforeFun != nil {
-		t.saveBeforeFun(&model, requestData)
+		err = t.saveBeforeFun(&model, requestData)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = database.Gorm().Save(&model).Error
@@ -68,10 +74,16 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 	}
 
 	if t.editAfterFun != nil {
-		t.editAfterFun(&model, requestData)
+		err = t.editAfterFun(&model, requestData)
+		if err != nil {
+			return err
+		}
 	}
 	if t.saveAfterFun != nil {
-		t.saveAfterFun(&model, requestData)
+		err = t.saveAfterFun(&model, requestData)
+		if err != nil {
+			return err
+		}
 	}
 
 	return response.Send(ctx, response.Data{

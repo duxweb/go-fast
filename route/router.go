@@ -88,7 +88,7 @@ func (t *RouterData) Add(method string, path string, handler echo.HandlerFunc, n
 		Name:   name,
 	}
 	t.Data = append(t.Data, &item)
-	r := t.GroupRouter.Add(method, path, handler, AppMiddleware(&item))
+	r := t.GroupRouter.Add(method, path, handler)
 	r.Name = item.Name
 	return r
 }
