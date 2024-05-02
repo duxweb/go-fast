@@ -35,18 +35,10 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 		pageSize = lo.Ternary[int](params["pageSize"] != nil, cast.ToInt(params["pageSize"]), t.Pagination.PageSize)
 	}
 
-	query := database.Gorm().Model(t.Model)
+	query := database.Gorm().Model(t.Model).Debug()
 
 	if params["id"] != nil {
 		query = query.Where(t.Key+" = ?", params["id"])
-	}
-
-	if t.queryManyFun != nil {
-		query = t.queryManyFun(query, params, ctx)
-	}
-
-	if t.queryFun != nil {
-		query = t.queryFun(query, params, ctx)
 	}
 
 	if params["ids"] != nil {
@@ -66,6 +58,14 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 	sorts := t.getSorts(params)
 	for k, v := range sorts {
 		query = query.Order(k + " " + cast.ToString(v))
+	}
+
+	if t.queryManyFun != nil {
+		query = t.queryManyFun(query, params, ctx)
+	}
+
+	if t.queryFun != nil {
+		query = t.queryFun(query, params, ctx)
 	}
 
 	models := make([]T, 0)

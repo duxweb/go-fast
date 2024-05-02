@@ -42,6 +42,7 @@ func Command() []*cli.Command {
 			return nil
 		},
 	}
+
 	return []*cli.Command{
 		sync,
 	}

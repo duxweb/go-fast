@@ -6,8 +6,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/duxweb/go-fast/config"
-	"github.com/duxweb/go-fast/logger"
+	"github.com/duxweb/go-fast/global"
 	"github.com/gofrs/uuid"
+	"github.com/samber/do/v2"
+	"github.com/spf13/afero"
 	"golang.org/x/crypto/bcrypt"
 	"math"
 	"math/rand"
@@ -163,14 +165,18 @@ func IsExist(f string) bool {
 	return err == nil || os.IsExist(err)
 }
 
-// CreateDir Create Directory
-func CreateDir(dirName string) bool {
-	err := os.MkdirAll(dirName, 0777)
-	if err != nil {
-		logger.Log().Error(dirName, err)
-		return false
+func CreateDir(dirs ...string) {
+	fs := do.MustInvokeNamed[afero.Fs](global.Injector, "os.fs")
+	for _, path := range dirs {
+		exists, _ := afero.DirExists(fs, path)
+		if exists {
+			return
+		}
+		err := fs.MkdirAll(path, 0777)
+		if err != nil {
+			panic("failed to create " + path + " directory")
+		}
 	}
-	return true
 }
 
 // GetUuid Get UUID

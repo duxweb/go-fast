@@ -3,12 +3,10 @@ package app
 import (
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/event"
-	"github.com/duxweb/go-fast/global"
+	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/resources"
 	"github.com/duxweb/go-fast/route"
 	"github.com/duxweb/go-fast/task"
-	"github.com/samber/do/v2"
-	"github.com/spf13/afero"
 )
 
 var dirList = []string{
@@ -24,7 +22,7 @@ var dirList = []string{
 func Init(t *Dux) {
 
 	// 自动创建目录
-	CreateDir(dirList...)
+	helper.CreateDir(dirList...)
 
 	// 初始化应用模块
 	for _, name := range Indexes {
@@ -56,18 +54,4 @@ func Init(t *Dux) {
 	resources.Register()
 	route.Register()
 
-}
-
-func CreateDir(dirs ...string) {
-	fs := do.MustInvokeNamed[afero.Fs](global.Injector, "os.fs")
-	for _, path := range dirs {
-		exists, _ := afero.DirExists(fs, path)
-		if exists {
-			return
-		}
-		err := fs.MkdirAll(path, 0777)
-		if err != nil {
-			panic("failed to create " + path + " directory")
-		}
-	}
 }

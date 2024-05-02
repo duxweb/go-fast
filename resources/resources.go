@@ -14,7 +14,7 @@ type ResourceData struct {
 	authMiddleware []echo.MiddlewareFunc
 	middleware     []echo.MiddlewareFunc
 	permission     middleware.PermissionFun
-	operate        middleware.OperateFun
+	operate        bool
 }
 
 func New(name string, path string) *ResourceData {
@@ -52,8 +52,8 @@ func (t *ResourceData) SetPermission(getPermission middleware.PermissionFun) *Re
 	return t
 }
 
-func (t *ResourceData) SetOperate(getOperate middleware.OperateFun) *ResourceData {
-	t.operate = getOperate
+func (t *ResourceData) SetOperate(status bool) *ResourceData {
+	t.operate = status
 	return t
 }
 
@@ -65,8 +65,8 @@ func (t *ResourceData) run() *ResourceData {
 	if t.permission != nil {
 		middle = append(middle, middleware.PermissionMiddleware(t.permission))
 	}
-	if t.operate != nil {
-		middle = append(middle, middleware.OperateMiddleware(t.operate))
+	if t.operate {
+		middle = append(middle, middleware.OperateMiddleware(t.name))
 	}
 	middle = append(middle, t.GetAllMiddleware()...)
 

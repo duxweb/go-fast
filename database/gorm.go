@@ -15,6 +15,11 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+type Migrate struct {
+	Model any
+	Seed  func(db *gorm.DB)
+}
+
 var MigrateModel = make([]any, 0)
 
 func GormMigrate(dst ...any) {

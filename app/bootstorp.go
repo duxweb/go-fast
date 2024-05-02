@@ -5,6 +5,7 @@ import (
 	"github.com/duxweb/go-fast/annotation"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/global"
+	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/permission"
 	"github.com/duxweb/go-fast/views"
@@ -36,7 +37,7 @@ func (t *Dux) RegisterCmd(calls ...func() []*cli.Command) {
 
 // RegisterDir 注册目录
 func (t *Dux) RegisterDir(dirs ...string) {
-	CreateDir(dirs...)
+	helper.CreateDir(dirs...)
 }
 
 // RegisterTpl 注册模板目录

@@ -1,14 +1,9 @@
-package database
+package models
 
 import (
 	"gorm.io/gorm"
 	"time"
 )
-
-type Migrate struct {
-	Model any
-	Seed  func(db *gorm.DB)
-}
 
 type Fields struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`

@@ -1,8 +1,6 @@
 package helper
 
 import (
-	"fmt"
-	"github.com/duxweb/go-fast/database"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
 	"math"
@@ -49,27 +47,6 @@ func Paginate(pagination *Pagination) func(db *gorm.DB) *gorm.DB {
 		pagination.Pages = totalPages
 		return db.Offset(pagination.GetOffset()).Limit(pagination.GetLimit())
 	}
-}
-
-func MorphTo[T any, R any](data []T, model any) {
-
-	hasIds := lo.Uniq(lo.Map[T, uint](data, func(item T, index int) uint {
-		return item[ID]
-	}))
-
-	userList := []model.SystemUser{}
-	err := database.Gorm().Model(model.SystemUser{}).Where("id IN ?", hasIds).Find(&userList).Error
-	if err != nil {
-		fmt.Println("err", err)
-	}
-	userData := lo.KeyBy[uint, model.SystemUser](userList, func(item model.SystemUser) uint {
-		return item.ID
-	})
-
-	data = lo.Map[model.LogOperate, model.LogOperate](data, func(item model.LogOperate, index int) model.LogOperate {
-		item.User = userData[item.UserID]
-		return item
-	})
 }
 
 func FormatData[T any](data []T, call func(item T, index int) map[string]any, page *Pagination) ([]map[string]any, map[string]any) {
