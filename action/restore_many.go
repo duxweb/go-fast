@@ -1,10 +1,10 @@
 package action
 
 import (
+	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/labstack/echo/v4"
-	"github.com/spf13/cast"
 	"strings"
 )
 
@@ -17,19 +17,18 @@ func (t *Resources[T]) RestoreMany(ctx echo.Context) error {
 		}
 	}
 
-	params := map[string]any{}
-	err = ctx.Bind(&params)
+	params, err := helper.Qs(ctx)
 	if err != nil {
 		return err
 	}
 
-	ids := strings.Split(cast.ToString(params["ids"]), ",")
+	ids := strings.Split(params.Get("ids").String(), ",")
 
 	for _, id := range ids {
 		if id == "" {
 			continue
 		}
-		err = t.restoreOne(ctx, id, params)
+		err = t.restoreOne(ctx, id)
 		if err != nil {
 			return err
 		}

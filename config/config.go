@@ -38,7 +38,7 @@ func Init() {
 	// Set time
 	carbon.SetDefault(carbon.Default{
 		Layout:       carbon.DateTimeLayout,
-		Timezone:     global.TimeLocation.String(),
+		Timezone:     carbon.Local,
 		WeekStartsAt: carbon.Monday,
 		Locale:       global.Lang,
 	})

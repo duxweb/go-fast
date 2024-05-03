@@ -3,10 +3,12 @@ package action
 import (
 	"errors"
 	"github.com/duxweb/go-fast/database"
+	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/validator"
 	"github.com/labstack/echo/v4"
+	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
 
@@ -19,18 +21,27 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 		}
 	}
 
-	requestData := map[string]any{}
-	err = ctx.Bind(&requestData)
+	params, err := helper.Qs(ctx)
+	if err != nil {
+		return err
+	}
+
+	data, err := helper.Body(ctx)
 	if err != nil {
 		return err
 	}
 
 	if t.validatorFun != nil {
-		rules, err := t.validatorFun(requestData, ctx)
+		rules, err := t.validatorFun(data, ctx)
 		if err != nil {
 			return err
 		}
-		err = validator.ValidatorMaps(requestData, rules)
+		dataMaps := map[string]any{}
+		data.ForEach(func(key, value gjson.Result) bool {
+			dataMaps[key.String()] = value.Value()
+			return true
+		})
+		err = validator.ValidatorMaps(dataMaps, rules)
 		if err != nil {
 			return err
 		}
@@ -39,7 +50,7 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 	id := ctx.Param("id")
 	var model T
 
-	err = t.getOne(ctx, &model, id, requestData)
+	err = t.getOne(ctx, &model, id, params)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return response.BusinessError(i18n.Trans.Get("common.message.emptyData"))
@@ -49,20 +60,20 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 	}
 
 	if t.formatFun != nil {
-		err = t.formatFun(&model, requestData, ctx)
+		err = t.formatFun(&model, data, ctx)
 		if err != nil {
 			return err
 		}
 	}
 
 	if t.editBeforeFun != nil {
-		err = t.editBeforeFun(&model, requestData)
+		err = t.editBeforeFun(&model, data)
 		if err != nil {
 			return err
 		}
 	}
 	if t.saveBeforeFun != nil {
-		err = t.saveBeforeFun(&model, requestData)
+		err = t.saveBeforeFun(&model, data)
 		if err != nil {
 			return err
 		}
@@ -74,13 +85,13 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 	}
 
 	if t.editAfterFun != nil {
-		err = t.editAfterFun(&model, requestData)
+		err = t.editAfterFun(&model, data)
 		if err != nil {
 			return err
 		}
 	}
 	if t.saveAfterFun != nil {
-		err = t.saveAfterFun(&model, requestData)
+		err = t.saveAfterFun(&model, data)
 		if err != nil {
 			return err
 		}
@@ -91,10 +102,10 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 	})
 }
 
-func (t *Resources[T]) EditBefore(call ActionCallFun[T]) {
+func (t *Resources[T]) EditBefore(call ActionCallParamsFun[T]) {
 	t.editBeforeFun = call
 }
 
-func (t *Resources[T]) EditAfter(call ActionCallFun[T]) {
+func (t *Resources[T]) EditAfter(call ActionCallParamsFun[T]) {
 	t.editAfterFun = call
 }

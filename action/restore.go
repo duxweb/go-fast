@@ -18,14 +18,8 @@ func (t *Resources[T]) Restore(ctx echo.Context) error {
 		}
 	}
 
-	params := map[string]any{}
-	err = ctx.Bind(&params)
-	if err != nil {
-		return err
-	}
-
 	id := ctx.Param("id")
-	err = t.restoreOne(ctx, id, params)
+	err = t.restoreOne(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -43,11 +37,11 @@ func (t *Resources[T]) RestoreAfter(call ActionCallFun[T]) {
 	t.restoreAfterFun = call
 }
 
-func (t *Resources[T]) restoreOne(ctx echo.Context, id string, params map[string]any) error {
+func (t *Resources[T]) restoreOne(ctx echo.Context, id string) error {
 	var model T
 	var err error
 
-	err = t.getOne(ctx, &model, id, params)
+	err = t.getOne(ctx, &model, id, nil)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return response.BusinessError(i18n.Trans.Get("common.message.emptyData"))
@@ -57,7 +51,7 @@ func (t *Resources[T]) restoreOne(ctx echo.Context, id string, params map[string
 	}
 
 	if t.restoreBeforeFun != nil {
-		err = t.restoreBeforeFun(&model, params)
+		err = t.restoreBeforeFun(&model)
 		if err != nil {
 			return err
 		}
@@ -69,7 +63,7 @@ func (t *Resources[T]) restoreOne(ctx echo.Context, id string, params map[string
 	}
 
 	if t.restoreAfterFun != nil {
-		err = t.restoreAfterFun(&model, params)
+		err = t.restoreAfterFun(&model)
 		if err != nil {
 			return err
 		}

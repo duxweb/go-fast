@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
+	"github.com/tidwall/gjson"
 	"gorm.io/gorm/clause"
 	"strings"
 )
@@ -20,29 +21,28 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 		}
 	}
 
-	params := map[string]any{}
-	err = (&echo.DefaultBinder{}).BindQueryParams(ctx, &params)
+	params, err := helper.Qs(ctx)
 	if err != nil {
 		return err
 	}
 
-	if params["pageSize"] == nil {
+	if !params.Get("pageSize").Exists() {
 		t.Pagination.Status = false
 	}
 
 	pageSize := 0
 	if t.Pagination.Status {
-		pageSize = lo.Ternary[int](params["pageSize"] != nil, cast.ToInt(params["pageSize"]), t.Pagination.PageSize)
+		pageSize = lo.Ternary[int](params.Get("pageSize").Exists(), int(params.Get("pageSize").Uint()), t.Pagination.PageSize)
 	}
 
 	query := database.Gorm().Model(t.Model).Debug()
 
-	if params["id"] != nil {
-		query = query.Where(t.Key+" = ?", params["id"])
+	if params.Get("id").Exists() {
+		query = query.Where(t.Key+" = ?", params.Get("id"))
 	}
 
-	if params["ids"] != nil {
-		ids := strings.Split(params["ids"].(string), ",")
+	if params.Get("ids").Exists() {
+		ids := strings.Split(params.Get("ids").String(), ",")
 		ids = lo.Filter[string](ids, func(item string, index int) bool {
 			if item != "" {
 				return true
@@ -65,13 +65,13 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 	}
 
 	if t.queryFun != nil {
-		query = t.queryFun(query, params, ctx)
+		query = t.queryFun(query, ctx)
 	}
 
 	models := make([]T, 0)
 	var pagination *helper.Pagination
 	if t.Pagination.Status {
-		pagination = helper.NewPagination(cast.ToInt(params["page"]), pageSize)
+		pagination = helper.NewPagination(int(params.Get("page").Int()), pageSize)
 		err = query.Scopes(helper.Paginate(pagination)).Find(&models).Error
 	} else {
 		err = query.Find(&models).Error
@@ -98,20 +98,20 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 	})
 }
 
-type ManyCallFun[T any] func(data []T, params map[string]any, ctx echo.Context) []T
+type ManyCallFun[T any] func(data []T, params *gjson.Result, ctx echo.Context) []T
 
 func (t *Resources[T]) ManyAfter(call ManyCallFun[T]) {
 	t.manyAfterFun = call
 }
 
 // getSorts 获取排序规则
-func (t *Resources[T]) getSorts(params map[string]any) map[string]string {
+func (t *Resources[T]) getSorts(params *gjson.Result) map[string]string {
 	data := map[string]string{}
-	for key, value := range params {
+	for key, value := range params.Map() {
 		if !strings.HasSuffix(key, "_sort") {
 			continue
 		}
-		if value != "asc" && value != "desc" {
+		if value.String() != "asc" && value.String() != "desc" {
 			continue
 		}
 		field := key[0 : len(key)-5]

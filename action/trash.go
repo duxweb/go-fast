@@ -3,9 +3,11 @@ package action
 import (
 	"errors"
 	"github.com/duxweb/go-fast/database"
+	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/labstack/echo/v4"
+	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
 
@@ -18,8 +20,7 @@ func (t *Resources[T]) Trash(ctx echo.Context) error {
 		}
 	}
 
-	params := map[string]any{}
-	err = ctx.Bind(&params)
+	params, err := helper.Qs(ctx)
 	if err != nil {
 		return err
 	}
@@ -43,7 +44,7 @@ func (t *Resources[T]) TrashAfter(call ActionCallFun[T]) {
 	t.trashAfterFun = call
 }
 
-func (t *Resources[T]) trashOne(ctx echo.Context, id string, params map[string]any) error {
+func (t *Resources[T]) trashOne(ctx echo.Context, id string, params *gjson.Result) error {
 	var model T
 	var err error
 
@@ -57,7 +58,7 @@ func (t *Resources[T]) trashOne(ctx echo.Context, id string, params map[string]a
 	}
 
 	if t.trashBeforeFun != nil {
-		err = t.trashBeforeFun(&model, params)
+		err = t.trashBeforeFun(&model)
 		if err != nil {
 			return err
 		}
@@ -69,7 +70,7 @@ func (t *Resources[T]) trashOne(ctx echo.Context, id string, params map[string]a
 	}
 
 	if t.trashAfterFun != nil {
-		err = t.trashAfterFun(&model, params)
+		err = t.trashAfterFun(&model)
 		if err != nil {
 			return err
 		}

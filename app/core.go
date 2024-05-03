@@ -8,6 +8,7 @@ import (
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/logger"
 	"github.com/duxweb/go-fast/monitor"
+	"github.com/duxweb/go-fast/storage"
 	"github.com/duxweb/go-fast/task"
 	"github.com/duxweb/go-fast/validator"
 	"github.com/duxweb/go-fast/views"
@@ -32,4 +33,5 @@ func Start(t *Dux) {
 	monitor.Init()
 	websocket.Init()
 	Init(t)
+	storage.Init()
 }

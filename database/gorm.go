@@ -60,7 +60,7 @@ func NewGorm(name string) *GormService {
 	dbConfig := config.Load("database").GetStringMapString("db.drivers." + name)
 	var connect gorm.Dialector
 	if dbConfig["type"] == "mysql" {
-		connect = mysql.Open(dbConfig["username"] + ":" + dbConfig["password"] + "@tcp(" + dbConfig["host"] + ":" + dbConfig["port"] + ")/" + dbConfig["dbname"] + "?charset=utf8mb4&parseTime=True&loc=Local")
+		connect = mysql.Open(dbConfig["username"] + ":" + dbConfig["password"] + "@tcp(" + dbConfig["host"] + ":" + dbConfig["port"] + ")/" + dbConfig["database"] + "?charset=utf8mb4&parseTime=True&loc=Local")
 	}
 	if dbConfig["type"] == "postgresql" {
 		connect = postgres.Open(fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
@@ -79,7 +79,7 @@ func NewGorm(name string) *GormService {
 			TablePrefix:   global.TablePrefix,
 			SingularTable: true,
 		},
-		DisableForeignKeyConstraintWhenMigrating: false,
+		DisableForeignKeyConstraintWhenMigrating: true,
 		Logger:                                   slogGorm.New(slogGorm.WithHandler(coreLogger.GetWriterHeader(config.Load("logger").GetString("db.level"), "db"))),
 	})
 	if err != nil {

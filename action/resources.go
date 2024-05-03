@@ -3,6 +3,7 @@ package action
 import (
 	"github.com/duxweb/go-fast/validator"
 	"github.com/labstack/echo/v4"
+	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
 
@@ -20,9 +21,10 @@ type Resources[T any] struct {
 	ExcludesMany     []string
 	IncludesOne      []string
 	ExcludesOne      []string
+	queryParams      any
 	initFun          InitFun
 	transformFun     TransformFun[T]
-	queryFun         QueryRequestFun
+	queryFun         QueryFun
 	queryManyFun     QueryRequestFun
 	queryOneFun      QueryRequestFun
 	metaManyFun      MetaManyFun[T]
@@ -31,16 +33,16 @@ type Resources[T any] struct {
 	oneAfterFun      OneCallFun[T]
 	validatorFun     ValidatorFun
 	formatFun        FormatFun[T]
-	createBeforeFun  ActionCallFun[T]
-	createAfterFun   ActionCallFun[T]
-	editBeforeFun    ActionCallFun[T]
-	editAfterFun     ActionCallFun[T]
-	saveBeforeFun    ActionCallFun[T]
-	saveAfterFun     ActionCallFun[T]
+	createBeforeFun  ActionCallParamsFun[T]
+	createAfterFun   ActionCallParamsFun[T]
+	editBeforeFun    ActionCallParamsFun[T]
+	editAfterFun     ActionCallParamsFun[T]
+	saveBeforeFun    ActionCallParamsFun[T]
+	saveAfterFun     ActionCallParamsFun[T]
+	storeBeforeFun   ActionCallParamsFun[T]
+	storeAfterFun    ActionCallParamsFun[T]
 	deleteBeforeFun  ActionCallFun[T]
 	deleteAfterFun   ActionCallFun[T]
-	storeBeforeFun   ActionCallFun[T]
-	storeAfterFun    ActionCallFun[T]
 	trashBeforeFun   ActionCallFun[T]
 	trashAfterFun    ActionCallFun[T]
 	restoreBeforeFun ActionCallFun[T]
@@ -93,12 +95,18 @@ func (t *Resources[T]) Transform(call TransformFun[T]) {
 	t.transformFun = call
 }
 
+func (t *Resources[T]) QueryParams(data any) {
+	t.queryParams = data
+}
+
+type QueryFun func(tx *gorm.DB, e echo.Context) *gorm.DB
+
 // Query 通用查询
-func (t *Resources[T]) Query(call QueryRequestFun) {
+func (t *Resources[T]) Query(call QueryFun) {
 	t.queryFun = call
 }
 
-type QueryRequestFun func(tx *gorm.DB, params map[string]any, e echo.Context) *gorm.DB
+type QueryRequestFun func(tx *gorm.DB, params *gjson.Result, e echo.Context) *gorm.DB
 
 // QueryMany 多条数据查询
 func (t *Resources[T]) QueryMany(call QueryRequestFun) {
@@ -124,7 +132,7 @@ func (t *Resources[T]) MetaOne(call MetaManyFun[T]) {
 	t.metaManyFun = call
 }
 
-type ValidatorFun func(data map[string]any, e echo.Context) (validator.ValidatorRule, error)
+type ValidatorFun func(data *gjson.Result, e echo.Context) (validator.ValidatorRule, error)
 
 // Validator 数据验证
 // Docs github.com/go-playground/validator/v10
@@ -132,14 +140,16 @@ func (t *Resources[T]) Validator(call ValidatorFun) {
 	t.validatorFun = call
 }
 
-type FormatFun[T any] func(model *T, data map[string]any, e echo.Context) error
+type FormatFun[T any] func(model *T, data *gjson.Result, e echo.Context) error
 
 // Format 数据格式化
 func (t *Resources[T]) Format(call FormatFun[T]) {
 	t.formatFun = call
 }
 
-type ActionCallFun[T any] func(data *T, params map[string]any) error
+type ActionCallParamsFun[T any] func(data *T, params *gjson.Result) error
+
+type ActionCallFun[T any] func(data *T) error
 
 type Result map[string]func(ctx echo.Context) error
 

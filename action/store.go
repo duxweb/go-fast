@@ -3,12 +3,14 @@ package action
 import (
 	"errors"
 	"github.com/duxweb/go-fast/database"
+	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/validator"
 	"github.com/gookit/goutil/structs"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
+	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
 
@@ -21,23 +23,36 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 		}
 	}
 
-	requestData := map[string]any{}
-	err = ctx.Bind(&requestData)
+	params, err := helper.Qs(ctx)
 	if err != nil {
 		return err
 	}
 
-	keys := lo.Keys[string, any](requestData)
+	data, err := helper.Body(ctx)
+	if err != nil {
+		return err
+	}
+
+	keys := []string{}
+	data.ForEach(func(key, value gjson.Result) bool {
+		keys = append(keys, key.String())
+		return true
+	})
 
 	if t.validatorFun != nil {
-		rules, err := t.validatorFun(requestData, ctx)
+		rules, err := t.validatorFun(data, ctx)
 		if err != nil {
 			return err
 		}
 		rules = lo.PickBy[string, validator.ValidatorWarp](rules, func(key string, value validator.ValidatorWarp) bool {
 			return lo.IndexOf[string](keys, key) != -1
 		})
-		err = validator.ValidatorMaps(requestData, rules)
+		dataMaps := map[string]any{}
+		data.ForEach(func(key, value gjson.Result) bool {
+			dataMaps[key.String()] = value.Value()
+			return true
+		})
+		err = validator.ValidatorMaps(dataMaps, rules)
 		if err != nil {
 			return err
 		}
@@ -45,7 +60,7 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 
 	id := ctx.Param("id")
 	var model T
-	err = t.getOne(ctx, &model, id, requestData)
+	err = t.getOne(ctx, &model, id, params)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return response.BusinessError(i18n.Trans.Get("common.message.emptyData"))
@@ -55,34 +70,34 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 	}
 
 	if t.formatFun != nil {
-		err = t.formatFun(&model, requestData, ctx)
+		err = t.formatFun(&model, data, ctx)
 		if err != nil {
 			return err
 		}
 	}
 
-	data, err := structs.StructToMap(model)
+	formatData, err := structs.StructToMap(model)
 	if err != nil {
 		return err
 	}
-	data = lo.PickBy[string, any](data, func(key string, value any) bool {
+	formatData = lo.PickBy[string, any](formatData, func(key string, value any) bool {
 		return lo.IndexOf[string](keys, key) != -1
 	})
 
 	if t.storeBeforeFun != nil {
-		err = t.storeBeforeFun(&model, requestData)
+		err = t.storeBeforeFun(&model, data)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = database.Gorm().Model(&model).Updates(data).Error
+	err = database.Gorm().Model(&model).Updates(formatData).Error
 	if err != nil {
 		return err
 	}
 
 	if t.storeAfterFun != nil {
-		err = t.storeAfterFun(&model, requestData)
+		err = t.storeAfterFun(&model, data)
 		if err != nil {
 			return err
 		}
@@ -93,10 +108,10 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 	})
 }
 
-func (t *Resources[T]) StoreBefore(call ActionCallFun[T]) {
+func (t *Resources[T]) StoreBefore(call ActionCallParamsFun[T]) {
 	t.storeBeforeFun = call
 }
 
-func (t *Resources[T]) StoreAfter(call ActionCallFun[T]) {
+func (t *Resources[T]) StoreAfter(call ActionCallParamsFun[T]) {
 	t.storeAfterFun = call
 }

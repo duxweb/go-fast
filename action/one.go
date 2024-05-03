@@ -3,8 +3,10 @@ package action
 import (
 	"errors"
 	"github.com/duxweb/go-fast/database"
+	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/response"
 	"github.com/labstack/echo/v4"
+	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
 
@@ -17,8 +19,7 @@ func (t *Resources[T]) Show(ctx echo.Context) error {
 		}
 	}
 
-	params := map[string]any{}
-	err = ctx.Bind(&params)
+	params, err := helper.Qs(ctx)
 	if err != nil {
 		return err
 	}
@@ -56,19 +57,19 @@ func (t *Resources[T]) Show(ctx echo.Context) error {
 	})
 }
 
-type OneCallFun[T any] func(data T, params map[string]any, ctx echo.Context) T
+type OneCallFun[T any] func(data T, params *gjson.Result, ctx echo.Context) T
 
 func (t *Resources[T]) OneAfter(call OneCallFun[T]) {
 	t.oneAfterFun = call
 }
 
-func (t *Resources[T]) getOne(ctx echo.Context, model *T, id string, params map[string]any) error {
+func (t *Resources[T]) getOne(ctx echo.Context, model *T, id string, params *gjson.Result) error {
 	query := database.Gorm().Unscoped().Model(t.Model).Where(t.Key+" = ?", id)
 	if t.queryOneFun != nil {
 		query = t.queryOneFun(query, params, ctx)
 	}
 	if t.queryFun != nil {
-		query = t.queryFun(query, params, ctx)
+		query = t.queryFun(query, ctx)
 	}
 	return query.First(model).Error
 }

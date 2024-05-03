@@ -12,8 +12,6 @@ func Command() []*cli.Command {
 		Usage:    "Synchronous database structure",
 		Category: "database",
 		Action: func(ctx *cli.Context) error {
-			Register()
-
 			models := make([]any, 0)
 			sends := make([]func(db *gorm.DB), 0)
 

@@ -18,14 +18,8 @@ func (t *Resources[T]) Delete(ctx echo.Context) error {
 		}
 	}
 
-	params := map[string]any{}
-	err = ctx.Bind(&params)
-	if err != nil {
-		return err
-	}
-
 	id := ctx.Param("id")
-	err = t.deleteOne(ctx, id, params)
+	err = t.deleteOne(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -43,11 +37,11 @@ func (t *Resources[T]) DeleteAfter(call ActionCallFun[T]) {
 	t.deleteAfterFun = call
 }
 
-func (t *Resources[T]) deleteOne(ctx echo.Context, id string, params map[string]any) error {
+func (t *Resources[T]) deleteOne(ctx echo.Context, id string) error {
 	var model T
 	var err error
 
-	err = t.getOne(ctx, &model, id, params)
+	err = t.getOne(ctx, &model, id, nil)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return response.BusinessError(i18n.Trans.Get("common.message.emptyData"))
@@ -57,7 +51,7 @@ func (t *Resources[T]) deleteOne(ctx echo.Context, id string, params map[string]
 	}
 
 	if t.deleteBeforeFun != nil {
-		err = t.deleteBeforeFun(&model, params)
+		err = t.deleteBeforeFun(&model)
 		if err != nil {
 			return err
 		}
@@ -69,7 +63,7 @@ func (t *Resources[T]) deleteOne(ctx echo.Context, id string, params map[string]
 	}
 
 	if t.deleteAfterFun != nil {
-		err = t.deleteAfterFun(&model, params)
+		err = t.deleteAfterFun(&model)
 		if err != nil {
 			return err
 		}

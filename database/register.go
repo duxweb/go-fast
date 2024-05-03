@@ -6,7 +6,7 @@ import (
 )
 
 func Register() {
-	GormMigrate(models.LogOperate{})
+	GormMigrate(models.LogOperate{}, models.LogLogin{}, models.LogVisit{}, models.LogVisitData{}, models.LogVisitSpider{})
 	for _, file := range annotation.Annotations {
 		for _, item := range file.Annotations {
 			if item.Name != "AutoMigrate" {
