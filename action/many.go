@@ -3,6 +3,7 @@ package action
 import (
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
+	coreModel "github.com/duxweb/go-fast/models"
 	"github.com/duxweb/go-fast/response"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
@@ -15,7 +16,7 @@ import (
 func (t *Resources[T]) List(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
-		err = t.initFun(ctx)
+		err = t.initFun(t, ctx)
 		if err != nil {
 			return err
 		}
@@ -69,11 +70,14 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 	}
 
 	models := make([]T, 0)
-	var pagination *helper.Pagination
+	var pagination *coreModel.Pagination
 	if t.Pagination.Status {
-		pagination = helper.NewPagination(int(params.Get("page").Int()), pageSize)
-		err = query.Scopes(helper.Paginate(pagination)).Find(&models).Error
+		pagination = coreModel.NewPagination(int(params.Get("page").Int()), pageSize)
+		err = query.Scopes(coreModel.Paginate(pagination)).Find(&models).Error
 	} else {
+		if t.Tree {
+			query = query.Preload(clause.Associations, coreModel.ChildrenPreload).Where("parent_id = 0")
+		}
 		err = query.Find(&models).Error
 	}
 	if err != nil {
@@ -86,8 +90,8 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 
 	data := make([]map[string]any, 0)
 	meta := map[string]any{}
-	if t.transformFun != nil {
-		data, meta = helper.FormatData[T](models, t.transformFun, pagination)
+	if t.TransformFun != nil {
+		data, meta = coreModel.FormatData[T](models, t.TransformFun, pagination)
 	}
 
 	data = t.filterData(data, t.IncludesMany, t.ExcludesMany)

@@ -5,9 +5,11 @@ import (
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
+	"github.com/duxweb/go-fast/models"
 	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/validator"
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/cast"
 	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
@@ -15,7 +17,7 @@ import (
 func (t *Resources[T]) Edit(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
-		err = t.initFun(ctx)
+		err = t.initFun(t, ctx)
 		if err != nil {
 			return err
 		}
@@ -76,6 +78,13 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 		err = t.saveBeforeFun(&model, data)
 		if err != nil {
 			return err
+		}
+	}
+
+	if t.Tree && data.Get("parent_id").Exists() {
+		parentId := data.Get("parent_id").Uint()
+		if !models.CheckParentHas[T](database.Gorm().Model(t.Model), cast.ToUint(id), uint(parentId)) {
+			return response.BusinessError(i18n.Trans.Get("common.message.parent"))
 		}
 	}
 

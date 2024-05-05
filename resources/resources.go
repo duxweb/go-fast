@@ -72,6 +72,6 @@ func (t *ResourceData) run() *ResourceData {
 
 	route.Set(t.name, route.New(t.path, middle...))
 	permission.Set(t.name, permission.New())
-	menu.Set(t.name, menu.New())
+	menu.Set(t.name, menu.New(t.path))
 	return t
 }

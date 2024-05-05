@@ -10,6 +10,7 @@ common:
     store: 保存成功
     trash: 彻底删除成功
     restore: 恢复成功
+    parent: 层级设置错误
   resources:
     list: 列表
     show: 详情

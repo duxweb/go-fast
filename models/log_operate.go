@@ -11,7 +11,7 @@ type LogOperate struct {
 	RequestMethod string         `gorm:"size:20;comment:请求方法" json:"request_method"`
 	RequestUrl    string         `gorm:"size:20;comment:请求链接" json:"request_url"`
 	RequestParams datatypes.JSON `gorm:"size:20;comment:请求链接" json:"request_params"`
-	RequestTime   float64        `gorm:"precision:3;comment:访客量" json:"request_time"`
+	RequestTime   float64        `gorm:"type:decimal(11,2);comment:访客量" json:"request_time"`
 	RouteName     string         `gorm:"size:50;comment:关联类型" json:"route_name"`
 	RouteTitle    string         `gorm:"size:50;comment:关联标题" json:"route_title"`
 	ClientUa      string         `gorm:"size:250;comment:UA" json:"client_ua"`

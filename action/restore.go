@@ -12,7 +12,7 @@ import (
 func (t *Resources[T]) Restore(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
-		err = t.initFun(ctx)
+		err = t.initFun(t, ctx)
 		if err != nil {
 			return err
 		}

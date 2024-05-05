@@ -22,8 +22,8 @@ type Resources[T any] struct {
 	IncludesOne      []string
 	ExcludesOne      []string
 	queryParams      any
-	initFun          InitFun
-	transformFun     TransformFun[T]
+	initFun          InitFun[T]
+	TransformFun     TransformFun[T]
 	queryFun         QueryFun
 	queryManyFun     QueryRequestFun
 	queryOneFun      QueryRequestFun
@@ -81,18 +81,18 @@ func New[T any](model T) *Resources[T] {
 	}
 }
 
-type InitFun func(e echo.Context) error
+type InitFun[T any] func(t *Resources[T], e echo.Context) error
 
 // Init 初始化回调
-func (t *Resources[T]) Init(call InitFun) {
+func (t *Resources[T]) Init(call InitFun[T]) {
 	t.initFun = call
 }
 
-type TransformFun[T any] func(item T, index int) map[string]any
+type TransformFun[T any] func(item *T, index int) map[string]any
 
 // Transform 字段转换
 func (t *Resources[T]) Transform(call TransformFun[T]) {
-	t.transformFun = call
+	t.TransformFun = call
 }
 
 func (t *Resources[T]) QueryParams(data any) {

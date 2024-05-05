@@ -13,7 +13,7 @@ import (
 func (t *Resources[T]) Show(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
-		err = t.initFun(ctx)
+		err = t.initFun(t, ctx)
 		if err != nil {
 			return err
 		}
@@ -42,8 +42,8 @@ func (t *Resources[T]) Show(ctx echo.Context) error {
 
 	data := map[string]any{}
 	meta := map[string]any{}
-	if t.transformFun != nil && !isEmpty {
-		data = t.transformFun(model, 0)
+	if t.TransformFun != nil && !isEmpty {
+		data = t.TransformFun(&model, 0)
 	}
 
 	filterData := t.filterData([]map[string]any{data}, t.IncludesMany, t.ExcludesMany)

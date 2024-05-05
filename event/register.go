@@ -19,7 +19,7 @@ func Register() {
 			if !ok {
 				panic("event name not set: " + file.Name)
 			}
-			function, ok := item.Func.(event.Listener)
+			function, ok := item.Func.(func(e event.Event) error)
 			if !ok {
 				panic("event func not set: " + file.Name)
 			}
@@ -37,7 +37,7 @@ func Register() {
 			if item.Func == nil {
 				continue
 			}
-			event.On(name, function, level)
+			event.On(name, event.ListenerFunc(function), level)
 		}
 
 	}

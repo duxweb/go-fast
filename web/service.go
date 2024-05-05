@@ -120,13 +120,13 @@ func Init() {
 		ExposeHeaders: []string{"*"},
 	}))
 
-	// 注册静态路由
-	global.App.Static("/", "./public")
-
 	// 注册公共目录
 	if global.StaticFs != nil {
 		global.App.StaticFS("/", echo.MustSubFS(*global.StaticFs, ""))
 	}
+
+	// 注册静态路由
+	global.App.Static("/", "./public")
 
 	// 请求日志
 	global.App.Use(middleware.RequestID())

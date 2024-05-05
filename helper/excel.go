@@ -1,13 +1,12 @@
-package util
+package helper
 
 import (
 	"bytes"
 	"fmt"
-	"time"
-
+	"github.com/go-errors/errors"
 	"github.com/go-resty/resty/v2"
-	"github.com/rotisserie/eris"
 	"github.com/xuri/excelize/v2"
+	"time"
 )
 
 func ExcelImport(url string) ([][]string, error) {
@@ -16,7 +15,7 @@ func ExcelImport(url string) ([][]string, error) {
 		return nil, err
 	}
 	if resp.StatusCode() != 200 {
-		return nil, eris.New(resp.String())
+		return nil, errors.New(resp.String())
 	}
 	reader := bytes.NewReader(resp.Body())
 	f, err := excelize.OpenReader(reader)

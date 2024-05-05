@@ -116,8 +116,8 @@ func LcFirst(str string) string {
 	return ""
 }
 
-// FormatFileSize Format File Size
-func FormatFileSize(fileSize int64) (size string) {
+// HumanFileSize Format File Size
+func HumanFileSize(fileSize int64) (size string) {
 	if fileSize < 1024 {
 		//return strconv.FormatInt(fileSize, 10) + "B"
 		return fmt.Sprintf("%.2fB", float64(fileSize)/float64(1))

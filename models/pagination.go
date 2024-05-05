@@ -1,7 +1,6 @@
-package helper
+package models
 
 import (
-	"github.com/samber/lo"
 	"gorm.io/gorm"
 	"math"
 )
@@ -47,15 +46,4 @@ func Paginate(pagination *Pagination) func(db *gorm.DB) *gorm.DB {
 		pagination.Pages = totalPages
 		return db.Offset(pagination.GetOffset()).Limit(pagination.GetLimit())
 	}
-}
-
-func FormatData[T any](data []T, call func(item T, index int) map[string]any, page *Pagination) ([]map[string]any, map[string]any) {
-	meta := map[string]any{}
-	transform := lo.Map[T, map[string]any](data, call)
-	if page != nil {
-		meta["page"] = page.GetOffset()
-		meta["total"] = page.Total
-		meta["pages"] = page.Pages
-	}
-	return transform, meta
 }
