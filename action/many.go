@@ -89,6 +89,7 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 	}
 
 	data := make([]map[string]any, 0)
+
 	meta := map[string]any{}
 	if t.TransformFun != nil {
 		data, meta = coreModel.FormatData[T](models, t.TransformFun, pagination)
