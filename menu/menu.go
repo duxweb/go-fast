@@ -87,13 +87,14 @@ func getLoop(prefix, keys string, datas []*MenuData) []map[string]any {
 		key := strings.Join([]string{keys, items.Name}, "/")
 
 		data := map[string]any{
-			"name":  items.Name,
-			"key":   key,
-			"label": items.Label,
-			"route": lo.Ternary[string](items.Route != "", prefix+"/"+items.Route, items.Route),
-			"icon":  items.Icon,
-			"meta":  items.Meta,
-			"sort":  items.Sort,
+			"name":     items.Name,
+			"key":      key,
+			"label":    items.Label,
+			"route":    lo.Ternary[string](items.Route != "", prefix+"/"+items.Route, items.Route),
+			"icon":     items.Icon,
+			"meta":     items.Meta,
+			"sort":     items.Sort,
+			"children": []map[string]any{},
 		}
 		if len(items.Data) > 0 {
 			data["children"] = getLoop(prefix, key, items.Data)
