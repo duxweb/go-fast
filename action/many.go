@@ -27,7 +27,7 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 		return err
 	}
 
-	if !params.Get("pageSize").Exists() {
+	if t.Tree || !params.Get("pageSize").Exists() {
 		t.Pagination.Status = false
 	}
 

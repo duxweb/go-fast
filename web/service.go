@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/lmittmann/tint"
 	"github.com/spf13/cast"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -122,7 +123,13 @@ func Init() {
 
 	// 注册公共目录
 	if global.StaticFs != nil {
-		global.App.StaticFS("/", echo.MustSubFS(*global.StaticFs, ""))
+		entries, _ := fs.ReadDir(echo.MustSubFS(*global.StaticFs, "static"), ".")
+		for _, entry := range entries {
+			name := entry.Name()
+			if entry.IsDir() {
+				global.App.StaticFS("/"+name, echo.MustSubFS(*global.StaticFs, "static/"+name))
+			}
+		}
 	}
 
 	// 注册静态路由

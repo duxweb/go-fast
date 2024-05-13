@@ -22,12 +22,12 @@ func CheckParentHas[T any](d *gorm.DB, id uint, parentID uint) bool {
 	if id == parentID {
 		return false
 	}
-	var models []*T
+	var models []T
 	d.Preload("Children", ChildrenPreload).Where("parent_id = ?", id).Find(&models)
 	return checkParent(models, parentID)
 }
 
-func checkParent[T any](data []*T, parentID uint) bool {
+func checkParent[T any](data []T, parentID uint) bool {
 	for _, item := range data {
 		id := getFieldValue(item, "ID")
 		if id == nil {
@@ -40,7 +40,7 @@ func checkParent[T any](data []*T, parentID uint) bool {
 		if childrenValue == nil {
 			continue
 		}
-		models := childrenValue.([]*T)
+		models := childrenValue.([]T)
 		return checkParent[T](models, parentID)
 	}
 	return true
