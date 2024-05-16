@@ -2,7 +2,6 @@ package config
 
 import (
 	"embed"
-	"fmt"
 	"github.com/duxweb/go-fast/global"
 	"github.com/golang-module/carbon/v2"
 	"github.com/gookit/goutil/fsutil"
@@ -26,7 +25,6 @@ func Init() {
 	files, _ := ConfigTplFs.ReadDir("tpl")
 	for _, file := range files {
 		conf := filepath.Join(pwd, "config", file.Name())
-		fmt.Println(conf)
 		if fsutil.FileExist(conf) {
 			continue
 		}
