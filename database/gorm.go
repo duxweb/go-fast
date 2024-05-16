@@ -5,12 +5,12 @@ import (
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	coreLogger "github.com/duxweb/go-fast/logger"
+	"github.com/glebarez/sqlite"
 	slogGorm "github.com/orandin/slog-gorm"
 	"github.com/samber/do/v2"
 	"github.com/spf13/cast"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
