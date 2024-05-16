@@ -10,7 +10,6 @@ import (
 )
 
 var dirList = []string{
-	"./app",
 	"./public",
 	"./public/uploads",
 	"./data",

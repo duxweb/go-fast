@@ -1,8 +1,11 @@
 package config
 
 import (
+	"embed"
+	"fmt"
 	"github.com/duxweb/go-fast/global"
 	"github.com/golang-module/carbon/v2"
+	"github.com/gookit/goutil/fsutil"
 	"github.com/samber/do/v2"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
@@ -13,9 +16,32 @@ import (
 
 var data = map[string]*viper.Viper{}
 
-func Init() {
+//go:embed all:tpl
+var ConfigTplFs embed.FS
 
+func Init() {
 	pwd, _ := os.Getwd()
+
+	// Init Config
+	files, _ := ConfigTplFs.ReadDir("tpl")
+	for _, file := range files {
+		conf := filepath.Join(pwd, "config", file.Name())
+		fmt.Println(conf)
+		if fsutil.FileExist(conf) {
+			continue
+		}
+		f := fsutil.MustCreateFile(conf, 0777, 0777)
+		c, err := ConfigTplFs.ReadFile("tpl/" + file.Name())
+		if err != nil {
+			panic(err)
+		}
+		_, err = f.Write(c)
+		if err != nil {
+			panic(err)
+		}
+		f.Close()
+	}
+
 	configFiles, err := filepath.Glob(filepath.Join(pwd, global.ConfigDir+"*.yaml"))
 	if err != nil {
 		panic("configuration loading failure")

@@ -33,7 +33,7 @@ type Monitor struct {
 // GetMonitorInfo Retrieve monitoring information
 func GetMonitorInfo() *Monitor {
 	data := Monitor{}
-	data.LogSize = getDirSize("/logs")
+	data.LogSize = getDirSize("/data/logs")
 	data.LogSizeF = humanize.Bytes(data.LogSize)
 	data.UploadSize = getDirSize("/public/uploads")
 	data.UploadSizeF = humanize.Bytes(data.UploadSize)
@@ -73,7 +73,7 @@ func GetMonitorData() *MonitorData {
 
 // GetMonitorLog Retrieve monitoring logs
 func GetMonitorLog() []map[string]any {
-	loadFiles, _ := filepath.Glob(global.DataDir + "logs/monitor-*.log")
+	loadFiles, _ := filepath.Glob(global.DataDir + "logs/monitor*.log")
 	loadData := passingFiles(loadFiles)
 	return loadData
 }
