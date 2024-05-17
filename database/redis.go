@@ -4,7 +4,7 @@ import (
 	"github.com/demdxx/gocast/v2"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/samber/do/v2"
 )
 
