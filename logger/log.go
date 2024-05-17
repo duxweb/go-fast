@@ -2,10 +2,9 @@ package logger
 
 import (
 	"fmt"
+	"github.com/charmbracelet/log"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
-	"github.com/lmittmann/tint"
-	"github.com/mattn/go-colorable"
 	"github.com/samber/lo"
 	slogmulti "github.com/samber/slog-multi"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -27,16 +26,10 @@ func Log(names ...string) *slog.Logger {
 
 	logger := slog.New(
 		slogmulti.Fanout(
-			tint.NewHandler(colorable.NewColorable(os.Stdout), &tint.Options{
-				Level:      slog.LevelDebug,
-				TimeFormat: time.RFC3339,
-				AddSource:  true,
-				ReplaceAttr: func(groups []string, attr slog.Attr) slog.Attr {
-					if attr.Key == "stack" {
-						attr.Value = slog.AnyValue("")
-					}
-					return attr
-				},
+			log.NewWithOptions(os.Stderr, log.Options{
+				ReportCaller:    true,
+				ReportTimestamp: true,
+				TimeFormat:      time.DateTime,
 			}),
 			GetWriterHeader(
 				config.Load("logger").GetString(name+".level"),

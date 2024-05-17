@@ -10,7 +10,6 @@ import (
 	"github.com/duxweb/go-fast/logger"
 	"github.com/gookit/color"
 	"github.com/hibiken/asynq"
-	"github.com/lmittmann/tint"
 	"github.com/samber/do/v2"
 	"github.com/spf13/cast"
 	"log/slog"
@@ -98,7 +97,7 @@ const (
 func StartQueue() {
 	service := do.MustInvokeNamed[*TaskService](global.Injector, "task")
 	if err := service.Server.Run(service.ServeMux); err != nil {
-		logger.Log("task").Error("Queue run", tint.Err(err))
+		logger.Log("task").Error("Queue run", "err", err)
 	}
 
 }

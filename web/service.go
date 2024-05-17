@@ -10,7 +10,6 @@ import (
 	"github.com/go-errors/errors"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/lmittmann/tint"
 	"github.com/spf13/cast"
 	"io/fs"
 	"log/slog"
@@ -51,7 +50,7 @@ func Init() {
 			var validator *response.ValidatorData
 			if errors.As(err, &exceptions) {
 				stacks := exceptions.StackFrames()
-				logger.Log().Error("core", tint.Err(err),
+				logger.Log().Error("core", "err", err,
 					slog.String("file", lo.Ternary[string](len(stacks) > 0, stacks[0].File+":"+cast.ToString(stacks[0].LineNumber), "")),
 					slog.Any("stack", lo.Map[errors.StackFrame, map[string]any](stacks, func(item errors.StackFrame, index int) map[string]any {
 						return map[string]any{
@@ -65,7 +64,7 @@ func Init() {
 				result.Data = validator.Data
 				result.Message = validator.Message
 			} else {
-				logger.Log().Error("core", tint.Err(err))
+				logger.Log().Error("core", "err", err)
 				result.Message = err.Error()
 			}
 
@@ -160,7 +159,7 @@ func Init() {
 
 			if v.Error != nil {
 				level = slog.LevelError
-				attr = append([]slog.Attr{tint.Err(v.Error)}, attr...)
+				attr = append(attr, slog.Attr{Key: "err", Value: slog.StringValue(v.Error.Error())})
 			} else {
 				level = lo.Ternary[slog.Level](v.Latency > 1*time.Second, slog.LevelWarn, slog.LevelInfo)
 			}
