@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"errors"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/i18n"
@@ -50,23 +51,37 @@ func (t *Resources[T]) deleteOne(ctx echo.Context, id string) error {
 		}
 	}
 
+	tx := database.Gorm().Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	c := context.WithValue(context.Background(), "tx", tx)
+
 	if t.deleteBeforeFun != nil {
-		err = t.deleteBeforeFun(&model)
+		err = t.deleteBeforeFun(c, &model)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 
-	err = database.Gorm().Delete(t.Model, id).Error
+	err = tx.Delete(t.Model, id).Error
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	if t.deleteAfterFun != nil {
-		err = t.deleteAfterFun(&model)
+		err = t.deleteAfterFun(c, &model)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		return err
 	}
 	return nil
 }

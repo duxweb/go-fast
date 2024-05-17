@@ -2,6 +2,7 @@ package validator
 
 import (
 	"errors"
+	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -86,6 +87,10 @@ func ValidatorStructError(object any, err error) error {
 		field, ok := typeOf.FieldByName(fieldName)
 		if ok {
 			msg := field.Tag.Get("message")
+			langMsg := field.Tag.Get("langMessage")
+			if langMsg != "" {
+				msg = i18n.Trans.Get(langMsg)
+			}
 			if msg != "" {
 				return response.BusinessError(msg)
 			} else {

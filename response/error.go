@@ -1,6 +1,9 @@
 package response
 
-import "github.com/labstack/echo/v4"
+import (
+	"github.com/duxweb/go-fast/i18n"
+	"github.com/labstack/echo/v4"
+)
 
 func BusinessError(message any, code ...int) error {
 	statusCode := 500
@@ -8,6 +11,14 @@ func BusinessError(message any, code ...int) error {
 		statusCode = code[0]
 	}
 	return echo.NewHTTPError(statusCode, message)
+}
+
+func BusinessLangError(message string, code ...int) error {
+	statusCode := 500
+	if len(code) > 0 {
+		statusCode = code[0]
+	}
+	return echo.NewHTTPError(statusCode, i18n.Trans.Get(message))
 }
 
 type ValidatorData Data

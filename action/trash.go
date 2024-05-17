@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"errors"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
@@ -57,23 +58,37 @@ func (t *Resources[T]) trashOne(ctx echo.Context, id string, params *gjson.Resul
 		}
 	}
 
+	tx := database.Gorm().Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	c := context.WithValue(context.Background(), "tx", tx)
+
 	if t.trashBeforeFun != nil {
-		err = t.trashBeforeFun(&model)
+		err = t.trashBeforeFun(c, &model)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 
-	err = database.Gorm().Unscoped().Delete(t.Model, id).Error
+	err = tx.Unscoped().Delete(t.Model, id).Error
 	if err != nil {
 		return err
 	}
 
 	if t.trashAfterFun != nil {
-		err = t.trashAfterFun(&model)
+		err = t.trashAfterFun(c, &model)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

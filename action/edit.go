@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"errors"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
@@ -68,15 +69,23 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 		}
 	}
 
+	tx := database.Gorm().Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	c := context.WithValue(context.Background(), "tx", tx)
+
 	if t.editBeforeFun != nil {
-		err = t.editBeforeFun(&model, data)
+		err = t.editBeforeFun(c, &model, data)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 	if t.saveBeforeFun != nil {
-		err = t.saveBeforeFun(&model, data)
+		err = t.saveBeforeFun(c, &model, data)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
@@ -84,26 +93,35 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 	if t.Tree && data.Get("parent_id").Exists() {
 		parentId := data.Get("parent_id").Uint()
 		if !models.CheckParentHas[T](database.Gorm().Model(t.Model), cast.ToUint(id), uint(parentId)) {
+			tx.Rollback()
 			return response.BusinessError(i18n.Trans.Get("common.message.parent"))
 		}
 	}
 
-	err = database.Gorm().Save(&model).Error
+	err = tx.Save(&model).Error
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	if t.editAfterFun != nil {
-		err = t.editAfterFun(&model, data)
+		err = t.editAfterFun(c, &model, data)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 	if t.saveAfterFun != nil {
-		err = t.saveAfterFun(&model, data)
+		err = t.saveAfterFun(c, &model, data)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		return err
 	}
 
 	return response.Send(ctx, response.Data{

@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"errors"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/i18n"
@@ -50,23 +51,38 @@ func (t *Resources[T]) restoreOne(ctx echo.Context, id string) error {
 		}
 	}
 
+	tx := database.Gorm().Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	c := context.WithValue(context.Background(), "tx", tx)
+
 	if t.restoreBeforeFun != nil {
-		err = t.restoreBeforeFun(&model)
+		err = t.restoreBeforeFun(c, &model)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 
-	err = database.Gorm().Model(&model).Unscoped().Update("deleted_at", nil).Error
+	err = tx.Model(&model).Unscoped().Update("deleted_at", nil).Error
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	if t.restoreAfterFun != nil {
-		err = t.restoreAfterFun(&model)
+		err = t.restoreAfterFun(c, &model)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

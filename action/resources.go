@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"github.com/duxweb/go-fast/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/tidwall/gjson"
@@ -147,9 +148,9 @@ func (t *Resources[T]) Format(call FormatFun[T]) {
 	t.formatFun = call
 }
 
-type ActionCallParamsFun[T any] func(data *T, params *gjson.Result) error
+type ActionCallParamsFun[T any] func(ctx context.Context, data *T, params *gjson.Result) error
 
-type ActionCallFun[T any] func(data *T) error
+type ActionCallFun[T any] func(ctx context.Context, data *T) error
 
 type Result map[string]func(ctx echo.Context) error
 

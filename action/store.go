@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"errors"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
@@ -84,23 +85,34 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 		return lo.IndexOf[string](keys, key) != -1
 	})
 
+	tx := database.Gorm().Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	c := context.WithValue(context.Background(), "tx", tx)
+
 	if t.storeBeforeFun != nil {
-		err = t.storeBeforeFun(&model, data)
+		err = t.storeBeforeFun(c, &model, data)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = database.Gorm().Model(&model).Updates(formatData).Error
+	err = tx.Model(&model).Updates(formatData).Error
 	if err != nil {
 		return err
 	}
 
 	if t.storeAfterFun != nil {
-		err = t.storeAfterFun(&model, data)
+		err = t.storeAfterFun(c, &model, data)
 		if err != nil {
 			return err
 		}
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		return err
 	}
 
 	return response.Send(ctx, response.Data{

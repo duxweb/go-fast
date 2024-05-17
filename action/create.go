@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
@@ -48,35 +49,51 @@ func (t *Resources[T]) Create(ctx echo.Context) error {
 		}
 	}
 
+	tx := database.Gorm().Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	c := context.WithValue(context.Background(), "tx", tx)
+
 	if t.createBeforeFun != nil {
-		err = t.createBeforeFun(&model, data)
+		err = t.createBeforeFun(c, &model, data)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 	if t.saveBeforeFun != nil {
-		err = t.saveBeforeFun(&model, data)
+		err = t.saveBeforeFun(c, &model, data)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 
-	err = database.Gorm().Debug().Model(t.Model).Create(&model).Error
+	err = tx.Model(t.Model).Create(&model).Error
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	if t.createAfterFun != nil {
-		err = t.createAfterFun(&model, data)
+		err = t.createAfterFun(c, &model, data)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 	if t.saveAfterFun != nil {
-		err = t.saveAfterFun(&model, data)
+		err = t.saveAfterFun(c, &model, data)
 		if err != nil {
+			tx.Rollback()
 			return err
 		}
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		return err
 	}
 
 	return response.Send(ctx, response.Data{

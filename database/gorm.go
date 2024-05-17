@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
@@ -54,6 +55,14 @@ func Gorm(name ...string) *gorm.DB {
 	}
 	client := do.MustInvokeNamed[*GormService](global.Injector, "orm."+n)
 	return client.engine
+}
+
+func GormCtx(ctx context.Context) *gorm.DB {
+	tx, ok := ctx.Value("tx").(*gorm.DB)
+	if ok {
+		return tx
+	}
+	return Gorm().WithContext(ctx)
 }
 
 func NewGorm(name string) *GormService {
