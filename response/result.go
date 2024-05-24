@@ -1,6 +1,7 @@
 package response
 
 import (
+	"github.com/duxweb/go-fast/i18n"
 	"github.com/labstack/echo/v4"
 )
 
@@ -13,10 +14,11 @@ func Render(ctx echo.Context, name string, bind any, code ...int) error {
 }
 
 type Data struct {
-	Code    int    `json:"code" example:"200"`
-	Message string `json:"message" example:"ok"`
-	Data    any    `json:"data"`
-	Meta    any    `json:"meta"`
+	Code        int    `json:"code" example:"200"`
+	Message     string `json:"message" example:"ok"`
+	MessageLang string
+	Data        any `json:"data"`
+	Meta        any `json:"meta"`
 }
 
 func Send(ctx echo.Context, data Data, code ...int) error {
@@ -26,6 +28,9 @@ func Send(ctx echo.Context, data Data, code ...int) error {
 	}
 	if data.Message == "" {
 		data.Message = "ok"
+	}
+	if data.MessageLang != "" {
+		data.Message = i18n.Trans.Get(data.MessageLang)
 	}
 	if data.Meta == nil {
 		data.Meta = echo.Map{}
