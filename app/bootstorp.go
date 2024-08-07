@@ -74,6 +74,7 @@ func (t *Dux) create() {
 // Run 运行命令
 // Run command
 func (t *Dux) Run() {
+
 	t.create()
 
 	list := make([]*cli.Command, 0)

@@ -66,22 +66,33 @@ func GormCtx(ctx context.Context) *gorm.DB {
 }
 
 func NewGorm(name string) *GormService {
+	// 重新读取服务
+	err := config.Load("database").ReadInConfig()
+	if err != nil {
+		panic("redis error :" + err.Error())
+	}
 	dbConfig := config.Load("database").GetStringMapString("db.drivers." + name)
 	var connect gorm.Dialector
 	if dbConfig["type"] == "mysql" {
-		connect = mysql.Open(dbConfig["username"] + ":" + dbConfig["password"] + "@tcp(" + dbConfig["host"] + ":" + dbConfig["port"] + ")/" + dbConfig["database"] + "?charset=utf8mb4&parseTime=True&loc=Local")
+		connect = mysql.Open(fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			dbConfig["username"],
+			dbConfig["password"],
+			dbConfig["host"],
+			dbConfig["port"],
+			dbConfig["database"],
+		))
 	}
 	if dbConfig["type"] == "postgresql" {
 		connect = postgres.Open(fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 			dbConfig["host"],
 			dbConfig["username"],
 			dbConfig["password"],
-			dbConfig["dbname"],
+			dbConfig["database"],
 			dbConfig["port"],
 		))
 	}
 	if dbConfig["type"] == "sqlite" {
-		connect = sqlite.Open(dbConfig["file"])
+		connect = sqlite.Open(dbConfig["file"] + "?_pragma=journal_mode(WAL)")
 	}
 	database, err := gorm.Open(connect, &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
@@ -106,4 +117,17 @@ func NewGorm(name string) *GormService {
 	return &GormService{
 		engine: database,
 	}
+}
+
+func SwitchGorm(name string) error {
+	// 关闭原服务
+	err := do.ShutdownNamed(global.Injector, "orm."+name)
+	if err != nil {
+		return err
+	}
+	// 替换服务
+	do.OverrideNamed[*GormService](global.Injector, "orm."+name, func(injector do.Injector) (*GormService, error) {
+		return NewGorm(name), nil
+	})
+	return nil
 }

@@ -17,6 +17,10 @@ func VisitIncrement(ctx echo.Context, hasType string, hasID uint, driver string,
 	date := carbon.Now().ToDateStruct()
 	path = lo.Ternary[string](path == "", path, ctx.Path())
 
+	if strings.Contains(path, "/theme") || strings.Contains(path, "/manage") || strings.Contains(path, "/install") {
+		return nil
+	}
+
 	ua := ctx.Request().UserAgent()
 
 	uaParse, err := UaParser(ua)

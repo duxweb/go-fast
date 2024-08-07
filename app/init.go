@@ -10,6 +10,7 @@ import (
 )
 
 var dirList = []string{
+	"./database",
 	"./public",
 	"./public/uploads",
 	"./data",

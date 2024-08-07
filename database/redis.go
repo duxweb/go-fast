@@ -35,13 +35,18 @@ func Redis(name ...string) *redis.Client {
 }
 
 func NewRedis(name string) *RedisService {
+	err := config.Load("database").ReadInConfig()
+	if err != nil {
+		panic("redis error :" + err.Error())
+	}
+
 	dbConfig := config.Load("database").GetStringMapString("redis.drivers." + name)
 	client := redis.NewClient(&redis.Options{
 		Addr:     dbConfig["host"] + ":" + dbConfig["port"],
 		Password: dbConfig["password"],
 		DB:       gocast.Number[int](dbConfig["db"]),
 	})
-	_, err := client.Ping(global.CtxBackground).Result()
+	_, err = client.Ping(global.CtxBackground).Result()
 	if err != nil {
 		panic(err.Error())
 	}

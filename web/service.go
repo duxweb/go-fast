@@ -146,6 +146,9 @@ func Init() {
 		LogError:     true,
 		LogRequestID: true,
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			if strings.Contains(c.Path(), "/web/") || strings.Contains(c.Path(), "/upload/") {
+				return nil
+			}
 
 			var level slog.Level
 			attr := []slog.Attr{

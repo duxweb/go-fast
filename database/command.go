@@ -12,29 +12,13 @@ func Command() []*cli.Command {
 		Usage:    "Synchronous database structure",
 		Category: "database",
 		Action: func(ctx *cli.Context) error {
-			models := make([]any, 0)
-			sends := make([]func(db *gorm.DB), 0)
 
-			for _, model := range MigrateModel {
-				if m, ok := model.(Migrate); ok {
-					hasTable := Gorm().Migrator().HasTable(m.Model)
-					if !hasTable {
-						sends = append(sends, m.Seed)
-					}
-					models = append(models, m.Model)
-				} else {
-					models = append(models, model)
-				}
-			}
+			GormInit()
 
-			err := Gorm().AutoMigrate(models...)
+			err := SyncDatabase()
+
 			if err != nil {
 				color.Println(err.Error())
-				return err
-			}
-
-			for _, send := range sends {
-				send(Gorm())
 			}
 
 			return nil
@@ -44,4 +28,31 @@ func Command() []*cli.Command {
 	return []*cli.Command{
 		sync,
 	}
+}
+
+func SyncDatabase() error {
+	models := make([]any, 0)
+	sends := make([]func(db *gorm.DB), 0)
+
+	for _, model := range MigrateModel {
+		if m, ok := model.(Migrate); ok {
+			hasTable := Gorm().Migrator().HasTable(m.Model)
+			if !hasTable {
+				sends = append(sends, m.Seed)
+			}
+			models = append(models, m.Model)
+		} else {
+			models = append(models, model)
+		}
+	}
+
+	err := Gorm().AutoMigrate(models...)
+	if err != nil {
+		return err
+	}
+
+	for _, send := range sends {
+		send(Gorm())
+	}
+	return nil
 }

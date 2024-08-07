@@ -35,6 +35,10 @@ func Init() {
 }
 
 func NewTask(i do.Injector) (*TaskService, error) {
+	err := config.Load("database").ReadInConfig()
+	if err != nil {
+		return nil, err
+	}
 	dbConfig := config.Load("database").GetStringMapString("redis.drivers.default")
 	res := asynq.RedisClientOpt{
 		Addr:     dbConfig["host"] + ":" + dbConfig["port"],

@@ -10,7 +10,7 @@ mongodb:
     default:
       host: localhost
       port: 27017
-      dbname: duxgo
+      database: duxgo
       username: ""
       password: ""
 redis:

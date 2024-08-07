@@ -16,9 +16,9 @@ func Render(ctx echo.Context, name string, bind any, code ...int) error {
 type Data struct {
 	Code        int    `json:"code" example:"200"`
 	Message     string `json:"message" example:"ok"`
-	MessageLang string
-	Data        any `json:"data"`
-	Meta        any `json:"meta"`
+	MessageLang string `json:"-"`
+	Data        any    `json:"data"`
+	Meta        any    `json:"meta"`
 }
 
 func Send(ctx echo.Context, data Data, code ...int) error {

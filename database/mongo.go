@@ -36,6 +36,11 @@ func Mongo(name ...string) *mongo.Database {
 }
 
 func NewMongo(name string) *MongoService {
+	err := config.Load("database").ReadInConfig()
+	if err != nil {
+		panic("qmgo error :" + err.Error())
+	}
+
 	dbConfig := config.Load("database").GetStringMapString("mongodb.drivers." + name)
 
 	var auth = ""
@@ -49,6 +54,6 @@ func NewMongo(name string) *MongoService {
 
 	return &MongoService{
 		client: client,
-		engine: client.Database(dbConfig["dbname"]),
+		engine: client.Database(dbConfig["database"]),
 	}
 }
