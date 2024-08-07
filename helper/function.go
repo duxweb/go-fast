@@ -5,17 +5,18 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"math"
+	"math/rand"
+	"os"
+	"time"
+	"unicode"
+
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	"github.com/gofrs/uuid"
 	"github.com/samber/do/v2"
 	"github.com/spf13/afero"
 	"golang.org/x/crypto/bcrypt"
-	"math"
-	"math/rand"
-	"os"
-	"time"
-	"unicode"
 )
 
 // HashEncode Ciphertext Encryption
@@ -168,11 +169,14 @@ func IsExist(f string) bool {
 func CreateDir(dirs ...string) {
 	fs := do.MustInvokeNamed[afero.Fs](global.Injector, "os.fs")
 	for _, path := range dirs {
-		exists, _ := afero.DirExists(fs, path)
+		exists, err := afero.DirExists(fs, path)
+		if err != nil {
+			panic("failed to create " + path + " directory")
+		}
 		if exists {
 			return
 		}
-		err := fs.MkdirAll(path, 0777)
+		err = fs.MkdirAll(path, 0777)
 		if err != nil {
 			panic("failed to create " + path + " directory")
 		}

@@ -2,6 +2,11 @@ package web
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/monitor"
 	"github.com/duxweb/go-fast/route"
@@ -9,10 +14,6 @@ import (
 	"github.com/gookit/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/urfave/cli/v2"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func Command() []*cli.Command {

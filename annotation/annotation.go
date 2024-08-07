@@ -2,7 +2,6 @@ package annotation
 
 import (
 	"bytes"
-	"github.com/duxweb/go-fast/global"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -12,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+
+	"github.com/duxweb/go-fast/global"
 )
 
 var Annotations = make([]*File, 0)
@@ -80,8 +81,10 @@ func parseGoFile(dir string, path string) ([]*Annotation, *Import) {
 
 	relPackagePath, err := filepath.Rel(dir, filepath.Dir(path))
 
+	relPackagePath = filepath.ToSlash(relPackagePath)
+
 	fullPackageName := "dux-project/app/"
-	fullPackageName += filepath.ToSlash(relPackagePath)
+	fullPackageName += relPackagePath
 
 	parts := strings.Split(relPackagePath, "/")
 	for i, part := range parts {

@@ -2,15 +2,15 @@ package config
 
 import (
 	"embed"
+	"path"
+	"path/filepath"
+
 	"github.com/duxweb/go-fast/global"
 	"github.com/golang-module/carbon/v2"
 	"github.com/gookit/goutil/fsutil"
 	"github.com/samber/do/v2"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
-	"os"
-	"path"
-	"path/filepath"
 )
 
 var data = map[string]*viper.Viper{}
@@ -19,15 +19,14 @@ var data = map[string]*viper.Viper{}
 var ConfigTplFs embed.FS
 
 func Init() {
-	pwd, _ := os.Getwd()
-
 	// Init Config
 	files, _ := ConfigTplFs.ReadDir("tpl")
 	for _, file := range files {
-		conf := filepath.Join(pwd, "config", file.Name())
+		conf := filepath.Join(global.ConfigDir, file.Name())
 		if fsutil.FileExist(conf) {
 			continue
 		}
+		conf = filepath.ToSlash(conf)
 		f := fsutil.MustCreateFile(conf, 0777, 0777)
 		c, err := ConfigTplFs.ReadFile("tpl/" + file.Name())
 		if err != nil {
@@ -40,14 +39,16 @@ func Init() {
 		f.Close()
 	}
 
-	configFiles, err := filepath.Glob(filepath.Join(pwd, global.ConfigDir+"*.yaml"))
+	configFiles, err := filepath.Glob(global.ConfigDir + "*.yaml")
 	if err != nil {
 		panic("configuration loading failure")
 	}
 
 	// Load Configuration Files in Loop
 	for _, file := range configFiles {
+		file = filepath.ToSlash(file)
 		filename := path.Base(file)
+
 		suffix := path.Ext(file)
 		name := filename[0 : len(filename)-len(suffix)]
 		data[name] = LoadFile(name)
@@ -75,10 +76,10 @@ func Init() {
 }
 
 func LoadFile(name string) *viper.Viper {
+	configFile := filepath.Join(global.ConfigDir, name+".yaml")
 	config := viper.New()
-	config.SetConfigName(name)
+	config.SetConfigFile(configFile)
 	config.SetConfigType("yaml")
-	config.AddConfigPath(global.ConfigDir)
 	if err := config.ReadInConfig(); err != nil {
 		panic(err)
 	}

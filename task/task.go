@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
+	"time"
+
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/logger"
@@ -12,11 +15,10 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/samber/do/v2"
 	"github.com/spf13/cast"
-	"log/slog"
-	"time"
 )
 
 type TaskService struct {
+	Status    bool
 	Server    *asynq.Server
 	ServeMux  *asynq.ServeMux
 	Client    *asynq.Client
