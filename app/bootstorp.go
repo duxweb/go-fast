@@ -68,7 +68,7 @@ func (t *Dux) create() {
 	for _, call := range t.apps {
 		call()
 	}
-	t.RegisterCmd(Command, web.Command, permission.Command, annotation.Command, database.Command)
+	t.RegisterCmd(Command, web.Command, permission.Command, database.Command)
 }
 
 // Run 运行命令
@@ -80,15 +80,6 @@ func (t *Dux) Run() {
 	list := make([]*cli.Command, 0)
 	for _, cmd := range t.cmds {
 		list = append(list, cmd()...)
-	}
-
-	if !IsRelease() {
-		annotation.Run()
-
-		if global.AnnotationUpdate {
-			color.Redln("⇨ runtime found an update, please restart")
-			os.Exit(0)
-		}
 	}
 
 	Start(t)

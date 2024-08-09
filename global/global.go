@@ -23,6 +23,4 @@ var (
 	DataDir       = "./data/"
 
 	StaticFs *embed.FS
-
-	AnnotationUpdate = false
 )
