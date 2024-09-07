@@ -27,7 +27,7 @@ func (t *ValidatorData) Error() string {
 	return t.Message
 }
 
-func ValidatorError(message string, data map[string]any, code ...int) error {
+func ValidatorError(message string, data any, code ...int) error {
 	statusCode := 422
 	if len(code) > 0 {
 		statusCode = code[0]

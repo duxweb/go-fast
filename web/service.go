@@ -131,6 +131,11 @@ func Init() {
 		}
 	}
 
+	// 注册页面目录
+	if global.PageFs != nil {
+		global.App.StaticFS("/pages", echo.MustSubFS(*global.PageFs, "app/"))
+	}
+
 	// 注册静态路由
 	global.App.Static("/", "./public")
 
@@ -186,9 +191,6 @@ func Init() {
 	global.App.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
 		Timeout: timeout,
 	}))
-}
-
-func Start() {
 
 	global.App.GET("/", func(c echo.Context) error {
 		c.Set("tpl", "app")
@@ -220,6 +222,9 @@ func Start() {
 		}
 		return nil
 	})
+}
+
+func Start() {
 
 	port := "8900"
 	if config.IsLoad("use") {

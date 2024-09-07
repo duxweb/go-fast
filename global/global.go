@@ -23,4 +23,5 @@ var (
 	DataDir       = "./data/"
 
 	StaticFs *embed.FS
+	PageFs   *embed.FS
 )

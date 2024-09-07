@@ -13,8 +13,6 @@ func Command() []*cli.Command {
 		Category: "database",
 		Action: func(ctx *cli.Context) error {
 
-			GormInit()
-
 			err := SyncDatabase()
 
 			if err != nil {

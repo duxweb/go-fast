@@ -105,6 +105,12 @@ func (t *Dux) SetStaticFs(fs embed.FS) {
 	global.StaticFs = &fs
 }
 
+// SetPageFs 设置页面目录
+// SetPageFs setting page folder
+func (t *Dux) SetPageFs(fs embed.FS) {
+	global.PageFs = &fs
+}
+
 // SetTimezone 设置时区
 // SetStaticFs setting the time zone
 func (t *Dux) SetTimezone(location *time.Location) {

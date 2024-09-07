@@ -78,12 +78,17 @@ func ValidatorStructError(object any, err error) error {
 	}
 	var validationErrs validator.ValidationErrors
 	errors.As(err, &validationErrs)
+
+	data := map[string][]any{}
+	message := ""
+	status := true
 	for _, item := range validationErrs {
 		fieldName := item.Field()
 		typeOf := reflect.TypeOf(object)
 		if typeOf.Kind() == reflect.Ptr {
 			typeOf = typeOf.Elem()
 		}
+		status = false
 		field, ok := typeOf.FieldByName(fieldName)
 		if ok {
 			msg := field.Tag.Get("message")
@@ -92,14 +97,27 @@ func ValidatorStructError(object any, err error) error {
 				msg = i18n.Trans.Get(langMsg)
 			}
 			if msg != "" {
-				return response.BusinessError(msg)
+				data[fieldName] = append(data[fieldName], msg)
+				if message == "" {
+					message = msg
+				}
 			} else {
-				return response.BusinessError(item.Error())
+				data[fieldName] = append(data[fieldName], item.Error())
+				if message == "" {
+					message = item.Error()
+				}
 			}
-
 		} else {
-			return response.BusinessError(item.Error())
+			data[fieldName] = append(data[fieldName], item.Error())
+			if message == "" {
+				message = item.Error()
+			}
 		}
 	}
+
+	if !status {
+		return response.ValidatorError(message, data)
+	}
+
 	return nil
 }
