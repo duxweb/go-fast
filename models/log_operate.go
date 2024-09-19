@@ -8,9 +8,9 @@ type LogOperate struct {
 	Fields
 	UserType      string         `gorm:"size:250;comment:关联类型" json:"user_type"`
 	UserID        uint           `gorm:"size:20;comment:关联 id" json:"user_id"`
-	RequestMethod string         `gorm:"size:20;comment:请求方法" json:"request_method"`
-	RequestUrl    string         `gorm:"size:20;comment:请求链接" json:"request_url"`
-	RequestParams datatypes.JSON `gorm:"size:20;comment:请求链接" json:"request_params"`
+	RequestMethod string         `gorm:"size:50;comment:请求方法" json:"request_method"`
+	RequestUrl    string         `gorm:"size:250;comment:请求链接" json:"request_url"`
+	RequestParams datatypes.JSON `gorm:"comment:请求链接" json:"request_params"`
 	RequestTime   float64        `gorm:"type:decimal(11,2);comment:访客量" json:"request_time"`
 	RouteName     string         `gorm:"size:50;comment:关联类型" json:"route_name"`
 	RouteTitle    string         `gorm:"size:50;comment:关联标题" json:"route_title"`
