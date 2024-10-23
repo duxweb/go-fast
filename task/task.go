@@ -1,40 +1,49 @@
 package task
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/RichardKnop/machinery/v2"
-	"github.com/RichardKnop/machinery/v2/backends/result"
-	brokerseager "github.com/RichardKnop/machinery/v2/brokers/eager"
-	machineryConfig "github.com/RichardKnop/machinery/v2/config"
-	lockeager "github.com/RichardKnop/machinery/v2/locks/eager"
-	"github.com/RichardKnop/machinery/v2/tasks"
-	"github.com/samber/lo"
-	"github.com/spf13/cast"
+	"github.com/duxweb/go-fast/database"
 	"log/slog"
 	"time"
 
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/logger"
+	"github.com/gookit/color"
+	"github.com/hibiken/asynq"
 	"github.com/samber/do/v2"
+	"github.com/spf13/cast"
 )
 
 type TaskService struct {
-	Status bool
-	Server *machinery.Server
-	Worker map[string]*machinery.Worker
+	Status    bool
+	Server    *asynq.Server
+	ServeMux  *asynq.ServeMux
+	Client    *asynq.Client
+	Inspector *asynq.Inspector
+	Scheduler *asynq.Scheduler
 }
 
 func (s *TaskService) Shutdown() error {
-
-	for _, worker := range s.Worker {
-		worker.Quit()
+	if s == nil {
+		return nil
 	}
-
+	s.Server.Shutdown()
+	s.Scheduler.Shutdown()
 	return nil
 }
 
+var redisStatus = true
+
 func Init() {
+	_, err := database.ConnSingle("default")
+	if err != nil {
+		redisStatus = false
+	}
+
 	do.ProvideNamed(global.Injector, "task", NewTask)
 }
 
@@ -44,163 +53,185 @@ func NewTask(i do.Injector) (*TaskService, error) {
 		return nil, err
 	}
 
-	var cnf = &machineryConfig.Config{
-		DefaultQueue: "app",
+	if !redisStatus {
+		return nil, nil
 	}
 
-	taskType := config.Load("use").GetString("task.type")
-	taskType = lo.Ternary[string](taskType == "", "local", taskType)
+	dbConfig := config.Load("database").GetStringMapString("redis.drivers.default")
 
-	var server *machinery.Server
-
-	switch taskType {
-	default:
-		broker := brokerseager.New()
-		//backend := backendeager.New()
-		lock := lockeager.New()
-		server = machinery.NewServer(cnf, broker, nil, lock)
-		break
+	res := asynq.RedisClientOpt{
+		Addr:     dbConfig["host"] + ":" + dbConfig["port"],
+		Password: dbConfig["password"],
+		DB:       cast.ToInt(dbConfig["db"]),
 	}
+	server := asynq.NewServer(
+		res,
+		asynq.Config{
+			Logger: &TaskLogger{
+				Logger: logger.Log("task"),
+			},
+			LogLevel:    asynq.WarnLevel,
+			Concurrency: 20,
+			Queues: map[string]int{
+				"high":    10,
+				"default": 7,
+				"low":     3,
+			},
+		},
+	)
 
-	//dbConfig := config.Load("database").GetStringMapString("redis.drivers.default")
-	//res := asynq.RedisClientOpt{
-	//	Addr:     dbConfig["host"] + ":" + dbConfig["port"],
-	//	Password: dbConfig["password"],
-	//	DB:       cast.ToInt(dbConfig["db"]),
-	//}
+	serveMux := asynq.NewServeMux()
+	client := asynq.NewClient(res)
+	inspector := asynq.NewInspector(res)
 
-	err = server.RegisterTask("ping", func() error {
-		fmt.Println("ping")
+	serveMux.HandleFunc("ping", func(ctx context.Context, t *asynq.Task) error {
+		color.Print("⇨ <green>Task server start</>\n")
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
+
+	scheduler := asynq.NewScheduler(res, &asynq.SchedulerOpts{
+		LogLevel: asynq.ErrorLevel,
+		Location: global.TimeLocation,
+		PostEnqueueFunc: func(info *asynq.TaskInfo, err error) {
+			if err == nil {
+				return
+			}
+			logger.Log("task").Error("scheduler", err)
+		},
+	})
 
 	return &TaskService{
-		Server: server,
+		Server:    server,
+		ServeMux:  serveMux,
+		Client:    client,
+		Inspector: inspector,
+		Scheduler: scheduler,
 	}, nil
 }
 
-func StartTask() {
+type Priority string
+
+const (
+	PRIORITY_HIGH    Priority = "high"
+	PRIORITY_DEFAULT Priority = "default"
+	PRIORITY_LOW     Priority = "low"
+)
+
+func StartQueue() {
 	service := do.MustInvokeNamed[*TaskService](global.Injector, "task")
-
-	workers := map[string]*machinery.Worker{}
-	workers["app"] = service.Server.NewWorker("app", 10)
-	taskWorker := config.Load("use").GetStringMapString("task.worker")
-
-	for name, num := range taskWorker {
-		workers[name] = service.Server.NewWorker(name, cast.ToInt(num))
+	if service == nil {
+		return
 	}
-	service.Worker = workers
-
-	//errorHandler := func(err error) {
-	//	logger.Log("task").Error("Start task worker", "err", err)
-	//}
-	//
-	//preHandler := func(signature *tasks.Signature) {
-	//	logger.Log("task").Info("Pre task worker", "name", signature.Name)
-	//}
-	//
-	//postHandler := func(signature *tasks.Signature) {
-	//	logger.Log("task").Info("Post task worker", "name", signature.Name)
-	//}
-
-	//for name, worker := range service.Worker {
-	//	//worker.SetErrorHandler(errorHandler)
-	//	//worker.SetPostTaskHandler(postHandler)
-	//	//worker.SetPreTaskHandler(preHandler)
-	//	err := worker.Launch()
-	//	logger.Log("task").Debug("Start task worker", "name", name)
-	//	if err != nil {
-	//		logger.Log("task").Error("Queue worker launch", "err", err)
-	//	}
-	//}
-
-	//Add("ping", []tasks.Arg{})
-
-}
-
-type AddType struct {
-	time  *time.Time
-	retry int
-}
-
-func Add(pattern string, params []tasks.Arg, options ...AddType) *result.AsyncResult {
-	return AddTask(pattern, params, options...)
-}
-
-func AddDelay(pattern string, params []tasks.Arg, t time.Duration, options ...AddType) *result.AsyncResult {
-	option := AddType{}
-	if len(options) > 0 {
-		option = options[0]
+	if err := service.Server.Run(service.ServeMux); err != nil {
+		logger.Log("task").Error("Queue run", "err", err)
 	}
-	taskTime := time.Now().Add(t)
-	option.time = &taskTime
-	return AddTask(pattern, params, option)
+
 }
 
-func AddTime(pattern string, params []tasks.Arg, t time.Time, options ...AddType) *result.AsyncResult {
-	option := AddType{}
-	if len(options) > 0 {
-		option = options[0]
+func StartScheduler() {
+	service := do.MustInvokeNamed[*TaskService](global.Injector, "task")
+	if service == nil {
+		return
 	}
-	option.time = &t
-	return AddTask(pattern, params, option)
+	if err := service.Scheduler.Run(); err != nil {
+		logger.Log().Error("Scheduler run", err)
+	}
 }
 
-func AddTask(pattern string, params []tasks.Arg, options ...AddType) *result.AsyncResult {
+func Add(typename string, params any, priority ...Priority) *asynq.TaskInfo {
+	group := PRIORITY_DEFAULT
+	if len(priority) > 0 {
+		group = priority[0]
+	}
+	return AddTask(typename, params, asynq.Queue(string(group)))
+}
+
+func AddDelay(typename string, params any, t time.Duration, priority ...Priority) *asynq.TaskInfo {
+	group := PRIORITY_DEFAULT
+	if len(priority) > 0 {
+		group = priority[0]
+	}
+	return AddTask(typename, params, asynq.ProcessIn(t), asynq.Queue(string(group)))
+}
+
+func AddTime(typename string, params any, t time.Time, priority ...Priority) *asynq.TaskInfo {
+	group := PRIORITY_DEFAULT
+	if len(priority) > 0 {
+		group = priority[0]
+	}
+	return AddTask(typename, params, asynq.ProcessAt(t), asynq.Queue(string(group)))
+}
+
+func AddTask(typename string, params any, opts ...asynq.Option) *asynq.TaskInfo {
+	payload, _ := json.Marshal(params)
+	task := asynq.NewTask(typename, payload)
+	opts = append(opts, asynq.MaxRetry(3))            // Retry count
+	opts = append(opts, asynq.Timeout(1*time.Minute)) // Timeout period
+	opts = append(opts, asynq.Retention(2*time.Hour)) // Retention time
 
 	service := do.MustInvokeNamed[*TaskService](global.Injector, "task")
-
-	signature := &tasks.Signature{
-		Name:       pattern,
-		Args:       params,
-		RetryCount: 3,
+	if service == nil {
+		return nil
 	}
-
-	var option AddType
-	if len(options) > 0 {
-		option = options[0]
-	}
-
-	if option.retry > 0 {
-		signature.RetryCount = option.retry
-	}
-	if option.time != nil {
-		signature.ETA = option.time
-	}
-
-	asyncResult, err := service.Server.SendTask(signature)
+	info, err := service.Client.Enqueue(task, opts...)
 	if err != nil {
 		logger.Log("task").Error("Queue add error", err.Error())
 	}
-
-	return asyncResult
+	return info
 }
 
-// AddScheduler registers a task to be executed on a queue
-func AddScheduler(cron string, pattern string, params []tasks.Arg) {
-
-	signature := tasks.Signature{
-		Name: pattern,
-		Args: params,
-	}
-
+func DelTask(priority Priority, id string) error {
 	service := do.MustInvokeNamed[*TaskService](global.Injector, "task")
-	err := service.Server.RegisterPeriodicChain(cron, pattern, &signature)
+	if service == nil {
+		return nil
+	}
+	err := service.Inspector.DeleteTask(string(priority), id)
+	if errors.Is(err, asynq.ErrQueueNotFound) {
+		return nil
+	}
+	if errors.Is(err, asynq.ErrTaskNotFound) {
+		return nil
+	}
 	if err != nil {
-		logger.Log("task").Error("Scheduler add error", err.Error())
+		return err
+	}
+	return nil
+}
+
+// ListenerScheduler registers a task to be executed on a schedule
+// cron: the schedule for the task
+// typename: the name of the task type
+// params: parameters for the task (can be of any type)
+// priority: (optional) the priority group for the task
+func ListenerScheduler(cron string, typename string, params any, priority ...Priority) {
+	payload, _ := json.Marshal(params)
+	task := asynq.NewTask(typename, payload)
+	var opts []asynq.Option
+	opts = append(opts, asynq.MaxRetry(3))
+	opts = append(opts, asynq.Timeout(30*time.Minute))
+	opts = append(opts, asynq.Retention(2*time.Hour))
+	group := PRIORITY_DEFAULT
+	if len(priority) > 0 {
+		group = priority[0]
+	}
+	opts = append(opts, asynq.Queue(string(group)))
+	service := do.MustInvokeNamed[*TaskService](global.Injector, "task")
+	if service == nil {
+		return
+	}
+	_, err := service.Scheduler.Register(cron, task, opts...)
+	if err != nil {
+		panic("Scheduler add error :" + err.Error())
 	}
 }
 
 // ListenerTask registers a task to be executed on a queue
-func ListenerTask(pattern string, task any) {
+func ListenerTask(pattern string, handler func(context.Context, *asynq.Task) error) {
 	service := do.MustInvokeNamed[*TaskService](global.Injector, "task")
-	err := service.Server.RegisterTask(pattern, task)
-	if err != nil {
-		panic("Task add error :" + err.Error())
+	if service == nil {
+		return
 	}
+	service.ServeMux.HandleFunc(pattern, handler)
 }
 
 type TaskLogger struct {
