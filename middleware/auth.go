@@ -1,65 +1,53 @@
 package middleware
 
 import (
-	"errors"
 	"github.com/duxweb/go-fast/auth"
 	"github.com/duxweb/go-fast/config"
+	"github.com/go-errors/errors"
+	jwtware "github.com/gofiber/contrib/jwt"
+	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/labstack/echo-jwt/v4"
-	"github.com/labstack/echo/v4"
 	"time"
 )
 
-func AuthMiddleware(app string, renewals ...time.Duration) echo.MiddlewareFunc {
-	var renewal time.Duration = 0
+func AuthMiddleware(app string, renewals ...time.Duration) fiber.Handler {
+	var renewal time.Duration = 3600
 	if len(renewals) > 0 {
 		renewal = renewals[0]
 	}
 	key := config.Load("use").GetString("app.secret")
-	middle := echojwt.Config{
-		SigningKey:  key,
-		TokenLookup: "header:Authorization:Bearer ,query:auth",
-		ParseTokenFunc: func(c echo.Context, token string) (interface{}, error) {
-
-			data := auth.JwtClaims{}
-			jwtToken, err := jwt.ParseWithClaims(token, &data, func(token *jwt.Token) (interface{}, error) {
-				return []byte(key), nil
-			})
-			if err != nil {
-				return nil, err
-			}
-			if data.Subject != app {
-				return nil, errors.New("token type error")
-			}
-			return jwtToken, nil
-		},
-		SuccessHandler: func(c echo.Context) {
-			user := c.Get("user").(*jwt.Token)
+	middle := jwtware.Config{
+		SigningKey: jwtware.SigningKey{Key: []byte(key)},
+		SuccessHandler: func(c *fiber.Ctx) error {
+			user := c.Locals("user").(*jwt.Token)
 			claims := user.Claims.(*auth.JwtClaims)
-			c.Set("auth", claims)
+
+			if claims.Subject != app {
+				return errors.New("token type error")
+			}
+			c.Locals("auth", claims)
 			if !claims.Refresh {
-				return
+				return nil
 			}
 
 			issuedAt, _ := claims.GetIssuedAt()
 			if issuedAt == nil {
-				return
+				return nil
 			}
 			expiredAt, _ := claims.GetExpirationTime()
 			if expiredAt == nil {
-				return
+				return nil
 			}
 
 			if expiredAt.Add(-renewal).After(time.Now()) {
-				return
+				return nil
 			}
 			expire := expiredAt.Sub(issuedAt.Time)
 			newToken, _ := auth.NewJWT().MakeToken(claims.Subject, claims.ID, expire)
-			c.Response().Header().Set(echo.HeaderAuthorization, "Bearer "+newToken)
-		},
-		ErrorHandler: func(c echo.Context, err error) error {
-			return echo.ErrUnauthorized
+			c.Set(fiber.HeaderAuthorization, "Bearer "+newToken)
+			return nil
 		},
 	}
-	return echojwt.WithConfig(middle)
+
+	return jwtware.New(middle)
 }

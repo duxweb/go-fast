@@ -7,11 +7,11 @@ import (
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/validator"
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 	"github.com/tidwall/gjson"
 )
 
-func (t *Resources[T]) Create(ctx echo.Context) error {
+func (t *Resources[T]) Create(ctx *fiber.Ctx) error {
 	var err error
 	if t.initFun != nil {
 		err = t.initFun(t, ctx)

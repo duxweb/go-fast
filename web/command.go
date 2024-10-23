@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"github.com/RichardKnop/machinery/v2/tasks"
 	"os"
 	"os/signal"
 	"syscall"
@@ -30,28 +31,29 @@ func Command() []*cli.Command {
 			defer stop()
 
 			task.ListenerTask("dux.monitor", monitor.Control)
-			task.ListenerScheduler("*/1 * * * *", "dux.monitor", map[string]any{}, task.PRIORITY_LOW)
+			task.AddScheduler("*/1 * * * *", "dux.monitor", []tasks.Arg{})
 
-			// 启动任务服务
-			go func() {
-				task.StartScheduler()
-			}()
 			// 启动队列服务
 			go func() {
-				task.Add("ping", &map[string]any{})
-				task.StartQueue()
+				task.StartTask()
 			}()
+
+			global.App.Hooks().OnShutdown(func() error {
+				if err := global.Injector.Shutdown(); err != nil {
+					color.Errorln("Stop service")
+				}
+				return nil
+			})
 
 			// 启动 web 服务
 			Start()
 
 			<-ctx.Done()
-			if err := global.Injector.Shutdown(); err != nil {
-				color.Errorln("Stop service")
-			}
+
+			// 等待关闭程序
 			ctx, cancel := context.WithTimeout(global.CtxBackground, 10*time.Second)
 			defer cancel()
-			if err := global.App.Shutdown(ctx); err != nil {
+			if err := global.App.ShutdownWithContext(ctx); err != nil {
 				color.Errorln(err.Error())
 			}
 			return nil

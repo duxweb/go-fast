@@ -3,7 +3,7 @@ package action
 import (
 	"context"
 	"github.com/duxweb/go-fast/validator"
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
@@ -82,7 +82,7 @@ func New[T any](model T) *Resources[T] {
 	}
 }
 
-type InitFun[T any] func(t *Resources[T], e echo.Context) error
+type InitFun[T any] func(t *Resources[T], c *fiber.Ctx) error
 
 // Init 初始化回调
 func (t *Resources[T]) Init(call InitFun[T]) {
@@ -100,14 +100,14 @@ func (t *Resources[T]) QueryParams(data any) {
 	t.queryParams = data
 }
 
-type QueryFun func(tx *gorm.DB, e echo.Context) *gorm.DB
+type QueryFun func(tx *gorm.DB, c *fiber.Ctx) *gorm.DB
 
 // Query 通用查询
 func (t *Resources[T]) Query(call QueryFun) {
 	t.queryFun = call
 }
 
-type QueryRequestFun func(tx *gorm.DB, params *gjson.Result, e echo.Context) *gorm.DB
+type QueryRequestFun func(tx *gorm.DB, params *gjson.Result, c *fiber.Ctx) *gorm.DB
 
 // QueryMany 多条数据查询
 func (t *Resources[T]) QueryMany(call QueryRequestFun) {
@@ -119,21 +119,21 @@ func (t *Resources[T]) QueryOne(call QueryRequestFun) {
 	t.queryOneFun = call
 }
 
-type MetaManyFun[T any] func(orm *gorm.DB, data []T, e echo.Context)
+type MetaManyFun[T any] func(orm *gorm.DB, data []T, c *fiber.Ctx)
 
 // MetaMany 多条元数据
 func (t *Resources[T]) MetaMany(call MetaManyFun[T]) {
 	t.metaManyFun = call
 }
 
-type MetaOneFun[T any] func(data T, e echo.Context)
+type MetaOneFun[T any] func(data T, c *fiber.Ctx)
 
 // MetaOne 单条元数据
 func (t *Resources[T]) MetaOne(call MetaManyFun[T]) {
 	t.metaManyFun = call
 }
 
-type ValidatorFun func(data *gjson.Result, e echo.Context) (validator.ValidatorRule, error)
+type ValidatorFun func(data *gjson.Result, c *fiber.Ctx) (validator.ValidatorRule, error)
 
 // Validator 数据验证
 // Docs github.com/go-playground/validator/v10
@@ -141,7 +141,7 @@ func (t *Resources[T]) Validator(call ValidatorFun) {
 	t.validatorFun = call
 }
 
-type FormatFun[T any] func(model *T, data *gjson.Result, e echo.Context) error
+type FormatFun[T any] func(model *T, data *gjson.Result, c *fiber.Ctx) error
 
 // Format 数据格式化
 func (t *Resources[T]) Format(call FormatFun[T]) {
@@ -152,7 +152,7 @@ type ActionCallParamsFun[T any] func(ctx context.Context, data *T, params *gjson
 
 type ActionCallFun[T any] func(ctx context.Context, data *T) error
 
-type Result map[string]func(ctx echo.Context) error
+type Result map[string]func(ctx *fiber.Ctx) error
 
 func (t *Resources[T]) Result() Result {
 	result := Result{}

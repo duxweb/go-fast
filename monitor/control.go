@@ -1,10 +1,8 @@
 package monitor
 
 import (
-	"context"
 	"fmt"
 	"github.com/duxweb/go-fast/global"
-	"github.com/hibiken/asynq"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"log/slog"
 )
@@ -28,7 +26,7 @@ func Init() {
 }
 
 // Control monitor task
-func Control(ctx context.Context, t *asynq.Task) error {
+func Control() error {
 	data := GetMonitorData()
 	logger.Debug("Monitor",
 		slog.Float64("CpuPercent", data.CpuPercent),

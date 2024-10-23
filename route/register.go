@@ -2,7 +2,7 @@ package route
 
 import (
 	"github.com/duxweb/go-fast/annotation"
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 )
 
 var Routes = map[string]*RouterData{}
@@ -61,7 +61,7 @@ func Register() {
 			if !ok {
 				panic("routing name not set: " + file.Name)
 			}
-			function, ok := item.Func.(func(ctx echo.Context) error)
+			function, ok := item.Func.(func(ctx *fiber.Ctx) error)
 			if !ok {
 				panic("routing func not set: " + file.Name)
 			}

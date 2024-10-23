@@ -1,21 +1,21 @@
 package auth
 
 import (
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 	"strings"
 )
 
 type Service struct {
 	app string
-	ctx echo.Context
+	ctx *fiber.Ctx
 }
 
-func NewService(app string, ctx echo.Context) *Service {
+func NewService(app string, ctx *fiber.Ctx) *Service {
 	return &Service{app: app, ctx: ctx}
 }
 
 func (t *Service) ID() string {
-	token := t.ctx.Request().Header.Get("Authorization")
+	token := t.ctx.Get("Authorization")
 	token = strings.ReplaceAll(token, "Bearer ", "")
 	if token == "" {
 		return ""

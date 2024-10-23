@@ -4,11 +4,11 @@ import (
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 	"strings"
 )
 
-func (t *Resources[T]) RestoreMany(ctx echo.Context) error {
+func (t *Resources[T]) RestoreMany(ctx *fiber.Ctx) error {
 	var err error
 	if t.initFun != nil {
 		err = t.initFun(t, ctx)

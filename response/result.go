@@ -2,15 +2,15 @@ package response
 
 import (
 	"github.com/duxweb/go-fast/i18n"
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 )
 
-func Render(ctx echo.Context, name string, bind any, code ...int) error {
+func Render(ctx *fiber.Ctx, app string, name string, bind any, code ...int) error {
 	statusCode := 200
 	if len(code) > 0 {
 		statusCode = code[0]
 	}
-	return ctx.Render(statusCode, name, bind)
+	return ctx.Status(statusCode).Render(name, bind, app)
 }
 
 type Data struct {
@@ -21,7 +21,7 @@ type Data struct {
 	Meta        any    `json:"meta"`
 }
 
-func Send(ctx echo.Context, data Data, code ...int) error {
+func Send(ctx *fiber.Ctx, data Data, code ...int) error {
 	statusCode := 200
 	if len(code) > 0 {
 		statusCode = code[0]
@@ -33,10 +33,10 @@ func Send(ctx echo.Context, data Data, code ...int) error {
 		data.Message = i18n.Trans.Get(data.MessageLang)
 	}
 	if data.Meta == nil {
-		data.Meta = echo.Map{}
+		data.Meta = fiber.Map{}
 	}
 	if data.Code == 0 {
 		data.Code = statusCode
 	}
-	return ctx.JSON(statusCode, data)
+	return ctx.Status(statusCode).JSON(data)
 }

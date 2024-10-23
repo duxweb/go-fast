@@ -5,12 +5,12 @@ import (
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/response"
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
 
-func (t *Resources[T]) Show(ctx echo.Context) error {
+func (t *Resources[T]) Show(ctx *fiber.Ctx) error {
 	var err error
 	if t.initFun != nil {
 		err = t.initFun(t, ctx)
@@ -24,7 +24,7 @@ func (t *Resources[T]) Show(ctx echo.Context) error {
 		return err
 	}
 
-	id := ctx.Param("id")
+	id := ctx.Params("id")
 	var model T
 	err = t.getOne(ctx, &model, id, params)
 	isEmpty := false
@@ -57,13 +57,13 @@ func (t *Resources[T]) Show(ctx echo.Context) error {
 	})
 }
 
-type OneCallFun[T any] func(data T, params *gjson.Result, ctx echo.Context) T
+type OneCallFun[T any] func(data T, params *gjson.Result, ctx *fiber.Ctx) T
 
 func (t *Resources[T]) OneAfter(call OneCallFun[T]) {
 	t.oneAfterFun = call
 }
 
-func (t *Resources[T]) getOne(ctx echo.Context, model *T, id string, params *gjson.Result) error {
+func (t *Resources[T]) getOne(ctx *fiber.Ctx, model *T, id string, params *gjson.Result) error {
 	query := database.Gorm().Unscoped().Model(t.Model).Where(t.Key+" = ?", id)
 	if t.queryOneFun != nil {
 		query = t.queryOneFun(query, params, ctx)

@@ -1,206 +1,163 @@
 package web
 
 import (
-	"context"
 	"fmt"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/views"
 	"github.com/duxweb/go-fast/websocket"
 	"github.com/go-errors/errors"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/etag"
+	"github.com/gofiber/fiber/v2/middleware/favicon"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/gookit/goutil/fsutil"
 	"github.com/spf13/cast"
-	"io/fs"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/logger"
+	fiberlog "github.com/gofiber/fiber/v2/log"
+	middleLogger "github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gookit/color"
 	"github.com/samber/lo"
 )
 
 func Init() {
-	global.App = echo.New()
-	global.App.Debug = global.Debug
-	global.App.Renderer = views.Render()
-	global.App.HideBanner = true
-	global.App.HidePort = true
+	global.App = fiber.New(fiber.Config{
+		AppName:   "Dux",
+		Immutable: true,
+		//EnablePrintRoutes:     global.Debug,
+		DisableStartupMessage: true,
+		Views:                 views.Fiber(),
+		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
+			result := response.Data{
+				Code: fiber.StatusInternalServerError,
+			}
+			var e *fiber.Error
 
-	global.App.Logger = EchoLoggerHeadAdaptor()
-
-	// 注册异常处理
-	global.App.HTTPErrorHandler = func(err error, c echo.Context) {
-		result := response.Data{
-			Code: http.StatusInternalServerError,
-		}
-		var e *echo.HTTPError
-		if errors.As(err, &e) {
-			// http error
-			result.Code = e.Code
-			result.Message = cast.ToString(e.Message)
-		} else {
-			var exceptions *errors.Error
-			var validator *response.ValidatorData
-			if errors.As(err, &exceptions) {
-				stacks := exceptions.StackFrames()
-				logger.Log().Error("core", "err", err,
-					slog.String("file", lo.Ternary[string](len(stacks) > 0, stacks[0].File+":"+cast.ToString(stacks[0].LineNumber), "")),
-					slog.Any("stack", lo.Map[errors.StackFrame, map[string]any](stacks, func(item errors.StackFrame, index int) map[string]any {
-						return map[string]any{
-							"file": item.File + ":" + cast.ToString(item.LineNumber),
-							"func": item.Name,
-						}
-					})),
-				)
-			} else if errors.As(err, &validator) {
-				result.Code = validator.Code
-				result.Data = validator.Data
-				result.Message = validator.Message
+			if errors.As(err, &e) {
+				// http error
+				result.Code = e.Code
+				result.Message = cast.ToString(e.Message)
 			} else {
-				logger.Log().Error("core", "err", err)
-				result.Message = err.Error()
+				var exceptions *errors.Error
+				var validator *response.ValidatorData
+				if errors.As(err, &exceptions) {
+					stacks := exceptions.StackFrames()
+					logger.Log().Error("core", "err", err,
+						slog.String("file", lo.Ternary[string](len(stacks) > 0, stacks[0].File+":"+cast.ToString(stacks[0].LineNumber), "")),
+						slog.Any("stack", lo.Map[errors.StackFrame, map[string]any](stacks, func(item errors.StackFrame, index int) map[string]any {
+							return map[string]any{
+								"file": item.File + ":" + cast.ToString(item.LineNumber),
+								"func": item.Name,
+							}
+						})),
+					)
+				} else if errors.As(err, &validator) {
+					result.Code = validator.Code
+					result.Data = validator.Data
+					result.Message = validator.Message
+				} else {
+					logger.Log().Error("core", "err", err)
+					result.Message = err.Error()
+				}
+				result.Message = lo.Ternary[string](!global.Debug, i18n.Trans.Get("common.error.errorMessage"), result.Message)
 			}
 
-			result.Message = lo.Ternary[string](!global.Debug, i18n.Trans.Get("common.error.errorMessage"), result.Message)
-		}
-
-		if isAsync(c) {
-			err = response.Send(c, result, result.Code)
-			if err != nil {
-				logger.Log().Error("err", err)
+			if isAsync(ctx) {
+				return response.Send(ctx, result, result.Code)
 			}
-			return
-		}
+			ctx.Locals("tpl", "app")
 
-		c.Set("tpl", "app")
+			if result.Code == fiber.StatusNotFound {
+				return ctx.Status(fiber.StatusNotFound).Render("404.gohtml", nil)
+			} else {
+				return ctx.Status(fiber.StatusInternalServerError).Render("error.gohtml", fiber.Map{
+					"code":    result.Code,
+					"message": result.Message,
+				})
+			}
+		},
+	})
 
-		if result.Code == http.StatusNotFound {
-			err = c.Render(http.StatusNotFound, "404.gohtml", nil)
-		} else {
-			err = c.Render(http.StatusInternalServerError, "error.gohtml", map[string]any{
-				"code":    result.Code,
-				"message": result.Message,
-			})
-		}
-		if err != nil {
-			logger.Log().Error("err", err)
-		}
-	}
-
-	// 异常恢复
-	global.App.Use(middleware.Recover())
-
-	// IP 获取规则
-	global.App.IPExtractor = func(req *http.Request) string {
-		remoteAddr := req.RemoteAddr
-		if ip := req.Header.Get(echo.HeaderXRealIP); ip != "" {
-			remoteAddr = ip
-		} else if ip = req.Header.Get(echo.HeaderXForwardedFor); ip != "" {
-			remoteAddr = ip
-		} else {
-			remoteAddr, _, _ = net.SplitHostPort(remoteAddr)
-		}
-		if remoteAddr == "::1" {
-			remoteAddr = "127.0.0.1"
-		}
-		return remoteAddr
-	}
-
-	// 跨域处理
-	global.App.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins:  []string{"*"},
-		AllowHeaders:  []string{"*"},
-		ExposeHeaders: []string{"*"},
-	}))
+	// 适配日志
+	fiberlog.SetLogger(LoggerAdaptor())
 
 	// 注册公共目录
-	if global.StaticFs != nil {
-		entries, _ := fs.ReadDir(echo.MustSubFS(*global.StaticFs, "static"), ".")
-		for _, entry := range entries {
-			name := entry.Name()
-			if entry.IsDir() {
-				global.App.StaticFS("/"+name, echo.MustSubFS(*global.StaticFs, "static/"+name))
-			}
-		}
-	}
-
-	// 注册页面目录
-	if global.PageFs != nil {
-		global.App.StaticFS("/pages", echo.MustSubFS(*global.PageFs, "app/"))
-	}
-
-	// 注册静态路由
-	global.App.Static("/", "./public")
+	global.App.Static("/public", "./public")
 
 	// 请求日志
-	global.App.Use(middleware.RequestID())
-	global.App.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-		LogURI:       true,
-		LogHost:      true,
-		LogStatus:    true,
-		LogMethod:    true,
-		LogLatency:   true,
-		LogRemoteIP:  true,
-		LogError:     true,
-		LogRequestID: true,
-		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-			if strings.Contains(c.Path(), "/web/") || strings.Contains(c.Path(), "/upload/") {
-				return nil
+	global.App.Use(requestid.New())
+	global.App.Use(middleLogger.New(middleLogger.Config{
+		Next: func(c *fiber.Ctx) bool {
+			if strings.Contains(c.Path(), "/public/") {
+				return true
 			}
-
-			var level slog.Level
-			attr := []slog.Attr{
-				slog.Int("status", v.Status),
-				slog.String("method", v.Method),
-				slog.String("uri", v.URI),
-				slog.String("ip", v.RemoteIP),
-				slog.Duration("latency", v.Latency),
-				slog.String("id", v.RequestID),
-			}
-
-			if v.Error != nil {
-				level = slog.LevelError
-				attr = append(attr, slog.Attr{Key: "err", Value: slog.StringValue(v.Error.Error())})
-			} else {
-				level = lo.Ternary[slog.Level](v.Latency > 1*time.Second, slog.LevelWarn, slog.LevelInfo)
-			}
-
-			logger.Log("request").LogAttrs(
-				context.Background(),
-				level,
-				"request",
-				attr...,
-			)
-
-			return nil
+			return false
 		},
 	}))
 
-	timeout := 60 * time.Second
-	if config.IsLoad("use") {
-		timeout = config.Load("use").GetDuration("server.timeout") * time.Second
-	}
-
-	global.App.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-		Timeout: timeout,
+	// 异常恢复
+	global.App.Use(recover.New(recover.Config{
+		Next:             nil,
+		EnableStackTrace: true,
+		StackTraceHandler: func(c *fiber.Ctx, e interface{}) {
+			logger.Log().Error("panic", fmt.Sprintf("%v", e),
+				slog.Any("stack", string(debug.Stack())),
+			)
+		},
 	}))
 
-	global.App.GET("/", func(c echo.Context) error {
-		c.Set("tpl", "app")
-		return c.Render(http.StatusOK, "welcome.gohtml", nil)
+	// 跨域处理
+	global.App.Use(cors.New(cors.Config{
+		AllowOrigins:  "*",
+		AllowHeaders:  "*",
+		ExposeHeaders: "*",
+	}))
+
+	// ETAG 缓存
+	global.App.Use(etag.New())
+
+	// 图表
+	if fsutil.IsFile("./public/favicon.ico") {
+		global.App.Use(favicon.New(favicon.Config{
+			File: "./public/favicon.ico",
+			URL:  "/favicon.ico",
+		}))
+	}
+
+	// 注册静态路由
+	if global.StaticFs != nil {
+		global.App.Use("/static", filesystem.New(filesystem.Config{
+			Root:       http.FS(global.StaticFs),
+			PathPrefix: "static",
+		}))
+	}
+
+	//timeout := 60 * time.Second
+	//if config.IsLoad("use") {
+	//	timeout = config.Load("use").GetDuration("server.timeout") * time.Second
+	//}
+
+	global.App.Get("/", func(c *fiber.Ctx) error {
+		return c.Status(fiber.StatusOK).Render("welcome.gohtml", nil, "app")
 	})
 
 	// websocket
-	global.App.GET("/ws", func(c echo.Context) error {
-		token := c.QueryParam("token")
-		app := c.QueryParam("app")
+	global.App.Get("/ws", func(c *fiber.Ctx) error {
+		token := c.Query("token")
+		app := c.Query("app")
 		if token == "" {
 			logger.Log("websocket").Debug("Token Not Found", slog.String("token", token))
 			return response.Send(c, response.Data{
@@ -213,14 +170,14 @@ func Init() {
 				Message: "app does not exist",
 			})
 		}
-		c.Request().Header.Set("token", cast.ToString(token))
-		err := websocket.Service.Websocket.HandleRequest(c.Response().Writer, c.Request())
-		if err != nil {
-			return response.Send(c, response.Data{
-				Message: err.Error(),
-			})
-		}
-		return nil
+		handler := adaptor.HTTPHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Header.Set("token", cast.ToString(token))
+			err := websocket.Service.Websocket.HandleRequest(w, r)
+			if err != nil {
+				logger.Log("websocket").Error(err.Error())
+			}
+		})
+		return handler(c)
 	})
 }
 
@@ -236,10 +193,7 @@ func Start() {
 	color.Println("⇨ <green>Server start http://localhost:" + port + "</>")
 
 	go func() {
-		err := global.App.Start(":" + port)
-		if errors.Is(err, http.ErrServerClosed) {
-			return
-		}
+		err := global.App.Listen(":" + port)
 		if err != nil {
 			color.Errorln(err.Error())
 		}
@@ -262,8 +216,8 @@ func banner() {
 
 	var sysMaps []item
 	sysMaps = append(sysMaps, item{
-		Name:  "Echo",
-		Value: echo.Version,
+		Name:  "Fiber",
+		Value: fiber.Version,
 	})
 	sysMaps = append(sysMaps, item{
 		Name:  "Debug",
@@ -275,7 +229,7 @@ func banner() {
 	})
 	sysMaps = append(sysMaps, item{
 		Name:  "Routes",
-		Value: len(global.App.Routes()),
+		Value: len(global.App.GetRoutes(true)),
 	})
 
 	banner += "⇨ "
@@ -285,12 +239,12 @@ func banner() {
 	color.Println(banner)
 }
 
-func isAsync(ctx echo.Context) bool {
-	xr := ctx.Request().Header.Get("X-Requested-With")
+func isAsync(ctx *fiber.Ctx) bool {
+	xr := ctx.GetRespHeader("X-Requested-With")
 	if xr != "" && strings.Index(xr, "XMLHttpRequest") != -1 {
 		return true
 	}
-	accept := ctx.Request().Header.Get("Accept")
+	accept := ctx.GetRespHeader("Accept")
 	if strings.Index(accept, "/json") != -1 || strings.Index(accept, "/+json") != -1 {
 		return true
 	}

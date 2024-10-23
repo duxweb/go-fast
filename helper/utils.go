@@ -4,31 +4,31 @@ import (
 	"github.com/duxweb/go-fast/cache"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/models"
+	"github.com/gofiber/fiber/v2"
 	"github.com/golang-module/carbon/v2"
-	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
 	"strings"
 )
 
-func VisitIncrement(ctx echo.Context, hasType string, hasID uint, driver string, path string) error {
+func VisitIncrement(ctx *fiber.Ctx, hasType string, hasID uint, driver string, path string) error {
 
 	date := carbon.Now().ToDateStruct()
 	path = lo.Ternary[string](path == "", path, ctx.Path())
 
-	if strings.Contains(path, "/theme") || strings.Contains(path, "/manage") || strings.Contains(path, "/install") {
+	if strings.Contains(path, "/public") || strings.Contains(path, "/static") || strings.Contains(path, "/install") {
 		return nil
 	}
 
-	ua := ctx.Request().UserAgent()
+	ua := ctx.Get("user-agent")
 
 	uaParse, err := UaParser(ua)
 	if err != nil {
 		return err
 	}
 	browser := uaParse.UserAgent.ToString()
-	ip := ctx.RealIP()
+	ip := ctx.IP()
 
 	visit := models.LogVisit{}
 	database.Gorm().Model(models.LogVisit{}).FirstOrCreate(&visit, map[string]any{

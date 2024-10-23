@@ -2,15 +2,15 @@ package response
 
 import (
 	"github.com/duxweb/go-fast/i18n"
-	"github.com/labstack/echo/v4"
+	"github.com/gofiber/fiber/v2"
 )
 
-func BusinessError(message any, code ...int) error {
+func BusinessError(message string, code ...int) error {
 	statusCode := 500
 	if len(code) > 0 {
 		statusCode = code[0]
 	}
-	return echo.NewHTTPError(statusCode, message)
+	return fiber.NewError(statusCode, message)
 }
 
 func BusinessLangError(message string, code ...int) error {
@@ -18,7 +18,7 @@ func BusinessLangError(message string, code ...int) error {
 	if len(code) > 0 {
 		statusCode = code[0]
 	}
-	return echo.NewHTTPError(statusCode, i18n.Trans.Get(message))
+	return fiber.NewError(statusCode, i18n.Trans.Get(message))
 }
 
 type ValidatorData Data

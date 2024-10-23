@@ -1,9 +1,7 @@
 package task
 
 import (
-	"context"
 	"github.com/duxweb/go-fast/annotation"
-	"github.com/hibiken/asynq"
 )
 
 func Register() {
@@ -19,7 +17,7 @@ func Register() {
 			if !ok {
 				panic("task name not set: " + file.Name)
 			}
-			function, ok := item.Func.(func(context.Context, *asynq.Task) error)
+			function, ok := item.Func.(any)
 			if !ok {
 				panic("task func not set: " + file.Name)
 			}
