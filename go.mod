@@ -61,6 +61,7 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53 // indirect
+	github.com/CloudyKit/jet/v6 v6.2.0 // indirect
 	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
 	github.com/alex-ant/gomath v0.0.0-20160516115720-89013a210a82 // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
@@ -74,6 +75,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/elastic/go-sysinfo v1.14.2 // indirect
 	github.com/elastic/go-windows v1.0.2 // indirect
+	github.com/flosch/pongo2/v6 v6.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.6 // indirect
 	github.com/gammazero/toposort v0.1.1 // indirect
@@ -83,6 +85,9 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
+	github.com/gofiber/template/django/v3 v3.1.12 // indirect
+	github.com/gofiber/template/jet/v2 v2.1.10 // indirect
+	github.com/gofiber/utils v1.1.0 // indirect
 	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect

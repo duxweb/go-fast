@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
-	"github.com/duxweb/go-fast/views"
 	"github.com/duxweb/go-fast/websocket"
 	"github.com/go-errors/errors"
 	"github.com/gofiber/fiber/v2"
@@ -34,12 +33,12 @@ import (
 )
 
 func Init() {
+
 	global.App = fiber.New(fiber.Config{
 		AppName:   "Dux",
 		Immutable: true,
 		//EnablePrintRoutes:     global.Debug,
 		DisableStartupMessage: true,
-		Views:                 views.Fiber(),
 		ErrorHandler: func(ctx *fiber.Ctx, err error) error {
 			result := response.Data{
 				Code: fiber.StatusInternalServerError,
@@ -69,7 +68,7 @@ func Init() {
 					result.Data = validator.Data
 					result.Message = validator.Message
 				} else {
-					logger.Log().Error("core", "err", err)
+					logger.Log().Error("core", fmt.Sprintf("err %v", err), slog.Any("stack", string(debug.Stack())))
 					result.Message = err.Error()
 				}
 				result.Message = lo.Ternary[string](!global.Debug, i18n.Trans.Get("common.error.errorMessage"), result.Message)
@@ -78,15 +77,15 @@ func Init() {
 			if isAsync(ctx) {
 				return response.Send(ctx, result, result.Code)
 			}
-			ctx.Locals("tpl", "app")
 
 			if result.Code == fiber.StatusNotFound {
-				return ctx.Status(fiber.StatusNotFound).Render("404.gohtml", nil)
+				return response.Render(ctx, "app", "template/404.jet", fiber.Map{}, fiber.StatusNotFound)
 			} else {
-				return ctx.Status(fiber.StatusInternalServerError).Render("error.gohtml", fiber.Map{
+				return response.Render(ctx, "app", "template/error.jet", fiber.Map{
 					"code":    result.Code,
 					"message": result.Message,
-				})
+				}, fiber.StatusInternalServerError)
+
 			}
 		},
 	})
@@ -98,15 +97,19 @@ func Init() {
 	global.App.Static("/public", "./public")
 
 	// 请求日志
-	global.App.Use(requestid.New())
-	global.App.Use(middleLogger.New(middleLogger.Config{
-		Next: func(c *fiber.Ctx) bool {
-			if strings.Contains(c.Path(), "/public/") {
-				return true
-			}
-			return false
-		},
-	}))
+	if global.Debug {
+		global.App.Use(requestid.New())
+		global.App.Use(middleLogger.New(middleLogger.Config{
+			Format:     "${time} ${ip} ${latency} ${method} ${status} ${path} ${error}\n",
+			TimeFormat: "2006-01-02 15:04:05",
+			Next: func(c *fiber.Ctx) bool {
+				if strings.Contains(c.Path(), "/public/") {
+					return true
+				}
+				return false
+			},
+		}))
+	}
 
 	// 异常恢复
 	global.App.Use(recover.New(recover.Config{
@@ -150,10 +153,6 @@ func Init() {
 	//	timeout = config.Load("use").GetDuration("server.timeout") * time.Second
 	//}
 
-	global.App.Get("/", func(c *fiber.Ctx) error {
-		return c.Status(fiber.StatusOK).Render("welcome.gohtml", nil, "app")
-	})
-
 	// websocket
 	global.App.Get("/ws", func(c *fiber.Ctx) error {
 		token := c.Query("token")
@@ -182,6 +181,10 @@ func Init() {
 }
 
 func Start() {
+
+	global.App.Get("/", func(c *fiber.Ctx) error {
+		return response.Render(c, "app", "template/welcome.jet", fiber.Map{})
+	})
 
 	port := "8900"
 	if config.IsLoad("use") {

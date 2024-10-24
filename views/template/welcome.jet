@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>{{t "common.welcome"}}</title>
+    <title>{{t("common.welcome")}}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -16,7 +16,6 @@
 <main>
     <div class="w-full h-full flex flex-col items-center justify-center h-screen bg-gradient-to-br from-[#6366F1] to-[#9333EA]">
         <div class="flex flex-row items-center gap-4 divide-x-2 divide-gray-300/30 items-center">
-
             <div>
                 <svg class="fill-white h-6"
                 viewBox='0 0 400.893 121.787'
@@ -56,7 +55,7 @@
                 </svg>
             </div>
 
-            <div class="pl-4 text-[30px] font-bold text-white/90">{{t "common.welcome"}}</div>
+            <div class="pl-4 text-[30px] font-bold text-white/90">{{t("common.welcome")}}</div>
         </div>
     </div>
 </main>

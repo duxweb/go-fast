@@ -1,7 +1,11 @@
 package response
 
 import (
+	"bytes"
 	"github.com/duxweb/go-fast/i18n"
+	"github.com/duxweb/go-fast/logger"
+	"github.com/duxweb/go-fast/views"
+	"github.com/go-errors/errors"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -10,7 +14,25 @@ func Render(ctx *fiber.Ctx, app string, name string, bind any, code ...int) erro
 	if len(code) > 0 {
 		statusCode = code[0]
 	}
-	return ctx.Status(statusCode).Render(name, bind, app)
+
+	if bind == nil {
+		bind = make(map[string]any)
+	}
+
+	if views.Views[app] == nil {
+		return errors.New("tpl app not found")
+	}
+
+	logger.Log("tpl").Debug("name", name)
+
+	buf := new(bytes.Buffer)
+	err := views.Views[app].Render(buf, name, bind)
+	if err != nil {
+		return err
+	}
+
+	ctx.Set("content-type", fiber.MIMETextHTMLCharsetUTF8)
+	return ctx.Status(statusCode).Send(buf.Bytes())
 }
 
 type Data struct {

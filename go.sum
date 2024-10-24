@@ -7,6 +7,8 @@ github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53 h1:sR+/8Yb4s
 github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53/go.mod h1:+3IMCy2vIlbG1XG/0ggNQv0SvxCAIpPM5b1nCz56Xno=
 github.com/CloudyKit/jet v2.1.2+incompatible h1:ybZoYzMBdoijK6I+Ke3vg9GZsmlKo/ZhKdNMWz0P26c=
 github.com/CloudyKit/jet v2.1.2+incompatible/go.mod h1:HPYO+50pSWkPoj9Q/eq0aRGByCL6ScRlUmiEX5Zgm+w=
+github.com/CloudyKit/jet/v6 v6.2.0 h1:EpcZ6SR9n28BUGtNJSvlBqf90IpjeFr36Tizxhn/oME=
+github.com/CloudyKit/jet/v6 v6.2.0/go.mod h1:d3ypHeIRNo2+XyqnGA8s+aphtcVpjP5hPwP/Lzo7Ro4=
 github.com/MicahParks/keyfunc/v2 v2.1.0 h1:6ZXKb9Rp6qp1bDbJefnG7cTH8yMN1IC/4nf+GVjO99k=
 github.com/MicahParks/keyfunc/v2 v2.1.0/go.mod h1:rW42fi+xgLJ2FRRXAfNx9ZA8WpD4OeE/yHVMteCkw9k=
 github.com/QcloudApi/qcloud_sign_golang v0.0.0-20141224014652-e4130a326409/go.mod h1:1pk82RBxDY/JZnPQrtqHlUFfCctgdorsd9M06fMynOM=
@@ -62,6 +64,8 @@ github.com/elastic/go-sysinfo v1.14.2/go.mod h1:jPSuTgXG+dhhh0GKIyI2Cso+w5lPJ5Pv
 github.com/elastic/go-windows v1.0.0/go.mod h1:TsU0Nrp7/y3+VwE82FoZF8gC/XFg/Elz6CcloAxnPgU=
 github.com/elastic/go-windows v1.0.2 h1:yoLLsAsV5cfg9FLhZ9EXZ2n2sQFKeDYrHenkcivY4vI=
 github.com/elastic/go-windows v1.0.2/go.mod h1:bGcDpBzXgYSqM0Gx3DM4+UxFj300SZLixie9u9ixLM8=
+github.com/flosch/pongo2/v6 v6.0.0 h1:lsGru8IAzHgIAw6H2m4PCyleO58I40ow6apih0WprMU=
+github.com/flosch/pongo2/v6 v6.0.0/go.mod h1:CuDpFm47R0uGGE7z13/tTlt1Y6zdxvr2RLT5LJhsHEU=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=
@@ -106,6 +110,12 @@ github.com/gofiber/fiber/v2 v2.52.5 h1:tWoP1MJQjGEe4GB5TUGOi7P2E0ZMMRx5ZTG4rT+yG
 github.com/gofiber/fiber/v2 v2.52.5/go.mod h1:KEOE+cXMhXG0zHc9d8+E38hoX+ZN7bhOtgeF2oT6jrQ=
 github.com/gofiber/template v1.8.3 h1:hzHdvMwMo/T2kouz2pPCA0zGiLCeMnoGsQZBTSYgZxc=
 github.com/gofiber/template v1.8.3/go.mod h1:bs/2n0pSNPOkRa5VJ8zTIvedcI/lEYxzV3+YPXdBvq8=
+github.com/gofiber/template/django/v3 v3.1.12 h1:w2jxm9bJajhvrroXqEmUmakbvDSlzjpHgOI8yyh2iJs=
+github.com/gofiber/template/django/v3 v3.1.12/go.mod h1:4YNpM+LJ/el+cjUpdulp8lOH6dxZ2jaQmrF4E2/KGAk=
+github.com/gofiber/template/jet/v2 v2.1.10 h1:FRmpHeHAh0+H/eUdIKiEGzg3c93lCs29o73rKuHl/sI=
+github.com/gofiber/template/jet/v2 v2.1.10/go.mod h1:QeUnwUkq/VAhbhSJZCNlgH4VxwPE4g3WqztzrP1oQJo=
+github.com/gofiber/utils v1.1.0 h1:vdEBpn7AzIUJRhe+CiTOJdUcTg4Q9RK+pEa0KPbLdrM=
+github.com/gofiber/utils v1.1.0/go.mod h1:poZpsnhBykfnY1Mc0KeEa6mSHrS3dV0+oBWyeQmb2e0=
 github.com/gofrs/flock v0.8.1/go.mod h1:F1TvTiK9OcQqauNUHlbJvyl9Qa1QvF/gOUDKA14jxHU=
 github.com/gofrs/flock v0.12.1 h1:MTLVXXHf8ekldpJk3AKicLij9MdwOWkZ+a/jHHZby9E=
 github.com/gofrs/flock v0.12.1/go.mod h1:9zxTsyu5xtJ9DK+1tFZyibEV7y3uwDxPPfbxeeHCoD0=

@@ -39,7 +39,7 @@ func Init() {
 		f.Close()
 	}
 
-	configFiles, err := filepath.Glob(global.ConfigDir + "*.yaml")
+	configFiles, err := filepath.Glob(global.ConfigDir + "*.toml")
 	if err != nil {
 		panic("configuration loading failure")
 	}
@@ -76,10 +76,10 @@ func Init() {
 }
 
 func LoadFile(name string) *viper.Viper {
-	configFile := filepath.Join(global.ConfigDir, name+".yaml")
+	configFile := filepath.Join(global.ConfigDir, name+".toml")
 	config := viper.New()
 	config.SetConfigFile(configFile)
-	config.SetConfigType("yaml")
+	config.SetConfigType("toml")
 	if err := config.ReadInConfig(); err != nil {
 		panic(err)
 	}
