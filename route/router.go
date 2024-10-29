@@ -3,7 +3,7 @@ package route
 import (
 	"github.com/duxweb/go-fast/action"
 	"github.com/duxweb/go-fast/global"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 )
 
 type RouterData struct {
@@ -11,7 +11,7 @@ type RouterData struct {
 	Prefix      string
 	Data        []*RouterItem
 	Groups      []*RouterData
-	GroupRouter fiber.Router
+	GroupRouter *echo.Group
 }
 
 type RouterItem struct {
@@ -20,14 +20,14 @@ type RouterItem struct {
 	Name   string
 }
 
-func New(prefix string, middle ...fiber.Handler) *RouterData {
+func New(prefix string, middle ...echo.MiddlewareFunc) *RouterData {
 	return &RouterData{
 		Prefix:      prefix,
 		GroupRouter: global.App.Group(prefix, middle...),
 	}
 }
 
-func (t *RouterData) Group(prefix string, name string, middle ...fiber.Handler) *RouterData {
+func (t *RouterData) Group(prefix string, name string, middle ...echo.MiddlewareFunc) *RouterData {
 	group := &RouterData{
 		Prefix:      prefix,
 		GroupRouter: t.GroupRouter.Group(prefix, middle...),
@@ -37,51 +37,51 @@ func (t *RouterData) Group(prefix string, name string, middle ...fiber.Handler) 
 	return group
 }
 
-func (t *RouterData) Router() fiber.Router {
+func (t *RouterData) Router() *echo.Group {
 	return t.GroupRouter
 }
 
-func (t *RouterData) Get(path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Get(path string, handler echo.HandlerFunc, name string) *echo.Route {
 	return t.Add("GET", path, handler, name)
 }
 
-func (t *RouterData) Head(path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Head(path string, handler echo.HandlerFunc, name string) *echo.Route {
 	return t.Add("HEAD", path, handler, name)
 }
 
-func (t *RouterData) Post(path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Post(path string, handler echo.HandlerFunc, name string) *echo.Route {
 	return t.Add("POST", path, handler, name)
 }
 
-func (t *RouterData) Put(path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Put(path string, handler echo.HandlerFunc, name string) *echo.Route {
 	return t.Add("PUT", path, handler, name)
 }
 
-func (t *RouterData) Delete(path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Delete(path string, handler echo.HandlerFunc, name string) *echo.Route {
 	return t.Add("DELETE", path, handler, name)
 }
 
-func (t *RouterData) Connect(path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Connect(path string, handler echo.HandlerFunc, name string) *echo.Route {
 	return t.Add("CONNECT", path, handler, name)
 }
 
-func (t *RouterData) Options(path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Options(path string, handler echo.HandlerFunc, name string) *echo.Route {
 	return t.Add("OPTIONS", path, handler, name)
 }
 
-func (t *RouterData) Trace(path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Trace(path string, handler echo.HandlerFunc, name string) *echo.Route {
 	return t.Add("TRACE", path, handler, name)
 }
 
-func (t *RouterData) Patch(path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Patch(path string, handler echo.HandlerFunc, name string) *echo.Route {
 	return t.Add("PATH", path, handler, name)
 }
 
-func (t *RouterData) Any(path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Any(path string, handler echo.HandlerFunc, name string) *echo.Route {
 	return t.Add("ANY", path, handler, name)
 }
 
-func (t *RouterData) Add(method string, path string, handler fiber.Handler, name string) fiber.Router {
+func (t *RouterData) Add(method string, path string, handler echo.HandlerFunc, name string) *echo.Route {
 	item := RouterItem{
 		Method: method,
 		Path:   path,
@@ -89,7 +89,7 @@ func (t *RouterData) Add(method string, path string, handler fiber.Handler, name
 	}
 	t.Data = append(t.Data, &item)
 	r := t.GroupRouter.Add(method, path, handler)
-	r.Name("item.Name")
+	r.Name = item.Name
 	return r
 }
 

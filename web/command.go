@@ -42,24 +42,22 @@ func Command() []*cli.Command {
 				task.StartQueue()
 			}()
 
-			global.App.Hooks().OnShutdown(func() error {
-				if err := global.Injector.Shutdown(); err != nil {
-					color.Errorln("Stop service")
-				}
-				return nil
-			})
-
 			// 启动 web 服务
 			Start()
 
 			<-ctx.Done()
 
-			// 等待关闭程序
-			ctx, cancel := context.WithTimeout(global.CtxBackground, 10*time.Second)
+			ctx, cancel := context.WithTimeout(global.CtxBackground, 3*time.Second)
 			defer cancel()
-			if err := global.App.ShutdownWithContext(ctx); err != nil {
+
+			if err := global.App.Shutdown(ctx); err != nil {
 				color.Errorln(err.Error())
 			}
+
+			if err := global.Injector.Shutdown(); err != nil {
+				color.Errorln("Stop service")
+			}
+
 			return nil
 		},
 	}

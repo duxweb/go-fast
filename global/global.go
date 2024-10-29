@@ -3,13 +3,13 @@ package global
 import (
 	"context"
 	"embed"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 	"github.com/samber/do/v2"
 	"time"
 )
 
 var (
-	App           *fiber.App
+	App           *echo.Echo
 	Version       = "0.0.1"
 	BootTime      time.Time
 	TablePrefix   = "app_"

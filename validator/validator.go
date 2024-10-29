@@ -5,7 +5,7 @@ import (
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/go-playground/validator/v10"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 	"reflect"
@@ -54,9 +54,9 @@ func Init() {
 }
 
 // RequestParser 请求解析验证
-func RequestParser(ctx *fiber.Ctx, params any) error {
+func RequestParser(ctx echo.Context, params any) error {
 	var err error
-	if err = ctx.ParamsParser(params); err != nil {
+	if err = ctx.Bind(params); err != nil {
 		return err
 	}
 	err = Validator().Struct(params)

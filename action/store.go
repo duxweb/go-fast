@@ -8,14 +8,14 @@ import (
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/validator"
-	"github.com/gofiber/fiber/v2"
 	"github.com/gookit/goutil/structs"
+	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
 
-func (t *Resources[T]) Store(ctx *fiber.Ctx) error {
+func (t *Resources[T]) Store(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
 		err = t.initFun(t, ctx)
@@ -59,7 +59,7 @@ func (t *Resources[T]) Store(ctx *fiber.Ctx) error {
 		}
 	}
 
-	id := ctx.Params("id")
+	id := ctx.Param("id")
 	var model T
 	err = t.getOne(ctx, &model, id, params)
 	if err != nil {

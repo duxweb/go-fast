@@ -7,57 +7,63 @@ import (
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/models"
-	"github.com/gofiber/fiber/v2"
+	"github.com/duxweb/go-fast/response"
+	"github.com/duxweb/go-fast/route"
+	"github.com/labstack/echo/v4"
 	"github.com/spf13/cast"
 	"time"
 )
 
-func OperateMiddleware(UserType string) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		startTime := time.Now()
-		method := c.Method()
+func OperateMiddleware(UserType string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
 
-		if method == "GET" {
-			return c.Next()
+			startTime := time.Now()
+			method := c.Request().Method
+
+			res := next(c)
+
+			if method == "GET" {
+				return res
+			}
+
+			auth, ok := c.Get("auth").(*duxAuth.JwtClaims)
+			if !ok {
+				return response.BusinessError("Permissions must be authorized by the user after", 500)
+			}
+
+			ua := c.Request().UserAgent()
+			second := time.Now().Sub(startTime).Microseconds()
+			routeName := route.GetRouteName(c)
+
+			uaParse, err := helper.UaParser(ua)
+			if err != nil {
+				return err
+			}
+
+			params := map[string]any{}
+			_ = c.Bind(&params)
+			paramsContent, _ := json.Marshal(params)
+
+			err = database.Gorm().Model(models.LogOperate{}).Create(&models.LogOperate{
+				UserType:      UserType,
+				UserID:        cast.ToUint(auth.ID),
+				RequestMethod: method,
+				RequestUrl:    c.Request().RequestURI,
+				RequestTime:   cast.ToFloat64(second),
+				RequestParams: paramsContent,
+				RouteName:     routeName,
+				RouteTitle:    action.GetActionLabel(routeName),
+				ClientUa:      ua,
+				ClientIp:      c.RealIP(),
+				ClientBrowser: uaParse.UserAgent.ToString(),
+				ClientDevice:  uaParse.Os.ToString(),
+			}).Error
+			if err != nil {
+				return err
+			}
+
+			return res
 		}
-
-		auth, ok := c.Locals("auth").(*duxAuth.JwtClaims)
-		if !ok {
-			return fiber.ErrUnauthorized
-		}
-
-		ua := c.Get("user-agent")
-
-		second := time.Now().Sub(startTime).Microseconds()
-		routeName := c.Route().Name
-
-		uaParse, err := helper.UaParser(ua)
-		if err != nil {
-			return err
-		}
-
-		params := map[string]any{}
-		_ = c.BodyParser(&params)
-		paramsContent, _ := json.Marshal(params)
-
-		err = database.Gorm().Model(models.LogOperate{}).Create(&models.LogOperate{
-			UserType:      UserType,
-			UserID:        cast.ToUint(auth.ID),
-			RequestMethod: method,
-			RequestUrl:    c.OriginalURL(),
-			RequestTime:   cast.ToFloat64(second),
-			RequestParams: paramsContent,
-			RouteName:     routeName,
-			RouteTitle:    action.GetActionLabel(routeName),
-			ClientUa:      ua,
-			ClientIp:      c.IP(),
-			ClientBrowser: uaParse.UserAgent.ToString(),
-			ClientDevice:  uaParse.Os.ToString(),
-		}).Error
-		if err != nil {
-			return err
-		}
-
-		return c.Next()
 	}
 }

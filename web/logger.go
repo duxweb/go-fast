@@ -1,115 +1,151 @@
 package web
 
 import (
-	"context"
 	"fmt"
 	"github.com/duxweb/go-fast/logger"
-	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/labstack/gommon/log"
 	"io"
 	"log/slog"
+	"os"
 )
 
-type FiberLogger struct {
+type EchoLogger struct {
 	Logger    *slog.Logger
 	SlogLevel slog.Level
-	Ctx       context.Context
 }
 
-func (l *FiberLogger) SetLevel(level fiberlog.Level) {
-
+func (l *EchoLogger) Output() io.Writer {
+	return os.Stdout
 }
 
-func (l *FiberLogger) SetOutput(writer io.Writer) {
+// SetOutput 设置日志记录器的输出
+func (l *EchoLogger) SetOutput(w io.Writer) {
 }
 
-func (l *FiberLogger) WithContext(ctx context.Context) fiberlog.CommonLogger {
-	return &FiberLogger{Logger: logger.Log(), Ctx: ctx}
+func (l *EchoLogger) Prefix() string {
+	return ""
 }
 
-func (l *FiberLogger) Trace(v ...interface{}) {
-	l.Logger.DebugContext(l.Ctx, fmt.Sprint(v...))
+func (l *EchoLogger) SetPrefix(p string) {
 }
 
-func (l *FiberLogger) Debug(v ...interface{}) {
-	l.Logger.DebugContext(l.Ctx, fmt.Sprint(v...))
+func (l *EchoLogger) Level() log.Lvl {
+	switch l.SlogLevel {
+	case slog.LevelDebug:
+		return log.DEBUG
+	case slog.LevelInfo:
+		return log.INFO
+	case slog.LevelWarn:
+		return log.WARN
+	case slog.LevelError:
+		return log.ERROR
+	default:
+		return log.INFO
+	}
 }
 
-func (l *FiberLogger) Info(v ...interface{}) {
-	l.Logger.InfoContext(l.Ctx, fmt.Sprint(v...))
+func (l *EchoLogger) SetHeader(h string) {
 }
 
-func (l *FiberLogger) Warn(v ...interface{}) {
-	l.Logger.WarnContext(l.Ctx, fmt.Sprint(v...))
+func (l *EchoLogger) SetLevel(v log.Lvl) {
+	switch v {
+	case log.DEBUG:
+		l.SlogLevel = slog.LevelDebug
+	case log.INFO:
+		l.SlogLevel = slog.LevelInfo
+	case log.WARN:
+		l.SlogLevel = slog.LevelWarn
+	case log.ERROR:
+		l.SlogLevel = slog.LevelError
+	default:
+		l.SlogLevel = slog.LevelInfo
+	}
 }
 
-func (l *FiberLogger) Error(v ...interface{}) {
-	l.Logger.ErrorContext(l.Ctx, fmt.Sprint(v...))
+func (l *EchoLogger) Print(i ...interface{}) {
+	l.Logger.Info(fmt.Sprint(i...))
 }
 
-func (l *FiberLogger) Fatal(v ...interface{}) {
-	l.Logger.ErrorContext(l.Ctx, fmt.Sprint(v...))
+func (l *EchoLogger) Printf(format string, args ...interface{}) {
+	l.Logger.Info(fmt.Sprintf(format, args...))
 }
 
-func (l *FiberLogger) Panic(v ...interface{}) {
-	l.Logger.ErrorContext(l.Ctx, fmt.Sprint(v...))
+func (l *EchoLogger) Printj(j log.JSON) {
+	l.Logger.Info("", slog.Any("data", j))
 }
 
-func (l *FiberLogger) Tracef(format string, v ...interface{}) {
-	l.Logger.DebugContext(l.Ctx, fmt.Sprintf(format, v...))
+func (l *EchoLogger) Debug(i ...interface{}) {
+	l.Logger.Debug(fmt.Sprint(i...))
 }
 
-func (l *FiberLogger) Debugf(format string, v ...interface{}) {
-	l.Logger.DebugContext(l.Ctx, fmt.Sprintf(format, v...))
+func (l *EchoLogger) Debugf(format string, args ...interface{}) {
+	l.Logger.Debug(fmt.Sprintf(format, args...))
 }
 
-func (l *FiberLogger) Infof(format string, v ...interface{}) {
-	l.Logger.InfoContext(l.Ctx, fmt.Sprintf(format, v...))
+func (l *EchoLogger) Debugj(j log.JSON) {
+	l.Logger.Debug("", slog.Any("data", j))
 }
 
-func (l *FiberLogger) Warnf(format string, v ...interface{}) {
-	l.Logger.WarnContext(l.Ctx, fmt.Sprintf(format, v...))
+func (l *EchoLogger) Info(i ...interface{}) {
+	l.Logger.Info(fmt.Sprint(i...))
 }
 
-func (l *FiberLogger) Errorf(format string, v ...interface{}) {
-	l.Logger.ErrorContext(l.Ctx, fmt.Sprintf(format, v...))
+func (l *EchoLogger) Infof(format string, args ...interface{}) {
+	l.Logger.Info(fmt.Sprintf(format, args...))
 }
 
-func (l *FiberLogger) Fatalf(format string, v ...interface{}) {
-	l.Logger.ErrorContext(l.Ctx, fmt.Sprintf(format, v...))
+func (l *EchoLogger) Infoj(j log.JSON) {
+	l.Logger.Debug("", slog.Any("data", j))
 }
 
-func (l *FiberLogger) Panicf(format string, v ...interface{}) {
-	l.Logger.ErrorContext(l.Ctx, fmt.Sprintf(format, v...))
+func (l *EchoLogger) Warn(i ...interface{}) {
+	l.Logger.Warn(fmt.Sprint(i...))
 }
 
-func (l *FiberLogger) Tracew(msg string, keysAndValues ...interface{}) {
-	l.Logger.DebugContext(l.Ctx, msg, slog.Any("data", keysAndValues))
+func (l *EchoLogger) Warnf(format string, args ...interface{}) {
+	l.Logger.Warn(fmt.Sprintf(format, args...))
 }
 
-func (l *FiberLogger) Debugw(msg string, keysAndValues ...interface{}) {
-	l.Logger.DebugContext(l.Ctx, msg, slog.Any("data", keysAndValues))
+func (l *EchoLogger) Warnj(j log.JSON) {
+	l.Logger.Warn("", slog.Any("data", j))
 }
 
-func (l *FiberLogger) Infow(msg string, keysAndValues ...interface{}) {
-	l.Logger.InfoContext(l.Ctx, msg, slog.Any("data", keysAndValues))
+func (l *EchoLogger) Error(i ...interface{}) {
+	l.Logger.Error(fmt.Sprint(i...))
 }
 
-func (l *FiberLogger) Warnw(msg string, keysAndValues ...interface{}) {
-	l.Logger.WarnContext(l.Ctx, msg, slog.Any("data", keysAndValues))
+func (l *EchoLogger) Errorf(format string, args ...interface{}) {
+	l.Logger.Error(fmt.Sprintf(format, args...))
 }
 
-func (l *FiberLogger) Errorw(msg string, keysAndValues ...interface{}) {
-	l.Logger.ErrorContext(l.Ctx, msg, slog.Any("data", keysAndValues))
+func (l *EchoLogger) Errorj(j log.JSON) {
+	l.Logger.Error("", slog.Any("data", j))
 }
 
-func (l *FiberLogger) Fatalw(msg string, keysAndValues ...interface{}) {
-	l.Logger.ErrorContext(l.Ctx, msg, slog.Any("data", keysAndValues))
+func (l *EchoLogger) Fatal(i ...interface{}) {
+	l.Logger.Error(fmt.Sprint(i...))
 }
 
-func (l *FiberLogger) Panicw(msg string, keysAndValues ...interface{}) {
-	l.Logger.ErrorContext(l.Ctx, msg, slog.Any("data", keysAndValues))
+func (l *EchoLogger) Fatalf(format string, args ...interface{}) {
+	l.Logger.Error(fmt.Sprintf(format, args...))
 }
 
-func LoggerAdaptor() fiberlog.AllLogger {
-	return &FiberLogger{Logger: logger.Log(), Ctx: context.Background()}
+func (l *EchoLogger) Fatalj(j log.JSON) {
+	l.Logger.Error("", slog.Any("data", j))
+}
+
+func (l *EchoLogger) Panic(i ...interface{}) {
+	l.Logger.Error(fmt.Sprint(i...))
+}
+
+func (l *EchoLogger) Panicj(j log.JSON) {
+	l.Logger.Error("", slog.Any("data", j))
+}
+
+func (l *EchoLogger) Panicf(format string, args ...interface{}) {
+	l.Logger.Error(fmt.Sprintf(format, args...))
+}
+
+func LoggerHandler() *EchoLogger {
+	return &EchoLogger{Logger: logger.Log()}
 }

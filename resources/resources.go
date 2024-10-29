@@ -5,14 +5,14 @@ import (
 	"github.com/duxweb/go-fast/middleware"
 	"github.com/duxweb/go-fast/permission"
 	"github.com/duxweb/go-fast/route"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 )
 
 type ResourceData struct {
 	name           string
 	path           string
-	authMiddleware []fiber.Handler
-	middleware     []fiber.Handler
+	authMiddleware []echo.MiddlewareFunc
+	middleware     []echo.MiddlewareFunc
 	permission     middleware.PermissionFun
 	operate        bool
 }
@@ -22,27 +22,28 @@ func New(name string, path string) *ResourceData {
 		name: name,
 		path: path,
 	}
+
 }
 
-func (t *ResourceData) AddMiddleware(middle ...fiber.Handler) *ResourceData {
+func (t *ResourceData) AddMiddleware(middle ...echo.MiddlewareFunc) *ResourceData {
 	t.authMiddleware = append(t.middleware, middle...)
 	return t
 }
 
-func (t *ResourceData) AddAuthMiddleware(middle ...fiber.Handler) *ResourceData {
+func (t *ResourceData) AddAuthMiddleware(middle ...echo.MiddlewareFunc) *ResourceData {
 	t.authMiddleware = append(t.authMiddleware, middle...)
 	return t
 }
 
-func (t *ResourceData) GetMiddleware() []fiber.Handler {
+func (t *ResourceData) GetMiddleware() []echo.MiddlewareFunc {
 	return t.middleware
 }
 
-func (t *ResourceData) GetAuthMiddleware() []fiber.Handler {
+func (t *ResourceData) GetAuthMiddleware() []echo.MiddlewareFunc {
 	return t.authMiddleware
 }
 
-func (t *ResourceData) GetAllMiddleware() []fiber.Handler {
+func (t *ResourceData) GetAllMiddleware() []echo.MiddlewareFunc {
 	return append(t.middleware, t.authMiddleware...)
 }
 
@@ -58,7 +59,7 @@ func (t *ResourceData) SetOperate(status bool) *ResourceData {
 
 func (t *ResourceData) run() *ResourceData {
 
-	middle := []fiber.Handler{
+	middle := []echo.MiddlewareFunc{
 		middleware.AuthMiddleware("admin"),
 	}
 	if t.permission != nil {

@@ -5,7 +5,7 @@ import (
 	"github.com/duxweb/go-fast/annotation"
 	"github.com/duxweb/go-fast/permission"
 	"github.com/duxweb/go-fast/route"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 )
 
 var Resources = map[string]*ResourceData{}
@@ -81,7 +81,7 @@ func Register() {
 			if !ok {
 				panic("action name not set: " + file.Name)
 			}
-			function, ok := item.Func.(func(ctx *fiber.Ctx) error)
+			function, ok := item.Func.(func(ctx echo.Context) error)
 			if !ok {
 				panic("action func not set: " + file.Name)
 			}

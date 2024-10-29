@@ -7,12 +7,12 @@ import (
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
 
-func (t *Resources[T]) Trash(ctx *fiber.Ctx) error {
+func (t *Resources[T]) Trash(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
 		err = t.initFun(t, ctx)
@@ -26,7 +26,7 @@ func (t *Resources[T]) Trash(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	id := ctx.Params("id")
+	id := ctx.Param("id")
 	err = t.trashOne(ctx, id, params)
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func (t *Resources[T]) TrashAfter(call ActionCallFun[T]) {
 	t.trashAfterFun = call
 }
 
-func (t *Resources[T]) trashOne(ctx *fiber.Ctx, id string, params *gjson.Result) error {
+func (t *Resources[T]) trashOne(ctx echo.Context, id string, params *gjson.Result) error {
 	var model T
 	var err error
 

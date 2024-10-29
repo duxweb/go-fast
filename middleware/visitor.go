@@ -2,17 +2,17 @@ package middleware
 
 import (
 	"github.com/duxweb/go-fast/helper"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 	"net/http"
 	"strings"
 )
 
-func VisitorMiddleware() fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		method := c.Method()
+func VisitorMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		method := c.Request().Method
 
 		if method != "GET" {
-			return c.Next()
+			return next(c)
 		}
 
 		path := c.Path()
@@ -20,12 +20,12 @@ func VisitorMiddleware() fiber.Handler {
 		pathContainsInstall := strings.Contains(path, "/install")
 
 		if !hasInstallLock && !pathContainsInstall {
-			err := c.Redirect("/install", http.StatusFound)
+			err := c.Redirect(http.StatusFound, "/install")
 			return err
 		}
 
 		if hasInstallLock && pathContainsInstall {
-			err := c.Redirect("/", http.StatusFound)
+			err := c.Redirect(http.StatusFound, "/")
 			return err
 		}
 
@@ -34,6 +34,6 @@ func VisitorMiddleware() fiber.Handler {
 			return err
 		}
 
-		return c.Next()
+		return next(c)
 	}
 }

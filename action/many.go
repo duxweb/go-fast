@@ -5,7 +5,7 @@ import (
 	"github.com/duxweb/go-fast/helper"
 	coreModel "github.com/duxweb/go-fast/models"
 	"github.com/duxweb/go-fast/response"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 	"github.com/tidwall/gjson"
@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func (t *Resources[T]) List(ctx *fiber.Ctx) error {
+func (t *Resources[T]) List(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
 		err = t.initFun(t, ctx)
@@ -103,7 +103,7 @@ func (t *Resources[T]) List(ctx *fiber.Ctx) error {
 	})
 }
 
-type ManyCallFun[T any] func(data []T, params *gjson.Result, ctx *fiber.Ctx) []T
+type ManyCallFun[T any] func(data []T, params *gjson.Result, ctx echo.Context) []T
 
 func (t *Resources[T]) ManyAfter(call ManyCallFun[T]) {
 	t.manyAfterFun = call

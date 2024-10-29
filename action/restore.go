@@ -6,11 +6,11 @@ import (
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
-	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
 )
 
-func (t *Resources[T]) Restore(ctx *fiber.Ctx) error {
+func (t *Resources[T]) Restore(ctx echo.Context) error {
 	var err error
 	if t.initFun != nil {
 		err = t.initFun(t, ctx)
@@ -19,7 +19,7 @@ func (t *Resources[T]) Restore(ctx *fiber.Ctx) error {
 		}
 	}
 
-	id := ctx.Params("id")
+	id := ctx.Param("id")
 	err = t.restoreOne(ctx, id)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (t *Resources[T]) RestoreAfter(call ActionCallFun[T]) {
 	t.restoreAfterFun = call
 }
 
-func (t *Resources[T]) restoreOne(ctx *fiber.Ctx, id string) error {
+func (t *Resources[T]) restoreOne(ctx echo.Context, id string) error {
 	var model T
 	var err error
 
