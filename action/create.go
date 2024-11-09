@@ -2,6 +2,7 @@ package action
 
 import (
 	"context"
+
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
@@ -35,7 +36,7 @@ func (t *Resources[T]) Create(ctx echo.Context) error {
 			dataMaps[key.String()] = value.Value()
 			return true
 		})
-		err = validator.ValidatorMaps(dataMaps, rules)
+		err = validator.ValidatorMaps(ctx, dataMaps, rules)
 		if err != nil {
 			return err
 		}
@@ -53,7 +54,9 @@ func (t *Resources[T]) Create(ctx echo.Context) error {
 	if tx.Error != nil {
 		return tx.Error
 	}
-	c := context.WithValue(context.Background(), "tx", tx)
+	c := context.Background()
+	c = context.WithValue(c, "tx", tx)
+	c = context.WithValue(c, "echo", ctx)
 
 	if t.createBeforeFun != nil {
 		err = t.createBeforeFun(c, &model, data)
@@ -97,7 +100,7 @@ func (t *Resources[T]) Create(ctx echo.Context) error {
 	}
 
 	return response.Send(ctx, response.Data{
-		Message: i18n.Trans.Get("common.message.create"),
+		Message: i18n.Get(ctx, "common.message.create"),
 	})
 }
 

@@ -2,24 +2,21 @@ package i18n
 
 import (
 	"embed"
-	"github.com/duxweb/go-fast/global"
+	"github.com/labstack/echo/v4"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"github.com/pelletier/go-toml/v2"
 	"golang.org/x/text/language"
-	"gopkg.in/yaml.v3"
 	"io/fs"
 )
 
 var Bundle *i18n.Bundle
 
-var Trans *Localizer
-
-//go:embed lang/*.yaml
+//go:embed lang/*.toml
 var langFs embed.FS
 
 func Init() {
 	Bundle = i18n.NewBundle(language.English)
-	Bundle.RegisterUnmarshalFunc("yaml", yaml.Unmarshal)
-	Trans = &Localizer{bundle: Bundle, localizer: i18n.NewLocalizer(Bundle, global.Lang)}
+	Bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
 	Register(langFs)
 }
 
@@ -36,40 +33,33 @@ func Register(file embed.FS) {
 	})
 }
 
-type Localizer struct {
-	bundle    *i18n.Bundle
-	localizer *i18n.Localizer
+func Get(c echo.Context, id string, data ...map[string]any) string {
+	if c == nil {
+		return id
+	}
+	return GetDefault(c, id, id, data...)
 }
 
-func (l Localizer) Get(id string) string {
+func GetDefault(c echo.Context, id string, message string, data ...map[string]any) string {
+	local, ok := c.Get("i18n").(*i18n.Localizer)
+	if !ok {
+		return id
+	}
+	msgData := map[string]any{}
+	if len(data) > 0 {
+		msgData = data[0]
+	}
+
 	cfg := &i18n.LocalizeConfig{
 		DefaultMessage: &i18n.Message{
 			ID:    id,
-			One:   id,
-			Other: id,
+			Other: message,
 		},
+		TemplateData: msgData,
 	}
-	str, err := l.localizer.Localize(cfg)
+	str, err := local.Localize(cfg)
 	if err != nil {
 		return id
 	}
-
-	return str
-}
-
-func (l Localizer) GetData(id string, data map[string]any) string {
-	cfg := &i18n.LocalizeConfig{
-		DefaultMessage: &i18n.Message{
-			ID:    id,
-			One:   id,
-			Other: id,
-		},
-		TemplateData: data,
-	}
-	str, err := l.localizer.Localize(cfg)
-	if err != nil {
-		return id
-	}
-
 	return str
 }

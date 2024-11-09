@@ -4,6 +4,7 @@ import (
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
 	"github.com/go-playground/validator/v10"
+	"github.com/labstack/echo/v4"
 )
 
 type ValidatorWarp struct {
@@ -14,20 +15,20 @@ type ValidatorWarp struct {
 
 type ValidatorRule map[string]ValidatorWarp
 
-func ValidatorMaps(params map[string]any, rules ValidatorRule) error {
+func ValidatorMaps(ctx echo.Context, params map[string]any, rules ValidatorRule) error {
 	r := map[string]any{}
 	for name, warp := range rules {
 		r[name] = warp.Rule
 	}
 	validateErr := Validator().ValidateMap(params, r)
-	err := validatorMapsError(rules, validateErr)
+	err := validatorMapsError(ctx, rules, validateErr)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func validatorMapsError(rules ValidatorRule, errs map[string]any) error {
+func validatorMapsError(ctx echo.Context, rules ValidatorRule, errs map[string]any) error {
 	if len(errs) == 0 {
 		return nil
 	}
@@ -41,7 +42,7 @@ func validatorMapsError(rules ValidatorRule, errs map[string]any) error {
 			e = val.Message
 
 			if val.LangMessage != "" {
-				i18n.Trans.Get(val.LangMessage)
+				e = i18n.Get(ctx, val.LangMessage)
 			}
 
 		} else {

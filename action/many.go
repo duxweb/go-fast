@@ -1,6 +1,8 @@
 package action
 
 import (
+	"strings"
+
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
 	coreModel "github.com/duxweb/go-fast/models"
@@ -10,7 +12,6 @@ import (
 	"github.com/spf13/cast"
 	"github.com/tidwall/gjson"
 	"gorm.io/gorm/clause"
-	"strings"
 )
 
 func (t *Resources[T]) List(ctx echo.Context) error {
@@ -56,6 +57,13 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 		})
 	}
 
+	if t.Tree {
+		query = query.Set("tree_sort", t.TreeSort)
+		if t.TreeSort != "" {
+			query = query.Order(t.TreeSort + " ASC")
+		}
+	}
+
 	sorts := t.getSorts(params)
 	for k, v := range sorts {
 		query = query.Order(k + " " + cast.ToString(v))
@@ -76,7 +84,7 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 		err = query.Scopes(coreModel.Paginate(pagination)).Find(&models).Error
 	} else {
 		if t.Tree {
-			query = query.Preload(clause.Associations, coreModel.ChildrenPreload).Where("parent_id = 0")
+			query = query.Preload(clause.Associations, coreModel.ChildrenPreload).Where("parent_id IS NULL")
 		}
 		err = query.Find(&models).Error
 	}
@@ -96,6 +104,11 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 	}
 
 	data = t.filterData(data, t.IncludesMany, t.ExcludesMany)
+
+	if t.metaManyFun != nil {
+		mayMeta := t.metaManyFun(models, ctx)
+		meta = lo.Assign(meta, mayMeta)
+	}
 
 	return response.Send(ctx, response.Data{
 		Data: data,

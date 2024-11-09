@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/md5"
 	"encoding/hex"
@@ -48,17 +49,19 @@ func Encryption(str string, keys ...string) (string, error) {
 		key = config.Load("use").GetString("app.secret")
 	}
 
-	block, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		return "", err
+	originByte := []byte(str)
+	keyByte := []byte(key)
+	block, _ := aes.NewCipher(keyByte)
+	blockSize := block.BlockSize()
+	originByte = PKCS7Padding(originByte, blockSize)
+	encryptResult := make([]byte, len(originByte))
+	for bs, be := 0, blockSize; bs < len(originByte); bs, be = bs+blockSize, be+blockSize {
+		block.Encrypt(encryptResult[bs:be], originByte[bs:be])
 	}
-
-	ciphertext := make([]byte, len(str))
-	block.Encrypt(ciphertext, []byte(str))
-	return hex.EncodeToString(ciphertext), nil
+	return hex.EncodeToString(encryptResult), nil
 }
 
-func Decryption(str string, keys ...string) (string, error) {
+func Decryption(data string, keys ...string) (string, error) {
 	var key string
 
 	if len(keys) == 1 {
@@ -69,20 +72,27 @@ func Decryption(str string, keys ...string) (string, error) {
 		key = config.Load("use").GetString("app.secret")
 	}
 
-	ciphertext, err := hex.DecodeString(str)
-	if err != nil {
-		return "", err
+	originByte, _ := hex.DecodeString(data)
+	keyByte := []byte(key)
+	block, _ := aes.NewCipher(keyByte)
+	blockSize := block.BlockSize()
+	decrypted := make([]byte, len(originByte))
+	for bs, be := 0, blockSize; bs < len(originByte); bs, be = bs+blockSize, be+blockSize {
+		block.Decrypt(decrypted[bs:be], originByte[bs:be])
 	}
+	return string(PKCS7UNPadding(decrypted)), nil
+}
 
-	block, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		return "", err
-	}
+func PKCS7Padding(originByte []byte, blockSize int) []byte {
+	padding := blockSize - len(originByte)%blockSize
+	padText := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(originByte, padText...)
+}
 
-	plaintext := make([]byte, len(ciphertext))
-	block.Decrypt(plaintext, ciphertext)
-
-	return string(plaintext), nil
+func PKCS7UNPadding(originDataByte []byte) []byte {
+	length := len(originDataByte)
+	padding := int(originDataByte[length-1])
+	return originDataByte[:(length - padding)]
 }
 
 // PageLimit Calculation

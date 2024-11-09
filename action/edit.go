@@ -3,6 +3,7 @@ package action
 import (
 	"context"
 	"errors"
+
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
@@ -44,7 +45,7 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 			dataMaps[key.String()] = value.Value()
 			return true
 		})
-		err = validator.ValidatorMaps(dataMaps, rules)
+		err = validator.ValidatorMaps(ctx, dataMaps, rules)
 		if err != nil {
 			return err
 		}
@@ -56,7 +57,7 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 	err = t.getOne(ctx, &model, id, params)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return response.BusinessError(i18n.Trans.Get("common.message.emptyData"))
+			return response.BusinessError(i18n.Get(ctx, "common.message.emptyData"))
 		} else {
 			return err
 		}
@@ -73,7 +74,9 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 	if tx.Error != nil {
 		return tx.Error
 	}
-	c := context.WithValue(context.Background(), "tx", tx)
+	c := context.Background()
+	c = context.WithValue(c, "tx", tx)
+	c = context.WithValue(c, "echo", ctx)
 
 	if t.editBeforeFun != nil {
 		err = t.editBeforeFun(c, &model, data)
@@ -94,7 +97,7 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 		parentId := data.Get("parent_id").Uint()
 		if !models.CheckParentHas[T](database.Gorm().Model(t.Model), cast.ToUint(id), uint(parentId)) {
 			tx.Rollback()
-			return response.BusinessError(i18n.Trans.Get("common.message.parent"))
+			return response.BusinessError(i18n.Get(ctx, "common.message.parent"))
 		}
 	}
 
@@ -125,7 +128,7 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 	}
 
 	return response.Send(ctx, response.Data{
-		Message: i18n.Trans.Get("common.message.edit"),
+		Message: i18n.Get(ctx, "common.message.edit"),
 	})
 }
 

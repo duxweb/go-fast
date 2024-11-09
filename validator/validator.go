@@ -60,14 +60,14 @@ func RequestParser(ctx echo.Context, params any) error {
 		return err
 	}
 	err = Validator().Struct(params)
-	if err = ValidatorStructError(params, err); err != nil {
+	if err = ValidatorStructError(ctx, params, err); err != nil {
 		return err
 	}
 	return nil
 }
 
 // ValidatorStructError 错误处理
-func ValidatorStructError(object any, err error) error {
+func ValidatorStructError(ctx echo.Context, object any, err error) error {
 	if err == nil {
 		return nil
 	}
@@ -94,7 +94,7 @@ func ValidatorStructError(object any, err error) error {
 			msg := field.Tag.Get("message")
 			langMsg := field.Tag.Get("langMessage")
 			if langMsg != "" {
-				msg = i18n.Trans.Get(langMsg)
+				msg = i18n.Get(ctx, langMsg)
 			}
 			if msg != "" {
 				data[fieldName] = append(data[fieldName], msg)

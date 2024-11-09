@@ -1,32 +1,37 @@
-common:
-  welcome: Welcome
-  encryption:
-    failure: Encryption failed
-  message:
-    emptyData: No data
-    create: Creation successful
-    edit: Edit successful
-    delete: Deletion successful
-    store: Save successful
-    trash: Permanent deletion successful
-    restore: Restoration successful
-  resources:
-    list: List
-    show: Details
-    create: Create
-    edit: Edit
-    delete: Delete
-    deleteMany: Batch delete
-    store: Update
-    trash: Permanently delete
-    restore: Restore
-  validate:
-    placeholder: Please enter %name%
-    select: Please select %name%
-  error:
-    notFound: Page not found
-    notFoundMessage: The page you are trying to access does not exist or has been deleted
-    errorTitle: System Error
-    errorMessage: An error occurred while processing your request. Please try again later
-    home: Home
-    back: Go back
+[common]
+welcome = "Welcome"
+
+[common.encryption]
+failure = "Encryption failed"
+
+[common.message]
+emptyData = "No data"
+create = "Creation successful"
+edit = "Edit successful"
+delete = "Deletion successful"
+store = "Save successful"
+trash = "Permanent deletion successful"
+restore = "Restoration successful"
+
+[common.resources]
+list = "List"
+show = "Details"
+create = "Create"
+edit = "Edit"
+delete = "Delete"
+deleteMany = "Batch delete"
+store = "Update"
+trash = "Permanently delete"
+restore = "Restore"
+
+[common.validate]
+placeholder = "Please enter %name%"
+select = "Please select %name%"
+
+[common.error]
+notFound = "Page not found"
+notFoundMessage = "The page you are trying to access does not exist or has been deleted"
+errorTitle = "System Error"
+errorMessage = "An error occurred while processing your request. Please try again later"
+home = "Home"
+back = "Go back"

@@ -1,9 +1,9 @@
 [default]
 level = "debug"
 compress = false
-maxAge = 365
-maxBackups = 100
-maxSize = 1
+max_age = 365
+max_backups = 100
+max_size = 1
 
 [db]
 level = "debug"

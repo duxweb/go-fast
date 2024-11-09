@@ -2,15 +2,16 @@ package web
 
 import (
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	"github.com/gookit/color"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/samber/lo"
-	"net/http"
-	"os"
-	"time"
 )
 
 func Init() {
@@ -33,6 +34,7 @@ func Init() {
 	}))
 	global.App.Use(middleware.RequestID())
 	global.App.Use(RequestHandler())
+	global.App.Use(I18nHandler())
 
 	// 超时处理
 	timeout := 300 * time.Second
@@ -48,7 +50,7 @@ func Init() {
 	}))
 
 	// 注册公共目录
-	global.App.Static("/public", "./public")
+	global.App.Static("/", "./public")
 
 	// 注册嵌入目录
 	if global.StaticFs != nil {
@@ -57,7 +59,7 @@ func Init() {
 
 	global.App.GET("/", func(c echo.Context) error {
 		c.Set("tpl", "app")
-		return c.Render(http.StatusOK, "welcome.jet", nil)
+		return c.Render(http.StatusOK, "template/welcome.html", nil)
 	})
 
 	global.App.GET("/ws", WebsocketHandler())

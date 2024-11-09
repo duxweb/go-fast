@@ -33,7 +33,7 @@ func (t *Resources[T]) Trash(ctx echo.Context) error {
 	}
 
 	return response.Send(ctx, response.Data{
-		Message: i18n.Trans.Get("common.message.trash"),
+		Message: i18n.Get(ctx, "common.message.trash"),
 	})
 }
 
@@ -52,7 +52,7 @@ func (t *Resources[T]) trashOne(ctx echo.Context, id string, params *gjson.Resul
 	err = t.getOne(ctx, &model, id, params)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return response.BusinessError(i18n.Trans.Get("common.message.emptyData"))
+			return response.BusinessError(i18n.Get(ctx, "common.message.emptyData"))
 		} else {
 			return err
 		}
@@ -62,7 +62,9 @@ func (t *Resources[T]) trashOne(ctx echo.Context, id string, params *gjson.Resul
 	if tx.Error != nil {
 		return tx.Error
 	}
-	c := context.WithValue(context.Background(), "tx", tx)
+	c := context.Background()
+	c = context.WithValue(c, "tx", tx)
+	c = context.WithValue(c, "echo", ctx)
 
 	if t.trashBeforeFun != nil {
 		err = t.trashBeforeFun(c, &model)

@@ -10,7 +10,6 @@ func Render(ctx echo.Context, app string, name string, bind any, code ...int) er
 	if len(code) > 0 {
 		statusCode = code[0]
 	}
-
 	ctx.Set("tpl", app)
 	return ctx.Render(statusCode, name, bind)
 }
@@ -32,7 +31,7 @@ func Send(ctx echo.Context, data Data, code ...int) error {
 		data.Message = "ok"
 	}
 	if data.MessageLang != "" {
-		data.Message = i18n.Trans.Get(data.MessageLang)
+		data.Message = i18n.Get(ctx, data.MessageLang)
 	}
 	if data.Meta == nil {
 		data.Meta = echo.Map{}

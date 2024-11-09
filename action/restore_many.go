@@ -35,6 +35,6 @@ func (t *Resources[T]) RestoreMany(ctx echo.Context) error {
 	}
 
 	return response.Send(ctx, response.Data{
-		Message: i18n.Trans.Get("common.message.restore"),
+		Message: i18n.Get(ctx, "common.message.restore"),
 	})
 }

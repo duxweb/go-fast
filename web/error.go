@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cast"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
 	"strings"
 )
 
@@ -43,11 +44,11 @@ func ErrorHandler() echo.HTTPErrorHandler {
 				result.Data = validator.Data
 				result.Message = validator.Message
 			} else {
-				logger.Log().Error("core", "err", err)
+				logger.Log().Error("core", "err", err, slog.String("stack", string(debug.Stack())))
 				result.Message = err.Error()
 			}
 
-			result.Message = lo.Ternary[string](!global.Debug, i18n.Trans.Get("common.error.errorMessage"), result.Message)
+			result.Message = lo.Ternary[string](!global.Debug, i18n.Get(c, "common.error.errorMessage"), result.Message)
 		}
 
 		if isAsync(c) {
@@ -61,9 +62,9 @@ func ErrorHandler() echo.HTTPErrorHandler {
 		c.Set("tpl", "app")
 
 		if result.Code == http.StatusNotFound {
-			err = c.Render(http.StatusNotFound, "404.jet", nil)
+			err = c.Render(http.StatusNotFound, "template/404.html", nil)
 		} else {
-			err = c.Render(http.StatusInternalServerError, "error.jet", map[string]any{
+			err = c.Render(http.StatusInternalServerError, "template/error.html", map[string]any{
 				"code":    result.Code,
 				"message": result.Message,
 			})

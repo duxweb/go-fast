@@ -1,13 +1,14 @@
 package middleware
 
 import (
+	"time"
+
 	"github.com/duxweb/go-fast/auth"
 	"github.com/duxweb/go-fast/config"
 	"github.com/go-errors/errors"
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
-	"time"
 )
 
 func AuthMiddleware(app string, renewals ...time.Duration) echo.MiddlewareFunc {

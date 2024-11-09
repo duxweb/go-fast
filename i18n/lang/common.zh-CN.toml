@@ -1,35 +1,41 @@
-common:
-  welcome: 欢迎
-  encryption:
-    failure: 加密失败
-  message:
-    emptyData: 空数据
-    create: 创建成功
-    edit: 编辑成功
-    delete: 删除成功
-    store: 保存成功
-    trash: 彻底删除成功
-    restore: 恢复成功
-    parent: 层级设置错误
-  resources:
-    list: 列表
-    show: 详情
-    create: 创建
-    edit: 编辑
-    store: 更新
-    delete: 删除
-    deleteMany: 批量删除
-    trash: 清空
-    trashMany: 批量清空
-    restore: 恢复
-    restoreMany: 批量回复
-  validate:
-    placeholder: 请输入%name%
-    select: 请选择%name%
-  error:
-    notFound: 页面不存在
-    notFoundMessage: 您访问的页面不存在或者已被删除
-    errorTitle: 响应错误
-    errorMessage: 响应遇到了错误，请稍后再试
-    home: 首页
-    back: 返回
+[common]
+  welcome = "欢迎"
+
+  [common.encryption]
+  failure = "加密失败"
+
+  [common.message]
+  emptyData = "空数据"
+  create = "创建成功"
+  edit = "编辑成功"
+  delete = "删除成功"
+  store = "保存成功"
+  trash = "彻底删除成功"
+  restore = "恢复成功"
+  parent = "层级设置错误"
+  children = "层级下有子级，请先删除子级"
+  
+  [common.resources]
+  list = "列表"
+  show = "详情"
+  create = "创建"
+  edit = "编辑"
+  store = "更新"
+  delete = "删除"
+  deleteMany = "批量删除"
+  trash = "清空"
+  trashMany = "批量清空"
+  restore = "恢复"
+  restoreMany = "批量回复"
+
+  [common.validate]
+  placeholder = "请输入%name%"
+  select = "请选择%name%"
+
+  [common.error]
+  notFound = "页面不存在"
+  notFoundMessage = "您访问的页面不存在或者已被删除"
+  errorTitle = "响应错误"
+  errorMessage = "响应遇到了错误，请稍后再试"
+  home = "首页"
+  back = "返回"

@@ -8,7 +8,6 @@ import (
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/logger"
 	"github.com/duxweb/go-fast/monitor"
-	"github.com/duxweb/go-fast/storage"
 	"github.com/duxweb/go-fast/task"
 	"github.com/duxweb/go-fast/validator"
 	"github.com/duxweb/go-fast/views"
@@ -27,11 +26,11 @@ func Start(t *Dux) {
 	database.GormInit()
 	database.RedisInit()
 	database.MongoInit()
+	task.QueueInit()
+	task.CronInit()
 	views.Init()
-	task.Init()
 	web.Init()
 	monitor.Init()
 	websocket.Init()
 	Init(t)
-	storage.Init()
 }

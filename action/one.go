@@ -2,10 +2,12 @@ package action
 
 import (
 	"errors"
+
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/response"
 	"github.com/labstack/echo/v4"
+	"github.com/samber/lo"
 	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 )
@@ -49,6 +51,10 @@ func (t *Resources[T]) Show(ctx echo.Context) error {
 	filterData := t.filterData([]map[string]any{data}, t.IncludesMany, t.ExcludesMany)
 	if len(filterData) > 0 {
 		data = filterData[0]
+	}
+	if t.metaOneFun != nil {
+		mayMeta := t.metaOneFun(model, ctx)
+		meta = lo.Assign(meta, mayMeta)
 	}
 
 	return response.Send(ctx, response.Data{

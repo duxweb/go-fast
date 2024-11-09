@@ -2,6 +2,7 @@ package action
 
 import (
 	"context"
+
 	"github.com/duxweb/go-fast/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/tidwall/gjson"
@@ -17,6 +18,7 @@ type Resources[T any] struct {
 	Model            T
 	Key              string
 	Tree             bool
+	TreeSort         string
 	Pagination       Pagination
 	IncludesMany     []string
 	ExcludesMany     []string
@@ -119,14 +121,14 @@ func (t *Resources[T]) QueryOne(call QueryRequestFun) {
 	t.queryOneFun = call
 }
 
-type MetaManyFun[T any] func(orm *gorm.DB, data []T, e echo.Context)
+type MetaManyFun[T any] func(data []T, e echo.Context) map[string]any
 
 // MetaMany 多条元数据
 func (t *Resources[T]) MetaMany(call MetaManyFun[T]) {
 	t.metaManyFun = call
 }
 
-type MetaOneFun[T any] func(data T, e echo.Context)
+type MetaOneFun[T any] func(data T, e echo.Context) map[string]any
 
 // MetaOne 单条元数据
 func (t *Resources[T]) MetaOne(call MetaManyFun[T]) {

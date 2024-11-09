@@ -35,6 +35,6 @@ func (t *Resources[T]) DeleteMany(ctx echo.Context) error {
 	}
 
 	return response.Send(ctx, response.Data{
-		Message: i18n.Trans.Get("common.message.delete"),
+		Message: i18n.Get(ctx, "common.message.delete"),
 	})
 }

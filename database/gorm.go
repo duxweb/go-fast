@@ -3,10 +3,13 @@ package database
 import (
 	"context"
 	"fmt"
+
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
+	"github.com/duxweb/go-fast/logger"
 	coreLogger "github.com/duxweb/go-fast/logger"
-	"github.com/glebarez/sqlite"
+
+	"github.com/ncruces/go-sqlite3/gormlite"
 	slogGorm "github.com/orandin/slog-gorm"
 	"github.com/samber/do/v2"
 	"github.com/spf13/cast"
@@ -14,6 +17,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
+
+	_ "github.com/ncruces/go-sqlite3/driver"
+
+	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
 type Migrate struct {
@@ -69,7 +76,8 @@ func NewGorm(name string) *GormService {
 	// 重新读取服务
 	err := config.Load("database").ReadInConfig()
 	if err != nil {
-		panic("redis error :" + err.Error())
+		logger.Log().Error("database", "config", err.Error())
+		return nil
 	}
 	dbConfig := config.Load("database").GetStringMapString("db.drivers." + name)
 	var connect gorm.Dialector
@@ -92,7 +100,7 @@ func NewGorm(name string) *GormService {
 		))
 	}
 	if dbConfig["type"] == "sqlite" {
-		connect = sqlite.Open(dbConfig["file"] + "?_pragma=journal_mode(WAL)")
+		connect = gormlite.Open("file:" + dbConfig["file"] + "?_pragma=journal_mode(WAL)")
 	}
 	database, err := gorm.Open(connect, &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
@@ -103,16 +111,18 @@ func NewGorm(name string) *GormService {
 		Logger:                                   slogGorm.New(slogGorm.WithHandler(coreLogger.GetWriterHeader(config.Load("logger").GetString("db.level"), "db"))),
 	})
 	if err != nil {
-		panic("database error: " + err.Error())
+		logger.Log().Error("database", "config", err.Error())
+		return nil
 	}
 
 	// Set Connection Pool
 	sqlDB, err := database.DB()
 	if err != nil {
-		panic("database error: " + err.Error())
+		logger.Log().Error("database", "config", err.Error())
+		return nil
 	}
-	sqlDB.SetMaxIdleConns(cast.ToInt(dbConfig["maxIdleConns"]))
-	sqlDB.SetMaxOpenConns(cast.ToInt(dbConfig["maxOpenConns"]))
+	sqlDB.SetMaxIdleConns(cast.ToInt(dbConfig["max_idle_conns"]))
+	sqlDB.SetMaxOpenConns(cast.ToInt(dbConfig["max_open_conns"]))
 
 	return &GormService{
 		engine: database,

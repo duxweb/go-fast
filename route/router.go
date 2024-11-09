@@ -1,7 +1,6 @@
 package route
 
 import (
-	"github.com/duxweb/go-fast/action"
 	"github.com/duxweb/go-fast/global"
 	"github.com/labstack/echo/v4"
 )
@@ -93,19 +92,18 @@ func (t *RouterData) Add(method string, path string, handler echo.HandlerFunc, n
 	return r
 }
 
-func (t *RouterData) ParseTree(prefix string) map[string]any {
+func (t *RouterData) ParseTree(ctx echo.Context, prefix string) map[string]any {
 	var all []any
 	for _, datum := range t.Data {
 		all = append(all, map[string]any{
 			"name":   datum.Name,
 			"method": datum.Method,
 			"path":   prefix + datum.Path,
-			"label":  action.GetActionLabel(datum.Name),
 		})
 	}
 	for _, item := range t.Groups {
 		gpath := prefix + item.Prefix
-		all = append(all, item.ParseTree(gpath))
+		all = append(all, item.ParseTree(ctx, gpath))
 	}
 	return map[string]any{
 		"path": prefix,
@@ -113,19 +111,18 @@ func (t *RouterData) ParseTree(prefix string) map[string]any {
 	}
 }
 
-func (t *RouterData) ParseData(prefix string) []map[string]any {
+func (t *RouterData) ParseData(ctx echo.Context, prefix string) []map[string]any {
 	var all []map[string]any
 	for _, datum := range t.Data {
 		all = append(all, map[string]any{
 			"name":   datum.Name,
 			"method": datum.Method,
-			"label":  action.GetActionLabel(datum.Name),
 			"path":   prefix + datum.Path,
 		})
 	}
 	for _, item := range t.Groups {
 		gpath := prefix + item.Prefix
-		data := item.ParseData(gpath)
+		data := item.ParseData(ctx, gpath)
 		all = append(all, data...)
 	}
 	return all

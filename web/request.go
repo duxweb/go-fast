@@ -21,11 +21,13 @@ func RequestHandler() echo.MiddlewareFunc {
 		LogRemoteIP:  true,
 		LogError:     true,
 		LogRequestID: true,
-		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+		Skipper: func(c echo.Context) bool {
 			if strings.Contains(c.Path(), "/static/") || strings.Contains(c.Path(), "/public/") {
-				return nil
+				return true
 			}
-
+			return false
+		},
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
 			var level slog.Level
 			attr := []slog.Attr{
 				slog.Int("status", v.Status),

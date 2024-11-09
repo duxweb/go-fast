@@ -1,16 +1,13 @@
 package permission
 
 import (
-	"github.com/duxweb/go-fast/action"
-	"github.com/duxweb/go-fast/i18n"
+	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
-	"sort"
 )
 
 type PermissionData struct {
-	Name  string `json:"name"`
-	Order int    `json:"order"`
-	Data  []*PermissionData
+	Name string `json:"name"`
+	Data []*PermissionData
 }
 
 func New() *PermissionData {
@@ -19,8 +16,7 @@ func New() *PermissionData {
 
 func (t *PermissionData) Group(name string, order int) *PermissionData {
 	data := &PermissionData{
-		Name:  name,
-		Order: order,
+		Name: name,
 	}
 	t.Data = append(t.Data, data)
 	return data
@@ -33,24 +29,17 @@ func (t *PermissionData) Add(name string) {
 	}
 	t.Data = append(t.Data, data)
 }
-func (t *PermissionData) Get() []map[string]any {
+func (t *PermissionData) Get(ctx echo.Context) []map[string]any {
 	data := lo.Map[*PermissionData, map[string]any](t.Data, func(group *PermissionData, index int) map[string]any {
 		list := lo.Map[*PermissionData, map[string]any](group.Data, func(item *PermissionData, index int) map[string]any {
-			label := action.GetActionLabel(item.Name)
 			return map[string]any{
-				"name":  item.Name,
-				"label": label,
+				"name": item.Name,
 			}
 		})
 		return map[string]any{
-			"label":    i18n.Trans.Get(group.Name + ".name"),
-			"order":    group.Order,
 			"name":     "group:" + group.Name,
 			"children": list,
 		}
-	})
-	sort.Slice(data, func(i, j int) bool {
-		return data[i]["order"].(int) < data[j]["order"].(int)
 	})
 	return data
 }

@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/duxweb/go-fast/global"
-	"github.com/duxweb/go-fast/monitor"
 	"github.com/duxweb/go-fast/route"
 	"github.com/duxweb/go-fast/task"
+	"github.com/duxweb/go-fast/task/queue"
 	"github.com/gookit/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/urfave/cli/v2"
@@ -29,21 +29,16 @@ func Command() []*cli.Command {
 				syscall.SIGTERM)
 			defer stop()
 
-			task.ListenerTask("dux.monitor", monitor.Control)
-			task.ListenerScheduler("*/1 * * * *", "dux.monitor", map[string]any{}, task.PRIORITY_LOW)
-
-			// 启动任务服务
-			go func() {
-				task.StartScheduler()
-			}()
 			// 启动队列服务
-			go func() {
-				task.Add("ping", &map[string]any{})
-				task.StartQueue()
-			}()
+			task.Queue().Start()
+			task.Cron().Start()
 
 			// 启动 web 服务
 			Start()
+
+			task.Queue().Add("default", queue.QueueAdd{
+				Name: "ping",
+			})
 
 			<-ctx.Done()
 
@@ -74,7 +69,7 @@ func Command() []*cli.Command {
 				t.AppendHeader(table.Row{"Name", "Method", "Path", "Label"})
 				rows := make([]table.Row, 0)
 
-				for _, item := range list.ParseData(list.Prefix) {
+				for _, item := range list.ParseData(nil, list.Prefix) {
 					rows = append(rows, table.Row{item["name"], item["method"], item["path"], item["label"]})
 				}
 				t.AppendRows(rows)

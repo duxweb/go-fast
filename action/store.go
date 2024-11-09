@@ -53,7 +53,7 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 			dataMaps[key.String()] = value.Value()
 			return true
 		})
-		err = validator.ValidatorMaps(dataMaps, rules)
+		err = validator.ValidatorMaps(ctx, dataMaps, rules)
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 	err = t.getOne(ctx, &model, id, params)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return response.BusinessError(i18n.Trans.Get("common.message.emptyData"))
+			return response.BusinessLangError(ctx, "common.message.emptyData")
 		} else {
 			return err
 		}
@@ -89,7 +89,9 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 	if tx.Error != nil {
 		return tx.Error
 	}
-	c := context.WithValue(context.Background(), "tx", tx)
+	c := context.Background()
+	c = context.WithValue(c, "tx", tx)
+	c = context.WithValue(c, "echo", ctx)
 
 	if t.storeBeforeFun != nil {
 		err = t.storeBeforeFun(c, &model, data)
@@ -116,7 +118,7 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 	}
 
 	return response.Send(ctx, response.Data{
-		Message: i18n.Trans.Get("common.message.store"),
+		Message: i18n.Get(ctx, "common.message.store"),
 	})
 }
 

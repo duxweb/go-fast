@@ -2,6 +2,7 @@ package config
 
 import (
 	"embed"
+	"github.com/spf13/viper"
 	"path"
 	"path/filepath"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/gookit/goutil/fsutil"
 	"github.com/samber/do/v2"
 	"github.com/spf13/afero"
-	"github.com/spf13/viper"
 )
 
 var data = map[string]*viper.Viper{}
@@ -89,6 +89,14 @@ func LoadFile(name string) *viper.Viper {
 func Load(name string) *viper.Viper {
 	if t, ok := data[name]; ok {
 		return t
+	} else {
+		panic("configuration (" + name + ") not found")
+	}
+}
+
+func Reload(name string) {
+	if _, ok := data[name]; ok {
+		data[name] = LoadFile(name)
 	} else {
 		panic("configuration (" + name + ") not found")
 	}

@@ -2,6 +2,7 @@ package web
 
 import (
 	"github.com/CloudyKit/jet/v6"
+	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/views"
 	"github.com/go-errors/errors"
 	"github.com/labstack/echo/v4"
@@ -29,6 +30,9 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 	}
 	t.Mutex.RLock()
 	template, err := views.Views[tpl].GetTemplate(name)
+	views.Views[tpl].AddGlobal("t", func(s string) string {
+		return i18n.Get(c, s)
+	})
 	t.Mutex.RUnlock()
 	if err != nil {
 		return err
@@ -36,7 +40,6 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 
 	t.Mutex.Lock()
 	defer t.Mutex.Unlock()
-
 	bind := jetVarMap(data)
 
 	return template.Execute(w, bind, nil)

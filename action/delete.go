@@ -3,6 +3,7 @@ package action
 import (
 	"context"
 	"errors"
+
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/i18n"
 	"github.com/duxweb/go-fast/response"
@@ -26,7 +27,7 @@ func (t *Resources[T]) Delete(ctx echo.Context) error {
 	}
 
 	return response.Send(ctx, response.Data{
-		Message: i18n.Trans.Get("common.message.delete"),
+		Message: i18n.Get(ctx, "common.message.delete"),
 	})
 }
 
@@ -45,7 +46,7 @@ func (t *Resources[T]) deleteOne(ctx echo.Context, id string) error {
 	err = t.getOne(ctx, &model, id, nil)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return response.BusinessError(i18n.Trans.Get("common.message.emptyData"))
+			return response.BusinessError(i18n.Get(ctx, "common.message.emptyData"))
 		} else {
 			return err
 		}
@@ -55,7 +56,19 @@ func (t *Resources[T]) deleteOne(ctx echo.Context, id string) error {
 	if tx.Error != nil {
 		return tx.Error
 	}
-	c := context.WithValue(context.Background(), "tx", tx)
+
+	c := context.Background()
+	c = context.WithValue(c, "tx", tx)
+	c = context.WithValue(c, "echo", ctx)
+
+	if t.Tree {
+		var count int64
+		tx.Model(t.Model).Where("parent_id = ?", id).Count(&count)
+		if count > 0 {
+			tx.Rollback()
+			return response.BusinessError(i18n.Get(ctx, "common.message.children"))
+		}
+	}
 
 	if t.deleteBeforeFun != nil {
 		err = t.deleteBeforeFun(c, &model)

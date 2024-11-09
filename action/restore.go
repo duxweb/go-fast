@@ -26,7 +26,7 @@ func (t *Resources[T]) Restore(ctx echo.Context) error {
 	}
 
 	return response.Send(ctx, response.Data{
-		Message: i18n.Trans.Get("common.message.restore"),
+		Message: i18n.Get(ctx, "common.message.restore"),
 	})
 }
 
@@ -45,7 +45,7 @@ func (t *Resources[T]) restoreOne(ctx echo.Context, id string) error {
 	err = t.getOne(ctx, &model, id, nil)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return response.BusinessError(i18n.Trans.Get("common.message.emptyData"))
+			return response.BusinessError(i18n.Get(ctx, "common.message.emptyData"))
 		} else {
 			return err
 		}
@@ -55,7 +55,9 @@ func (t *Resources[T]) restoreOne(ctx echo.Context, id string) error {
 	if tx.Error != nil {
 		return tx.Error
 	}
-	c := context.WithValue(context.Background(), "tx", tx)
+	c := context.Background()
+	c = context.WithValue(c, "tx", tx)
+	c = context.WithValue(c, "echo", ctx)
 
 	if t.restoreBeforeFun != nil {
 		err = t.restoreBeforeFun(c, &model)

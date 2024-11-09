@@ -24,17 +24,26 @@ func Log(names ...string) *slog.Logger {
 		return t
 	}
 
+	level := config.Load("logger").GetString(name + ".level")
+
+	parseLevel, err := log.ParseLevel(level)
+	if err != nil {
+		parseLevel = log.DebugLevel
+	}
+
 	logger := slog.New(
 		slogmulti.Fanout(
-			log.NewWithOptions(os.Stderr, log.Options{
+			GetWriterHeader(
+				level,
+				name,
+			),
+			log.NewWithOptions(os.Stdout, log.Options{
 				ReportCaller:    true,
 				ReportTimestamp: true,
 				TimeFormat:      time.DateTime,
+				Prefix:          "Dux",
+				Level:           parseLevel,
 			}),
-			GetWriterHeader(
-				config.Load("logger").GetString(name+".level"),
-				name,
-			),
 		),
 	)
 	logs[name] = logger
@@ -48,11 +57,11 @@ func Init() {
 func GetWriterHeader(level string, name string) *slog.JSONHandler {
 
 	r := &lumberjack.Logger{
-		Filename:   fmt.Sprintf(global.DataDir+"logs/%s.log", name),    // Log file path.
-		MaxSize:    config.Load("logger").GetInt("default.maxSize"),    // Maximum size of each log file to be saved, unit: M.
-		MaxBackups: config.Load("logger").GetInt("default.maxBackups"), // Number of file backups.
-		MaxAge:     config.Load("logger").GetInt("default.maxAge"),     // Maximum number of days to keep the files.
-		Compress:   config.Load("logger").GetBool("default.compress"),  // Compression status.
+		Filename:   fmt.Sprintf(global.DataDir+"logs/%s.log", name),     // Log file path.
+		MaxSize:    config.Load("logger").GetInt("default.max_size"),    // Maximum size of each log file to be saved, unit: M.
+		MaxBackups: config.Load("logger").GetInt("default.max_backups"), // Number of file backups.
+		MaxAge:     config.Load("logger").GetInt("default.max_age"),     // Maximum number of days to keep the files.
+		Compress:   config.Load("logger").GetBool("default.compress"),   // Compression status.
 	}
 
 	slogLevel := lo.Switch[string, slog.Leveler](level).

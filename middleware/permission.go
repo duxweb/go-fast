@@ -2,12 +2,15 @@ package middleware
 
 import (
 	duxAuth "github.com/duxweb/go-fast/auth"
+	duxPermission "github.com/duxweb/go-fast/permission"
 	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/route"
 	"github.com/labstack/echo/v4"
+	"github.com/samber/lo"
+	"github.com/spf13/cast"
 )
 
-type PermissionFun func(id string) (map[string]bool, error)
+type PermissionFun func(id string) ([]string, error)
 
 func PermissionMiddleware(permission PermissionFun) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -21,12 +24,19 @@ func PermissionMiddleware(permission PermissionFun) echo.MiddlewareFunc {
 				return next(c)
 			}
 
-			permissions, err := permission(auth.ID)
+			data := duxPermission.Get("admin").Get(c)
+			permissions := lo.Map[map[string]any, string](data, func(item map[string]any, index int) string {
+				return cast.ToString(item["name"])
+			})
+			c.Set("permissions", permissions)
+
+			userPermission, err := permission(auth.ID)
 			if err != nil {
 				return err
 			}
+			c.Set("userPermissions", userPermission)
 
-			err = Can(permissions, routeName)
+			err = Can(c, routeName)
 			if err != nil {
 				return err
 			}
@@ -35,16 +45,21 @@ func PermissionMiddleware(permission PermissionFun) echo.MiddlewareFunc {
 	}
 }
 
-func Can(permissions map[string]bool, name string) error {
-	if len(permissions) == 0 {
+func Can(c echo.Context, name string) error {
+	userPermission := c.Get("userPermissions").([]string)
+	permission := c.Get("permissions").([]string)
+
+	if len(userPermission) == 0 || len(permission) == 0 {
 		return nil
 	}
-	is, ok := permissions[name]
-	if !ok {
+
+	if lo.IndexOf[string](permission, name) == -1 {
 		return nil
 	}
-	if !is {
-		return echo.ErrForbidden
+
+	if lo.IndexOf[string](userPermission, name) != -1 {
+		return nil
 	}
-	return nil
+
+	return echo.ErrForbidden
 }

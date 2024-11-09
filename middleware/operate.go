@@ -11,6 +11,7 @@ import (
 	"github.com/duxweb/go-fast/route"
 	"github.com/labstack/echo/v4"
 	"github.com/spf13/cast"
+	"strings"
 	"time"
 )
 
@@ -23,7 +24,7 @@ func OperateMiddleware(UserType string) echo.MiddlewareFunc {
 
 			res := next(c)
 
-			if method == "GET" {
+			if method == "GET" || strings.Contains(c.Path(), "/static") || strings.Contains(c.Path(), "/resource") || strings.Contains(c.Path(), "/notice") {
 				return res
 			}
 
@@ -53,7 +54,7 @@ func OperateMiddleware(UserType string) echo.MiddlewareFunc {
 				RequestTime:   cast.ToFloat64(second),
 				RequestParams: paramsContent,
 				RouteName:     routeName,
-				RouteTitle:    action.GetActionLabel(routeName),
+				RouteTitle:    action.GetActionLabel(c, routeName),
 				ClientUa:      ua,
 				ClientIp:      c.RealIP(),
 				ClientBrowser: uaParse.UserAgent.ToString(),

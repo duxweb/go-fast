@@ -1,8 +1,8 @@
 [db.drivers.default]
 file = "./database/app.db"
 type = "sqlite"
-maxIdleConns = 10
-maxOpenConns = 100
+max_idle_conns = 10
+max_open_conns = 100
 
 [mongodb.drivers.default]
 host = "localhost"

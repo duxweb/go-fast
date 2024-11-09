@@ -40,6 +40,6 @@ func (t *Resources[T]) TrashMany(ctx echo.Context) error {
 	}
 
 	return response.Send(ctx, response.Data{
-		Message: i18n.Trans.Get("common.message.trash"),
+		Message: i18n.Get(ctx, "common.message.trash"),
 	})
 }

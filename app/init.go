@@ -50,7 +50,8 @@ func Init(t *Dux) {
 
 	database.Register()
 	event.Register()
-	task.Register()
+	task.RegisterQueue()
+	task.RegisterCron()
 	resources.Register()
 	route.Register()
 
