@@ -2,13 +2,14 @@ package web
 
 import (
 	"context"
+	"log/slog"
+	"strings"
+	"time"
+
 	"github.com/duxweb/go-fast/logger"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/samber/lo"
-	"log/slog"
-	"strings"
-	"time"
 )
 
 func RequestHandler() echo.MiddlewareFunc {
@@ -22,7 +23,7 @@ func RequestHandler() echo.MiddlewareFunc {
 		LogError:     true,
 		LogRequestID: true,
 		Skipper: func(c echo.Context) bool {
-			if strings.Contains(c.Path(), "/static/") || strings.Contains(c.Path(), "/public/") {
+			if strings.Contains(c.Path(), "static/") || strings.Contains(c.Path(), "public/") {
 				return true
 			}
 			return false

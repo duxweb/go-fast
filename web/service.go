@@ -50,11 +50,11 @@ func Init() {
 	}))
 
 	// 注册公共目录
-	global.App.Static("/", "./public")
+	global.App.Group("/", CacheHandler("public, max-age=86400")).Static("", "./public")
 
 	// 注册嵌入目录
 	if global.StaticFs != nil {
-		global.App.StaticFS("/static", echo.MustSubFS(*global.StaticFs, "static"))
+		global.App.Group("/static", CacheHandler("static, max-age=86400")).StaticFS("/", echo.MustSubFS(*global.StaticFs, "static"))
 	}
 
 	global.App.GET("/", func(c echo.Context) error {
