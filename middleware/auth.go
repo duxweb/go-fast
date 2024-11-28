@@ -11,11 +11,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func AuthMiddleware(app string, renewals ...time.Duration) echo.MiddlewareFunc {
-	var renewal time.Duration = 0
-	if len(renewals) > 0 {
-		renewal = renewals[0]
-	}
+func AuthMiddleware(app string) echo.MiddlewareFunc {
 	key := config.Load("use").GetString("app.secret")
 	middle := echojwt.Config{
 		SigningKey:  key,
@@ -50,10 +46,11 @@ func AuthMiddleware(app string, renewals ...time.Duration) echo.MiddlewareFunc {
 				return
 			}
 
-			if expiredAt.Add(-renewal).After(time.Now()) {
+			expire := expiredAt.Sub(issuedAt.Time)
+
+			if expiredAt.Add(-(time.Duration(expire.Seconds()/2) * time.Second)).After(time.Now()) {
 				return
 			}
-			expire := expiredAt.Sub(issuedAt.Time)
 			newToken, _ := auth.NewJWT().MakeToken(claims.Subject, claims.ID, expire)
 			c.Response().Header().Set(echo.HeaderAuthorization, "Bearer "+newToken)
 		},
