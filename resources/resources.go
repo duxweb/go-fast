@@ -26,7 +26,7 @@ func New(name string, path string) *ResourceData {
 }
 
 func (t *ResourceData) AddMiddleware(middle ...echo.MiddlewareFunc) *ResourceData {
-	t.authMiddleware = append(t.middleware, middle...)
+	t.middleware = append(t.middleware, middle...)
 	return t
 }
 
