@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"strings"
+
 	"github.com/duxweb/go-fast/cache"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/models"
@@ -9,7 +11,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
-	"strings"
 )
 
 func VisitIncrement(ctx echo.Context, hasType string, hasID uint, driver string, path string) error {
@@ -74,16 +75,13 @@ func VisitIncrement(ctx echo.Context, hasType string, hasID uint, driver string,
 
 		database.Gorm().Model(models.LogVisit{}).Where("id = ?", visit.ID).UpdateColumn("uv", gorm.Expr("uv + ?", 1))
 
-		IpParse, _ := IpParser(ip)
-		if visitData.Country == "" && IpParse != "" {
-			address := strings.Split(IpParse, "|")
-			if len(address) >= 4 {
-				database.Gorm().Model(models.LogVisitData{}).Where("id = ?", visitData.ID).Updates(&models.LogVisitData{
-					Country:  address[0],
-					Province: address[2],
-					City:     address[3],
-				})
-			}
+		ipParse, _ := IpParser(ip)
+		if visitData.Country == "" && ipParse != nil {
+			database.Gorm().Model(models.LogVisitData{}).Where("id = ?", visitData.ID).Updates(&models.LogVisitData{
+				Country:  ipParse.Country,
+				Province: ipParse.Province,
+				City:     ipParse.City,
+			})
 		}
 	}
 
