@@ -20,6 +20,7 @@ require (
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/golang-module/carbon/v2 v2.4.1
+	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/gookit/event v1.1.2
 	github.com/gookit/goutil v0.6.17
@@ -43,7 +44,7 @@ require (
 	github.com/samber/do/v2 v2.0.0-beta.7
 	github.com/samber/lo v1.47.0
 	github.com/samber/slog-multi v1.2.4
-	github.com/shirou/gopsutil/v3 v3.24.5
+	github.com/shirou/gopsutil/v4 v4.24.11
 	github.com/sony/sonyflake v1.2.0
 	github.com/spf13/afero v1.11.0
 	github.com/spf13/cast v1.7.0
@@ -92,6 +93,7 @@ require (
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/ebitengine/purego v0.8.1 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.6 // indirect
 	github.com/go-logfmt/logfmt v0.6.0 // indirect
@@ -101,7 +103,6 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -135,7 +136,6 @@ require (
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/samber/go-type-to-string v1.7.0 // indirect
-	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
