@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -9,12 +10,16 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/duxweb/go-fast/config"
+	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/global"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/samber/do/v2"
+	"github.com/samber/lo"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
@@ -24,31 +29,158 @@ import (
 	"github.com/spf13/afero"
 )
 
+type DirSize struct {
+	Path  string `json:"path"`
+	Size  uint64 `json:"size"`
+	SizeF string `json:"sizeF"`
+}
+
 type Monitor struct {
-	OsName      string // OS
-	BootTime    string // Startup time
-	LogSize     uint64 // The size of the log directory
-	LogSizeF    string
-	UploadSize  uint64 // The size of the upload directory
-	UploadSizeF string
-	TmpSize     uint64 // The size of the cache directory.
-	TmpSizeF    string
+	OsName   string    `json:"osName"`   // OS 名称
+	BootTime string    `json:"bootTime"` // 启动时间
+	DirSize  []DirSize `json:"dirSize"`  // 目录大小
+
+	KernelVersion string `json:"kernelVersion"` // 内核版本
+	MemoryTotal   string `json:"memoryTotal"`   // 内存总量
+	DiskTotal     string `json:"diskTotal"`     // 硬盘总量
+	CpuArch       string `json:"cpuArch"`       // CPU架构
+	CpuCount      int    `json:"cpuCount"`      // CPU数量
+	CpuModel      string `json:"cpuModel"`      // CPU型号
+
+	DefaultDatabase string `json:"defaultDatabase"` // 默认数据库
+	DefaultQueue    string `json:"defaultQueue"`    // 默认队列
+	Debug           bool   `json:"debug"`           // 是否是debug模式
+	DefaultLang     string `json:"defaultLang"`     // 默认语言
+	DefaultTimezone string `json:"defaultTimezone"` // 默认时区
+
+	Port            string `json:"port"`            // 端口
+	Version         string `json:"version"`         // 版本
+	GoVersion       string `json:"goVersion"`       // Go版本
+	DatabaseVersion string `json:"databaseVersion"` // 数据库版本
 }
 
 // GetMonitorInfo Retrieve monitoring information
 func GetMonitorInfo() *Monitor {
 	data := Monitor{}
-	data.LogSize = getDirSize("/data/logs")
-	data.LogSizeF = humanize.Bytes(data.LogSize)
-	data.UploadSize = getDirSize("/public/uploads")
-	data.UploadSizeF = humanize.Bytes(data.UploadSize)
-	data.TmpSize = getDirSize("/tmp")
-	data.TmpSizeF = humanize.Bytes(data.TmpSize)
+
+	logSize := getDirSize("/data/logs")
+	logSizeF := humanize.Bytes(logSize)
+	uploadSize := getDirSize("/public/uploads")
+	uploadSizeF := humanize.Bytes(uploadSize)
+	tmpSize := getDirSize("/tmp")
+	tmpSizeF := humanize.Bytes(tmpSize)
+
+	data.DirSize = []DirSize{
+		{Path: "/data/logs", Size: logSize, SizeF: logSizeF},
+		{Path: "/public/uploads", Size: uploadSize, SizeF: uploadSizeF},
+		{Path: "/tmp", Size: tmpSize, SizeF: tmpSizeF},
+	}
+
 	data.BootTime = global.BootTime.Format("2006-01-02 15:04:05")
 	sysInfo, _ := host.Info()
 	data.OsName = sysInfo.Platform + " " + sysInfo.PlatformVersion
-	return &data
 
+	cpuInfo, _ := cpu.Info()
+	memInfo, _ := mem.VirtualMemory()
+
+	diskStats, _ := disk.IOCounters()
+	var totalSize uint64
+	for name := range diskStats {
+		if strings.HasPrefix(name, "loop") || strings.HasPrefix(name, "ram") {
+			continue
+		}
+
+		// 获取分区信息
+		partitions, err := disk.Partitions(true)
+		if err != nil {
+			continue
+		}
+
+		// 查找对应分区的容量
+		for _, partition := range partitions {
+			if strings.Contains(partition.Device, name) {
+				usage, err := disk.Usage(partition.Mountpoint)
+				if err != nil {
+					continue
+				}
+				totalSize += usage.Total
+				break
+			}
+		}
+	}
+
+	data.KernelVersion = sysInfo.KernelVersion
+	data.MemoryTotal = humanize.IBytes(memInfo.Total)
+	data.DiskTotal = humanize.IBytes(totalSize)
+	data.CpuArch = runtime.GOARCH
+	data.CpuCount = runtime.NumCPU()
+	data.CpuModel = cpuInfo[0].ModelName
+
+	data.DefaultDatabase = config.Load("database").GetString("db.drivers.default.type")
+	data.DefaultQueue = lo.Ternary(config.Load("use").GetString("queue.driver") == "redis", "Redis", "Sqlite")
+	data.Debug = global.Debug
+	data.DefaultLang = global.Lang
+	data.DefaultTimezone = global.TimeLocation.String()
+	data.Port = config.Load("use").GetString("server.port")
+	data.Version = global.Version
+	data.GoVersion = runtime.Version()
+
+	//
+	switch data.DefaultDatabase {
+	case "mysql":
+		var version string
+		if err := database.Gorm().Raw("SELECT VERSION()").Scan(&version).Error; err == nil {
+			data.DatabaseVersion = version
+		}
+		data.DefaultDatabase = "MySQL"
+	case "sqlite":
+		var version string
+		if err := database.Gorm().Raw("SELECT sqlite_version()").Scan(&version).Error; err == nil {
+			data.DatabaseVersion = version
+		}
+		data.DefaultDatabase = "SQLite"
+	case "postgres":
+		var version string
+		if err := database.Gorm().Raw("SHOW server_version").Scan(&version).Error; err == nil {
+			data.DatabaseVersion = version
+		}
+		data.DefaultDatabase = "PostgreSQL"
+	}
+
+	return &data
+}
+
+type DiskStatus struct {
+	Path        string  `json:"path"`
+	Total       uint64  `json:"total"`
+	Used        uint64  `json:"used"`
+	Free        uint64  `json:"free"`
+	UsedPercent float64 `json:"usedPercent"`
+}
+
+func Disk(ctx context.Context) []DiskStatus {
+	partitions, err := disk.Partitions(false)
+	if err != nil {
+		return nil
+	}
+
+	var diskStats []DiskStatus
+	for _, partition := range partitions {
+		usage, err := disk.Usage(partition.Mountpoint)
+		if err != nil {
+			continue
+		}
+
+		diskStats = append(diskStats, DiskStatus{
+			Path:        partition.Mountpoint,
+			Total:       usage.Total,
+			Used:        usage.Used,
+			Free:        usage.Free,
+			UsedPercent: helper.Round(usage.UsedPercent, 2),
+		})
+	}
+
+	return diskStats
 }
 
 type NetStats struct {
@@ -81,7 +213,6 @@ func GetMonitorData() (*MonitorData, error) {
 		return nil, fmt.Errorf("failed to get CPU usage: %w", err)
 	}
 
-	// 获取内存使用率
 	memInfo, err := mem.VirtualMemory()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get memory usage: %w", err)
@@ -90,7 +221,6 @@ func GetMonitorData() (*MonitorData, error) {
 	threadCount := pprof.Lookup("threadcreate").Count()
 	GoroutineCount := runtime.NumGoroutine()
 
-	// 获取磁盘IO统计
 	prevIO, err := disk.IOCounters()
 	ioUsage := 0.0
 	if err == nil {
@@ -110,13 +240,11 @@ func GetMonitorData() (*MonitorData, error) {
 		}
 	}
 
-	// 获取系统负载
 	loadAvg, err := load.Avg()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get system load: %w", err)
 	}
 
-	// 获取网络速率
 	prevNet, err := net.IOCounters(true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get network statistics: %w", err)
@@ -127,7 +255,6 @@ func GetMonitorData() (*MonitorData, error) {
 		return nil, fmt.Errorf("failed to get network statistics: %w", err)
 	}
 
-	// 计算每个网卡的网络速率
 	netStats := make([]NetStats, 0)
 	for i, current := range currentNet {
 		if i < len(prevNet) {
@@ -143,7 +270,7 @@ func GetMonitorData() (*MonitorData, error) {
 	}
 
 	return &MonitorData{
-		CpuPercent:     helper.Round(cpuPercent[0], 2), // cpuPercent返回的是切片
+		CpuPercent:     helper.Round(cpuPercent[0], 2),
 		MemPercent:     helper.Round(memInfo.UsedPercent, 2),
 		ThreadCount:    threadCount,
 		GoroutineCount: GoroutineCount,
