@@ -8,5 +8,5 @@ type LogLogin struct {
 	Browser  string `gorm:"size:250;comment:浏览器" json:"browser"`
 	Ip       string `gorm:"size:100;comment:IP" json:"ip"`
 	Platform string `gorm:"size:100;comment:平台" json:"platform"`
-	Status   *bool  `gorm:"default:true" json:"status"`
+	Status   *bool  `gorm:"default:1" json:"status"`
 }
