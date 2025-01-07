@@ -77,5 +77,10 @@ func (t *Resources[T]) getOne(ctx echo.Context, model *T, id string, params *gjs
 	if t.queryFun != nil {
 		query = t.queryFun(query, ctx)
 	}
+	if t.preload != nil {
+		for _, v := range t.preload {
+			query = query.Preload(v)
+		}
+	}
 	return query.First(model).Error
 }

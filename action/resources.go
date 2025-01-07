@@ -25,6 +25,7 @@ type Resources[T any] struct {
 	IncludesOne      []string
 	ExcludesOne      []string
 	queryParams      any
+	preload          []string
 	initFun          InitFun[T]
 	TransformFun     TransformFun[T]
 	queryFun         QueryFun
@@ -100,6 +101,10 @@ func (t *Resources[T]) Transform(call TransformFun[T]) {
 
 func (t *Resources[T]) QueryParams(data any) {
 	t.queryParams = data
+}
+
+func (t *Resources[T]) Preload(data ...string) {
+	t.preload = data
 }
 
 type QueryFun func(tx *gorm.DB, e echo.Context) *gorm.DB

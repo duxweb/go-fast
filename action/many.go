@@ -77,14 +77,25 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 		query = t.queryFun(query, ctx)
 	}
 
+	if t.preload != nil {
+		for _, v := range t.preload {
+			query = query.Preload(v)
+		}
+	}
+
 	models := make([]T, 0)
 	var pagination *coreModel.Pagination
 	if t.Pagination.Status {
 		pagination = coreModel.NewPagination(int(params.Get("page").Int()), pageSize)
 		err = query.Scopes(coreModel.Paginate(pagination)).Find(&models).Error
+
 	} else {
 		if t.Tree {
-			query = query.Preload(clause.Associations, coreModel.ChildrenPreload).Where("parent_id IS NULL")
+			config := coreModel.TreePreloadConfig{
+				Sort:     t.TreeSort,
+				Preloads: t.preload,
+			}
+			query = query.Preload("Children", coreModel.TreePreload(config)).Where("parent_id IS NULL")
 		}
 		err = query.Find(&models).Error
 	}
