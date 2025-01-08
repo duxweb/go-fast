@@ -37,17 +37,17 @@ func Init() {
 	global.App.Use(I18nHandler())
 
 	// 超时处理
-	timeout := 300 * time.Second
-	if config.IsLoad("use") {
-		isTimeout := config.Load("use").IsSet("server.timeout")
-		if isTimeout {
-			timeout = config.Load("use").GetDuration("server.timeout") * time.Second
-		}
-	}
+	// timeout := 300 * time.Second
+	// if config.IsLoad("use") {
+	// 	isTimeout := config.Load("use").IsSet("server.timeout")
+	// 	if isTimeout {
+	// 		timeout = config.Load("use").GetDuration("server.timeout") * time.Second
+	// 	}
+	// }
 
-	global.App.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-		Timeout: timeout,
-	}))
+	// global.App.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+	// 	Timeout: timeout,
+	// }))
 
 	// 注册公共目录
 	global.App.Group("/", CacheHandler("public, max-age=86400")).Static("", "./public")
