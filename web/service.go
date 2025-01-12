@@ -36,19 +36,6 @@ func Init() {
 	global.App.Use(RequestHandler())
 	global.App.Use(I18nHandler())
 
-	// 超时处理
-	// timeout := 300 * time.Second
-	// if config.IsLoad("use") {
-	// 	isTimeout := config.Load("use").IsSet("server.timeout")
-	// 	if isTimeout {
-	// 		timeout = config.Load("use").GetDuration("server.timeout") * time.Second
-	// 	}
-	// }
-
-	// global.App.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-	// 	Timeout: timeout,
-	// }))
-
 	// 注册公共目录
 	global.App.Group("/", CacheHandler("public, max-age=86400")).Static("", "./public")
 
@@ -68,18 +55,48 @@ func Init() {
 func Start() {
 
 	port := "8900"
+	tlsPort := "8901"
+	tlsStatus := false
+	tlsCert := "./ssl/cert.pem"
+	tlsKey := "./ssl/key.pem"
 	if config.IsLoad("use") {
 		port = config.Load("use").GetString("server.port")
+		sslPort := config.Load("use").GetString("server.tls_port")
+		sslStatus := config.Load("use").GetBool("server.tls")
+		sslCert := config.Load("use").GetString("server.tls_cert")
+		sslKey := config.Load("use").GetString("server.tls_key")
+
+		if sslStatus {
+			tlsStatus = true
+		}
+		if sslPort != "" {
+			tlsPort = sslPort
+		}
+		if sslCert != "" {
+			tlsCert = sslCert
+		}
+		if sslKey != "" {
+			tlsKey = sslKey
+		}
 	}
 
 	banner()
 	global.BootTime = time.Now()
 	color.Println("⇨ <green>Server start http://localhost:" + port + "</>")
 
+	if tlsStatus {
+		go func() {
+			err := global.App.StartTLS(":"+tlsPort, tlsCert, tlsKey)
+			if err != nil {
+				color.Errorln("tls server start error:", err.Error())
+			}
+		}()
+	}
+
 	go func() {
 		err := global.App.Start(":" + port)
 		if err != nil {
-			color.Errorln(err.Error())
+			color.Errorln("http server start error:", err.Error())
 		}
 	}()
 

@@ -251,3 +251,69 @@ func TreeSort(db *gorm.DB, model any, id uint64, beforeId uint64, parentId uint6
 
 	return nil
 }
+
+func TreeBreadcrumb(parent any, key string) []string {
+	// 获取父节点的反射值
+	parentValue := reflect.ValueOf(parent)
+	// 如果是指针，则获取指针指向的值
+	if parentValue.Kind() == reflect.Ptr {
+		parentValue = parentValue.Elem()
+	}
+
+	// 检查父节点是否为结构体或map
+	if parentValue.Kind() != reflect.Struct && parentValue.Kind() != reflect.Map {
+		return []string{} // 如果不是结构体或map，返回空切片
+	}
+
+	var parentField reflect.Value
+	if parentValue.Kind() == reflect.Struct {
+		// 获取 Parent 字段
+		parentField = parentValue.FieldByName("Parent")
+	} else {
+		// 获取 "Parent" 键的值
+		parentField = parentValue.MapIndex(reflect.ValueOf("Parent"))
+	}
+
+	// 检查 Parent 字段是否存在或是否为零值
+	if !parentField.IsValid() || (parentField.Kind() == reflect.Ptr && parentField.IsNil()) {
+		var name string
+		if parentValue.Kind() == reflect.Struct {
+			nameValue := parentValue.FieldByName("Name")
+			if nameValue.IsValid() && nameValue.Kind() == reflect.String {
+				name = nameValue.String()
+			}
+		} else {
+			nameValue := parentValue.MapIndex(reflect.ValueOf("Name"))
+			if nameValue.IsValid() && nameValue.Kind() == reflect.String {
+				name = nameValue.String()
+			}
+		}
+		return []string{name}
+	}
+
+	// 获取 Parent 字段的值
+	var nextParent any
+	if parentField.Kind() == reflect.Ptr {
+		nextParent = parentField.Interface()
+	} else {
+		nextParent = parentField.Interface()
+	}
+
+	// 递归调用
+	parents := TreeBreadcrumb(nextParent, key)
+
+	var name string
+	if parentValue.Kind() == reflect.Struct {
+		nameValue := parentValue.FieldByName("Name")
+		if nameValue.IsValid() && nameValue.Kind() == reflect.String {
+			name = nameValue.String()
+		}
+	} else {
+		nameValue := parentValue.MapIndex(reflect.ValueOf("Name"))
+		if nameValue.IsValid() && nameValue.Kind() == reflect.String {
+			name = nameValue.String()
+		}
+	}
+	parents = append(parents, name)
+	return parents
+}
