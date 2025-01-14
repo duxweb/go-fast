@@ -60,7 +60,7 @@ func (t *ResourceData) SetOperate(status bool) *ResourceData {
 func (t *ResourceData) run() *ResourceData {
 
 	middle := []echo.MiddlewareFunc{
-		middleware.AuthMiddleware("admin"),
+		middleware.AuthMiddleware(t.name),
 	}
 	if t.permission != nil {
 		middle = append(middle, middleware.PermissionMiddleware(t.permission))

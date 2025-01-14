@@ -2,24 +2,43 @@ package logger
 
 import (
 	"fmt"
+	"log/slog"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/charmbracelet/log"
 	"github.com/duxweb/go-fast/config"
 	"github.com/duxweb/go-fast/global"
 	"github.com/samber/lo"
 	slogmulti "github.com/samber/slog-multi"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"log/slog"
-	"os"
-	"time"
 )
 
-var logs = map[string]*slog.Logger{}
+var (
+	logs     = map[string]*slog.Logger{}
+	logMutex sync.RWMutex
+)
 
 func Log(names ...string) *slog.Logger {
 	name := "default"
 	if len(names) > 0 {
 		name = names[0]
 	}
+
+	// 先尝试读取
+	logMutex.RLock()
+	if t, ok := logs[name]; ok {
+		logMutex.RUnlock()
+		return t
+	}
+	logMutex.RUnlock()
+
+	// 如果不存在，加写锁创建新的 logger
+	logMutex.Lock()
+	defer logMutex.Unlock()
+
+	// 双重检查，避免在获取写锁期间其他 goroutine 已经创建了 logger
 	if t, ok := logs[name]; ok {
 		return t
 	}

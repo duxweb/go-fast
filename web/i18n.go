@@ -11,6 +11,9 @@ func I18nHandler() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			accept := c.Request().Header.Get("Accept-Language")
+			if accept == "" {
+				accept = "en-US"
+			}
 			t, _, _ := language.ParseAcceptLanguage(accept)
 			c.Set("i18n", i18n.NewLocalizer(duxI18n.Bundle, accept))
 			c.Set("lang", t[0].String())
