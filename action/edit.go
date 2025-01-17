@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (t *Resources[T]) Edit(ctx echo.Context) error {
@@ -101,7 +102,7 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 		}
 	}
 
-	err = tx.Debug().Save(&model).Error
+	err = tx.Debug().Omit(clause.Associations).Save(&model).Error
 	if err != nil {
 		tx.Rollback()
 		return err

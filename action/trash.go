@@ -3,6 +3,7 @@ package action
 import (
 	"context"
 	"errors"
+
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
@@ -10,6 +11,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (t *Resources[T]) Trash(ctx echo.Context) error {
@@ -74,7 +76,7 @@ func (t *Resources[T]) trashOne(ctx echo.Context, id string, params *gjson.Resul
 		}
 	}
 
-	err = tx.Unscoped().Delete(t.Model, id).Error
+	err = tx.Unscoped().Omit(clause.Associations).Delete(t.Model, id).Error
 	if err != nil {
 		return err
 	}

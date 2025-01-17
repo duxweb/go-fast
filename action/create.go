@@ -10,6 +10,7 @@ import (
 	"github.com/duxweb/go-fast/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/tidwall/gjson"
+	"gorm.io/gorm/clause"
 )
 
 func (t *Resources[T]) Create(ctx echo.Context) error {
@@ -73,7 +74,7 @@ func (t *Resources[T]) Create(ctx echo.Context) error {
 		}
 	}
 
-	err = tx.Model(t.Model).Create(&model).Error
+	err = tx.Model(t.Model).Omit(clause.Associations).Create(&model).Error
 	if err != nil {
 		tx.Rollback()
 		return err

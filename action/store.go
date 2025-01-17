@@ -3,6 +3,7 @@ package action
 import (
 	"context"
 	"errors"
+
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/helper"
 	"github.com/duxweb/go-fast/i18n"
@@ -13,6 +14,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (t *Resources[T]) Store(ctx echo.Context) error {
@@ -100,7 +102,7 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 		}
 	}
 
-	err = tx.Model(&model).Updates(formatData).Error
+	err = tx.Model(&model).Omit(clause.Associations).Updates(formatData).Error
 	if err != nil {
 		return err
 	}

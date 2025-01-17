@@ -9,6 +9,7 @@ import (
 	"github.com/duxweb/go-fast/response"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func (t *Resources[T]) Delete(ctx echo.Context) error {
@@ -78,7 +79,7 @@ func (t *Resources[T]) deleteOne(ctx echo.Context, id string) error {
 		}
 	}
 
-	err = tx.Delete(t.Model, id).Error
+	err = tx.Omit(clause.Associations).Delete(t.Model, id).Error
 	if err != nil {
 		tx.Rollback()
 		return err
