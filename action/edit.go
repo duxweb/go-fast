@@ -101,7 +101,7 @@ func (t *Resources[T]) Edit(ctx echo.Context) error {
 		}
 	}
 
-	err = tx.Save(&model).Error
+	err = tx.Debug().Save(&model).Error
 	if err != nil {
 		tx.Rollback()
 		return err
