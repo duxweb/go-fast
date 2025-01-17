@@ -3,10 +3,10 @@ package helper
 import (
 	"strings"
 
+	"github.com/dromara/carbon/v2"
 	"github.com/duxweb/go-fast/cache"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/models"
-	"github.com/golang-module/carbon/v2"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
@@ -15,7 +15,9 @@ import (
 
 func VisitIncrement(ctx echo.Context, hasType string, hasID uint, driver string, path string) error {
 
-	date := carbon.Now().ToDateStruct()
+	date := carbon.Date{
+		Carbon: carbon.Now(),
+	}
 	path = lo.Ternary[string](path == "", path, ctx.Path())
 
 	if strings.Contains(path, "/theme") || strings.Contains(path, "/manage") || strings.Contains(path, "/public") || strings.Contains(path, "/static") || strings.Contains(path, "/install") {
