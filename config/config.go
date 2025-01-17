@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/dromara/carbon/v2"
 	"github.com/duxweb/go-fast/global"
+	"github.com/golang-module/carbon/v2"
 	"github.com/gookit/goutil/fsutil"
 	"github.com/samber/do/v2"
 	"github.com/spf13/afero"

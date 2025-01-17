@@ -12,7 +12,6 @@ require (
 	github.com/demdxx/gocast/v2 v2.9.0
 	github.com/derekstavis/go-qs v0.0.0-20180720192143-9eef69e6c4e7
 	github.com/disintegration/imaging v1.6.2
-	github.com/dromara/carbon/v2 v2.5.2
 	github.com/dustin/go-humanize v1.0.1
 	github.com/duxweb/go-storage/v2 v2.0.3
 	github.com/go-errors/errors v1.5.1
@@ -21,6 +20,7 @@ require (
 	github.com/godoes/gorm-dameng v0.5.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-module/carbon/v2 v2.4.1
 	github.com/google/uuid v1.6.0
 	github.com/gookit/color v1.5.4
 	github.com/gookit/event v1.1.2
