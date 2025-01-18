@@ -2,15 +2,13 @@ package middleware
 
 import (
 	duxAuth "github.com/duxweb/go-fast/auth"
-	duxPermission "github.com/duxweb/go-fast/permission"
 	"github.com/duxweb/go-fast/response"
 	"github.com/duxweb/go-fast/route"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
-	"github.com/spf13/cast"
 )
 
-type PermissionFun func(id string) ([]string, error)
+type PermissionFun func(id string) ([]string, []string, error)
 
 func PermissionMiddleware(permission PermissionFun) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -20,20 +18,17 @@ func PermissionMiddleware(permission PermissionFun) echo.MiddlewareFunc {
 				return response.BusinessError("Permissions must be authorized by the user after", 500)
 			}
 			routeName := route.GetRouteName(c)
+
 			if routeName == "" {
 				return next(c)
 			}
 
-			data := duxPermission.Get("admin").Get(c)
-			permissions := lo.Map[map[string]any, string](data, func(item map[string]any, index int) string {
-				return cast.ToString(item["name"])
-			})
-			c.Set("permissions", permissions)
-
-			userPermission, err := permission(auth.ID)
+			allPermission, userPermission, err := permission(auth.ID)
 			if err != nil {
 				return err
 			}
+			c.Set("permissions", allPermission)
+
 			c.Set("userPermissions", userPermission)
 
 			err = Can(c, routeName)

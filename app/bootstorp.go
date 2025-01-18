@@ -2,6 +2,11 @@ package app
 
 import (
 	"embed"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/duxweb/go-fast/annotation"
 	"github.com/duxweb/go-fast/database"
 	"github.com/duxweb/go-fast/global"
@@ -12,10 +17,6 @@ import (
 	"github.com/duxweb/go-fast/web"
 	"github.com/gookit/color"
 	"github.com/urfave/cli/v2"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 // Dux 基础结构
