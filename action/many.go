@@ -28,12 +28,14 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 		return err
 	}
 
+	pageStatus := t.Pagination.Status
+
 	if t.Tree || !params.Get("pageSize").Exists() {
-		t.Pagination.Status = false
+		pageStatus = false
 	}
 
 	pageSize := 0
-	if t.Pagination.Status {
+	if pageStatus {
 		pageSize = lo.Ternary[int](params.Get("pageSize").Exists(), int(params.Get("pageSize").Uint()), t.Pagination.PageSize)
 	}
 
@@ -85,7 +87,7 @@ func (t *Resources[T]) List(ctx echo.Context) error {
 
 	models := make([]T, 0)
 	var pagination *coreModel.Pagination
-	if t.Pagination.Status {
+	if pageStatus {
 		pagination = coreModel.NewPagination(int(params.Get("page").Int()), pageSize)
 		err = query.Scopes(coreModel.Paginate(pagination)).Find(&models).Error
 
