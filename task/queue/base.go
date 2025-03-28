@@ -15,8 +15,6 @@ import (
 	"github.com/maragudk/goqite"
 	"github.com/maragudk/goqite/jobs"
 	"github.com/samber/lo"
-
-	_ "github.com/ncruces/go-sqlite3/vfs/memdb"
 )
 
 type BaseQueue struct {

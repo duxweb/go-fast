@@ -10,18 +10,14 @@ import (
 	coreLogger "github.com/duxweb/go-fast/logger"
 	dameng "github.com/godoes/gorm-dameng"
 
-	"github.com/ncruces/go-sqlite3/gormlite"
 	slogGorm "github.com/orandin/slog-gorm"
 	"github.com/samber/do/v2"
 	"github.com/spf13/cast"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-
-	_ "github.com/ncruces/go-sqlite3/driver"
-
-	_ "github.com/ncruces/go-sqlite3/embed"
 )
 
 type Migrate struct {
@@ -108,7 +104,7 @@ func NewGorm(name string) *GormService {
 		connect = dameng.Open(dsn)
 	}
 	if dbConfig["type"] == "sqlite" {
-		connect = gormlite.Open("file:" + dbConfig["file"] + "?_pragma=journal_mode(WAL)")
+		connect = sqlite.Open(dbConfig["file"] + "?_journal=WAL&_timeout=5000&_fk=true")
 	}
 	database, err := gorm.Open(connect, &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
