@@ -69,11 +69,9 @@ func (q *Redis) Worker(queueName string) {
 }
 
 func (q *Redis) Start() error {
-	logger.Log("task").Info("Starting Redis queue service", "queues", q.Names())
 	for name, serveMux := range q.ServeMuxs {
 		queueName := name
 		go func() {
-			logger.Log("task").Info("Starting queue", "queue", queueName)
 			if err := q.Server.Run(serveMux); err != nil {
 				logger.Log("task").Error("Queue run", "queue", queueName, "err", err)
 			}
