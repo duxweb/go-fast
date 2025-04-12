@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"time"
 
 	"github.com/duxweb/go-fast/global"
 	"github.com/go-errors/errors"
@@ -42,7 +43,7 @@ func (s *CronService) Scheduler(cron string, name string) error {
 		return errors.New("job not found: " + name)
 	}
 
-	cronTrigger, _ := quartz.NewCronTrigger(cron)
+	cronTrigger, _ := quartz.NewCronTriggerWithLoc(cron, time.Local)
 	s.Cron.ScheduleJob(quartz.NewJobDetail(
 		job.NewFunctionJob[any](callback),
 		quartz.NewJobKey(name),
