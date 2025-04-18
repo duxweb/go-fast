@@ -42,6 +42,11 @@ func NewQueue(i do.Injector) (*QueueService, error) {
 
 	driver.Worker("default")
 
+	workers := config.Load("use").GetStringSlice("queue.workers")
+	for _, worker := range workers {
+		driver.Worker(worker)
+	}
+
 	driver.Register("default", "ping", func(ctx context.Context, params []byte) error {
 		color.Println("⇨ <green>Queue service ping</>")
 		return nil
