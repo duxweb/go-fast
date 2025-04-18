@@ -22,6 +22,7 @@ type Redis struct {
 	ServeMuxs map[string]*asynq.ServeMux
 	Client    *asynq.Client
 	Inspector *asynq.Inspector
+	Mux       *asynq.ServeMux
 }
 
 func NewRedis() *Redis {
@@ -59,6 +60,7 @@ func NewRedis() *Redis {
 		Server:    server,
 		Client:    client,
 		Inspector: inspector,
+		Mux:       asynq.NewServeMux(),
 		ServeMuxs: make(map[string]*asynq.ServeMux),
 	}
 }
@@ -70,13 +72,15 @@ func (q *Redis) Worker(queueName string) {
 
 func (q *Redis) Start() error {
 	for name, serveMux := range q.ServeMuxs {
-		queueName := name
-		go func() {
-			if err := q.Server.Run(serveMux); err != nil {
-				logger.Log("task").Error("Queue run", "queue", queueName, "err", err)
-			}
-		}()
+		q.Mux.Handle(name+":", serveMux)
 	}
+
+	go func() {
+		if err := q.Server.Run(q.Mux); err != nil {
+			logger.Log("task").Error("Queue run", "err", err)
+		}
+	}()
+
 	return nil
 }
 
@@ -85,7 +89,7 @@ func (q *Redis) Register(queueName string, name string, callback func(ctx contex
 	if !ok {
 		return fmt.Errorf("queue %s not found", queueName)
 	}
-	serveMux.HandleFunc(name, func(ctx context.Context, t *asynq.Task) error {
+	serveMux.HandleFunc(fmt.Sprintf("%s:%s", queueName, name), func(ctx context.Context, t *asynq.Task) error {
 		return callback(ctx, t.Payload())
 	})
 
@@ -100,13 +104,12 @@ func (q *Redis) Add(queueName string, add QueueAdd) (string, error) {
 }
 
 func (q *Redis) AddDelay(queueName string, add QueueAddDelay) (string, error) {
-	task := asynq.NewTask(add.Name, add.Params)
+	task := asynq.NewTask(fmt.Sprintf("%s:%s", queueName, add.Name), add.Params)
 	opts := []asynq.Option{
 		asynq.ProcessIn(add.Delay),
 		asynq.MaxRetry(3),
 		asynq.Timeout(1 * time.Minute),
 		asynq.Retention(24 * time.Hour),
-		asynq.Queue(queueName),
 	}
 	info, err := q.Client.Enqueue(task, opts...)
 	if err != nil {
