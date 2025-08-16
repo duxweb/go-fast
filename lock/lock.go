@@ -21,7 +21,13 @@ func (s *LockService) Shutdown() error {
 }
 
 func LockInit() {
-	lockConfig := config.Load("lock").MapKeys("drivers")
+	var lockConfig []string
+	if config.IsLoad("lock") {
+		lockConfig = config.Load("lock").MapKeys("drivers")
+	} else {
+		lockConfig = []string{"default"}
+	}
+
 	for _, name := range lockConfig {
 		do.ProvideNamed(global.Injector, "lock."+name, func(injector do.Injector) (*LockService, error) {
 			return NewLock(name), nil
@@ -41,7 +47,16 @@ func Lock(name ...string) *golock.Manager {
 
 // NewLock 创建新的锁服务
 func NewLock(name string) *LockService {
-	lockConfig := config.Load("lock").StringMap("drivers." + name)
+
+	var lockConfig map[string]string
+
+	if config.IsLoad("lock") {
+		lockConfig = config.Load("lock").StringMap("drivers." + name)
+	} else {
+		lockConfig = map[string]string{
+			"type": "memory",
+		}
+	}
 
 	var provider golock.LockProvider
 

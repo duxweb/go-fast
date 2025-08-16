@@ -43,7 +43,15 @@ func (s *GormService) Shutdown() error {
 }
 
 func GormInit() {
-	dbConfig := config.Load("database").MapKeys("db.drivers")
+
+	var dbConfig []string
+
+	if config.IsLoad("database") {
+		dbConfig = config.Load("database").MapKeys("db.drivers")
+	} else {
+		dbConfig = []string{"sqlite"}
+	}
+
 	for _, name := range dbConfig {
 		do.ProvideNamed(global.Injector, "orm."+name, func(injector do.Injector) (*GormService, error) {
 			return NewGorm(name), nil
@@ -69,9 +77,16 @@ func GormCtx(ctx context.Context) *gorm.DB {
 }
 
 func NewGorm(name string) *GormService {
-	// 重新读取服务
-	config.Reload("database")
-	dbConfig := config.Load("database").StringMap("db.drivers." + name)
+
+	var dbConfig map[string]string
+	if config.IsLoad("database") {
+		dbConfig = config.Load("database").StringMap("db.drivers." + name)
+	} else {
+		dbConfig = map[string]string{
+			"type": "sqlite",
+			"file": "./database/default.db",
+		}
+	}
 	var connect gorm.Dialector
 	if dbConfig["type"] == "mysql" {
 		connect = mysql.Open(fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",

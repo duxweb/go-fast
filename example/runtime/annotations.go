@@ -3,25 +3,14 @@ package runtime
 
 import (
 	"github.com/duxweb/go-fast/v2/annotation"
-	AppModels "example/app/models"
 	AppSystemAdmin "example/app/system/admin"
+	AppSystemModels "example/app/system/models"
 	AppSystemWeb "example/app/system/web"
 )
 
 // GetAnnotations 返回所有注解的索引
 func GetAnnotations() []*annotation.File {
 	return []*annotation.File{
-		{
-			Name: "app/models/book.go",
-			Annotations: []*annotation.Annotation{
-				{
-					Name: "AutoMigrate",
-					Params: map[string]any{
-					},
-					Func: AppModels.Book{},
-				},
-			},
-		},
 		{
 			Name: "app/system/admin/bookRes.go",
 			Annotations: []*annotation.Annotation{
@@ -30,6 +19,17 @@ func GetAnnotations() []*annotation.File {
 					Params: map[string]any{
 					},
 					Func: AppSystemAdmin.BookRes,
+				},
+			},
+		},
+		{
+			Name: "app/system/models/book.go",
+			Annotations: []*annotation.Annotation{
+				{
+					Name: "AutoMigrate",
+					Params: map[string]any{
+					},
+					Func: AppSystemModels.Book{},
 				},
 			},
 		},

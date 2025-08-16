@@ -70,7 +70,9 @@ func Start() {
 	port := "8900"
 
 	if config.IsLoad("use") {
-		port = config.Load("use").String("server.port")
+		if config.Load("use").Exists("server.port") {
+			port = config.Load("use").String("server.port")
+		}
 	}
 
 	global.GetBanner()

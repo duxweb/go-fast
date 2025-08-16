@@ -19,10 +19,10 @@ import (
 
 var data = map[string]*koanf.Koanf{}
 
-func Init() {
+func Init() error {
 	configFiles, err := filepath.Glob(global.ConfigDir + "*.toml")
 	if err != nil {
-		panic("configuration loading failure")
+		return err
 	}
 
 	for _, file := range configFiles {
@@ -38,6 +38,8 @@ func Init() {
 		global.Debug = Load("use").Bool("app.debug")
 		global.Lang = Load("use").String("app.lang")
 	}
+
+	return nil
 }
 
 func LoadFile(name string) {

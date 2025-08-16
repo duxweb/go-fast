@@ -2,6 +2,7 @@ package system
 
 import (
 	"github.com/duxweb/go-fast/v2/app"
+	"github.com/duxweb/go-fast/v2/resources"
 	"github.com/duxweb/go-fast/v2/route"
 )
 
@@ -20,6 +21,9 @@ func App() *app.Config {
 
 func Init() error {
 	route.SetRouter("web", route.New("web", ""))
+
+	resources.Set("admin", resources.New("admin", "/admin"))
+
 	return nil
 }
 

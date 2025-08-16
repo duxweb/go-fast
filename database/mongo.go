@@ -18,6 +18,9 @@ func (s *MongoService) Shutdown() error {
 }
 
 func MongoInit() {
+	if !config.IsLoad("database") {
+		return
+	}
 	dbConfig := config.Load("database").MapKeys("mongodb.drivers")
 	for _, name := range dbConfig {
 		do.ProvideNamed(global.Injector, "mongodb."+name, func(injector do.Injector) (*MongoService, error) {

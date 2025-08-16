@@ -21,7 +21,7 @@ func Service() *service.Config {
 
 func Command() []*cli.Command {
 	cmd := &cli.Command{
-		Category: "route",
+		Category: "permission",
 		Name:     "permission:list",
 		Usage:    "View all permissions registered",
 		Action: func(context.Context, *cli.Command) error {

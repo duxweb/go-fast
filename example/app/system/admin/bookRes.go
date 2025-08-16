@@ -2,7 +2,7 @@ package admin
 
 import (
 	"context"
-	"example/app/models"
+	"example/app/system/models"
 	"fmt"
 
 	"github.com/duxweb/go-fast/v2/action"

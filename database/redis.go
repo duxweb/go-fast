@@ -23,6 +23,9 @@ func (s *RedisService) Shutdown() error {
 }
 
 func RedisInit() {
+	if !config.IsLoad("database") {
+		return
+	}
 	dbConfig := config.Load("database").MapKeys("redis.drivers")
 	for _, name := range dbConfig {
 		do.OverrideNamed(global.Injector, "redis."+name, func(injector do.Injector) (*RedisService, error) {

@@ -64,6 +64,8 @@ func NewHuma(name string, prefix string) huma.API {
 
 	config := huma.DefaultConfig(name+" API", global.Version)
 
+	config.DocsPath = prefix + "/docs"
+
 	// 配置安全方案
 	// Configure security schemes
 	config.Components.SecuritySchemes = map[string]*huma.SecurityScheme{

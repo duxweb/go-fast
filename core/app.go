@@ -11,6 +11,7 @@ import (
 	"github.com/duxweb/go-fast/v2/app"
 	"github.com/duxweb/go-fast/v2/cache"
 	"github.com/duxweb/go-fast/v2/cmd"
+	"github.com/duxweb/go-fast/v2/config"
 	"github.com/duxweb/go-fast/v2/database"
 	"github.com/duxweb/go-fast/v2/event"
 	"github.com/duxweb/go-fast/v2/global"
@@ -122,6 +123,7 @@ func (t *App) Run() {
 
 	// 注册核心服务
 	t.RegisterService(CoreService)
+	t.RegisterService(config.Service)
 	t.RegisterService(app.Service)
 	t.RegisterService(web.Service)
 	t.RegisterService(route.Service)
