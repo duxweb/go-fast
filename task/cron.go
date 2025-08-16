@@ -4,10 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/duxweb/go-fast/global"
 	"github.com/go-errors/errors"
 	"github.com/reugn/go-quartz/job"
-	"github.com/reugn/go-quartz/logger"
 	"github.com/reugn/go-quartz/quartz"
 	"github.com/samber/do/v2"
 )
@@ -84,17 +82,14 @@ func (s *CronService) Shutdown() error {
 	s.Cron.Wait(s.Context)
 	return nil
 }
-
-func CronInit() {
-	do.ProvideNamed(global.Injector, "cron", NewCron)
-}
-
 func NewCron(i do.Injector) (*CronService, error) {
-	logger.SetDefault(logger.NewSimpleLogger(nil, logger.LevelOff))
+
+	scheduler, err := quartz.NewStdScheduler()
+	if err != nil {
+		return nil, err
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	scheduler := quartz.NewStdScheduler()
-
 	data := &CronService{
 		Cron:    scheduler,
 		Context: ctx,
@@ -103,9 +98,4 @@ func NewCron(i do.Injector) (*CronService, error) {
 	}
 
 	return data, nil
-}
-
-func Cron() *CronService {
-	client := do.MustInvokeNamed[*CronService](global.Injector, "cron")
-	return client
 }

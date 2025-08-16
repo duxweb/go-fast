@@ -1,40 +1,27 @@
 package action
 
 import (
-	"github.com/duxweb/go-fast/helper"
-	"github.com/duxweb/go-fast/i18n"
-	"github.com/duxweb/go-fast/response"
-	"github.com/labstack/echo/v4"
-	"strings"
+	"context"
+
+	"github.com/duxweb/go-fast/v2/resp"
 )
 
-func (t *Resources[T]) DeleteMany(ctx echo.Context) error {
-	var err error
-	if t.initFun != nil {
-		err = t.initFun(t, ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	params, err := helper.Qs(ctx)
-	if err != nil {
-		return err
-	}
-
-	ids := strings.Split(params.Get("ids").String(), ",")
-
-	for _, id := range ids {
+// DeleteMany 批量删除记录方法
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) DeleteMany(ctx context.Context, input *DeleteManyInput) (*resp.HumaResponse[any, resp.EmptyMeta], error) {
+	for _, id := range input.IDs {
 		if id == "" {
 			continue
 		}
-		err = t.deleteOne(ctx, id)
+		deleteInput := &DeleteInput{ID: id}
+		_, err := res.Delete(ctx, deleteInput)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return response.Send(ctx, response.Data{
-		Message: i18n.Get(ctx, "common.message.delete"),
-	})
+	return resp.Send(ctx, resp.Data[any, resp.EmptyMeta]{
+		Message: "批量删除成功",
+		Data:    nil,
+		Meta:    resp.EmptyMeta{},
+	}), nil
 }

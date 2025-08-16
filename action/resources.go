@@ -1,192 +1,273 @@
 package action
 
-import (
-	"context"
+// Result action操作函数映射类型
+type Result = map[string]any
 
-	"github.com/duxweb/go-fast/validator"
-	"github.com/labstack/echo/v4"
-	"github.com/tidwall/gjson"
-	"gorm.io/gorm"
-)
+// TransformContext Transform回调的上下文
+type TransformContext struct {
+	IsList bool `json:"is_list"` // 是否为列表操作
+	// 可扩展其他字段，如 IsExport bool、FilterFields []string 等
+}
+
+// Meta 列表元数据结构
+type Meta struct {
+	Total int `json:"total,omitempty" doc:"总数"`
+	Page  int `json:"page,omitempty" doc:"当前页"`
+	Limit int `json:"limit,omitempty" doc:"每页数量"`
+}
 
 type Pagination struct {
 	Status   bool
 	PageSize int
 }
 
-type Resources[T any] struct {
-	Model            T
-	Key              string
-	Tree             bool
-	TreeSort         string
-	Pagination       Pagination
-	IncludesMany     []string
-	ExcludesMany     []string
-	IncludesOne      []string
-	ExcludesOne      []string
-	queryParams      any
-	preload          []string
-	initFun          InitFun[T]
-	TransformFun     TransformFun[T]
-	queryFun         QueryFun
-	queryManyFun     QueryRequestFun
-	queryOneFun      QueryRequestFun
-	metaManyFun      MetaManyFun[T]
-	metaOneFun       MetaOneFun[T]
-	manyAfterFun     ManyCallFun[T]
-	oneAfterFun      OneCallFun[T]
-	validatorFun     ValidatorFun
-	formatFun        FormatFun[T]
-	createBeforeFun  ActionCallParamsFun[T]
-	createAfterFun   ActionCallParamsFun[T]
-	editBeforeFun    ActionCallParamsFun[T]
-	editAfterFun     ActionCallParamsFun[T]
-	saveBeforeFun    ActionCallParamsFun[T]
-	saveAfterFun     ActionCallParamsFun[T]
-	storeBeforeFun   ActionCallParamsFun[T]
-	storeAfterFun    ActionCallParamsFun[T]
-	deleteBeforeFun  ActionCallFun[T]
-	deleteAfterFun   ActionCallFun[T]
-	trashBeforeFun   ActionCallFun[T]
-	trashAfterFun    ActionCallFun[T]
-	restoreBeforeFun ActionCallFun[T]
-	restoreAfterFun  ActionCallFun[T]
+// Resources 资源配置结构体（泛型版本）
+type Resources[Model any, Info any, Params any, Data any, ListMeta any, DetailMeta any] struct {
+	Key        string
+	Tree       bool
+	TreeSort   string
+	Pagination Pagination
+	preload    []string
+
+	// 路由注册配置
+	routeAppName string
+	routeResName string
+	routePath    string
+
+	// 存储各种回调函数，使用具体类型
+	model        any
+	queryFun     any // func(*gorm.DB, context.Context) *gorm.DB
+	filterFun    any // func(*gorm.DB, *Params) *gorm.DB
+	transformFun any // func(*Model, int, *TransformContext) Info
+	formatFun    any // func(*Model, *Data, context.Context) (*Model, error)
+	metaManyFun  any // func([]Model) ListMeta 或 func([]Model) map[string]any
+	metaOneFun   any // func(Model) DetailMeta 或 func(Model) map[string]any
+
+	// 生命周期回调
+	createBeforeFun  any
+	createAfterFun   any
+	editBeforeFun    any
+	editAfterFun     any
+	saveBeforeFun    any
+	saveAfterFun     any
+	storeBeforeFun   any
+	storeAfterFun    any
+	deleteBeforeFun  any
+	deleteAfterFun   any
+	trashBeforeFun   any
+	trashAfterFun    any
+	restoreBeforeFun any
+	restoreAfterFun  any
+
+	// 操作开关配置项
 	ActionList       bool
 	ActionShow       bool
 	ActionCreate     bool
 	ActionEdit       bool
 	ActionDelete     bool
 	ActionStore      bool
+	ActionTrash      bool
+	ActionRestore    bool
 	ActionSoftDelete bool
 	Extend           map[string]any
 }
 
-func New[T any](model T) *Resources[T] {
-	return &Resources[T]{
-		Key:   "id",
-		Tree:  false,
-		Model: model,
+// New 创建资源实例（泛型版本）
+func New[Model any, Info any, Params any, Data any, ListMeta any, DetailMeta any]() *Resources[Model, Info, Params, Data, ListMeta, DetailMeta] {
+	return &Resources[Model, Info, Params, Data, ListMeta, DetailMeta]{
+		Key:  "id",
+		Tree: false,
 		Pagination: Pagination{
 			Status:   true,
 			PageSize: 10,
 		},
-		IncludesMany:     []string{},
-		ExcludesMany:     []string{},
-		IncludesOne:      []string{},
-		ExcludesOne:      []string{},
 		ActionList:       true,
 		ActionShow:       true,
 		ActionCreate:     true,
 		ActionEdit:       true,
 		ActionDelete:     true,
 		ActionStore:      true,
+		ActionTrash:      false,
+		ActionRestore:    false,
 		ActionSoftDelete: false,
 		Extend:           map[string]any{},
 	}
 }
 
-type InitFun[T any] func(t *Resources[T], e echo.Context) error
-
-// Init 初始化回调
-func (t *Resources[T]) Init(call InitFun[T]) {
-	t.initFun = call
+// ShowInput 详情查询输入
+type ShowInput struct {
+	ID string `path:"id" required:"true" doc:"记录ID"`
 }
 
-type TransformFun[T any] func(item *T, index int) map[string]any
-
-// Transform 字段转换
-func (t *Resources[T]) Transform(call TransformFun[T]) {
-	t.TransformFun = call
+// EditInput 编辑操作输入
+type EditInput[Data any] struct {
+	ID   string `path:"id" required:"true" doc:"记录ID"`
+	Body Data   `json:",inline"`
 }
 
-func (t *Resources[T]) QueryParams(data any) {
-	t.queryParams = data
+// DeleteInput 删除操作输入
+type DeleteInput struct {
+	ID string `path:"id" required:"true" doc:"记录ID"`
 }
 
-func (t *Resources[T]) Preload(data ...string) {
-	t.preload = data
+// DeleteManyInput 批量删除输入
+type DeleteManyInput struct {
+	IDs []string `json:"ids" required:"true" doc:"记录ID列表"`
 }
 
-type QueryFun func(tx *gorm.DB, e echo.Context) *gorm.DB
-
-// Query 通用查询
-func (t *Resources[T]) Query(call QueryFun) {
-	t.queryFun = call
+// TrashManyInput 批量彻底删除输入
+type TrashManyInput struct {
+	IDs []string `json:"ids" required:"true" doc:"记录ID列表"`
 }
 
-type QueryRequestFun func(tx *gorm.DB, params *gjson.Result, e echo.Context) *gorm.DB
-
-// QueryMany 多条数据查询
-func (t *Resources[T]) QueryMany(call QueryRequestFun) {
-	t.queryManyFun = call
+// RestoreManyInput 批量恢复输入
+type RestoreManyInput struct {
+	IDs []string `json:"ids" required:"true" doc:"记录ID列表"`
 }
 
-// QueryOne 单条数据查询
-func (t *Resources[T]) QueryOne(call QueryRequestFun) {
-	t.queryOneFun = call
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetModel() any {
+	return res.model
 }
 
-type MetaManyFun[T any] func(data []T, e echo.Context) map[string]any
-
-// MetaMany 多条元数据
-func (t *Resources[T]) MetaMany(call MetaManyFun[T]) {
-	t.metaManyFun = call
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetFormatFun() any {
+	return res.formatFun
 }
 
-type MetaOneFun[T any] func(data T, e echo.Context) map[string]any
-
-// MetaOne 单条元数据
-func (t *Resources[T]) MetaOne(call MetaManyFun[T]) {
-	t.metaManyFun = call
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetFilterFun() any {
+	return res.filterFun
 }
 
-type ValidatorFun func(data *gjson.Result, e echo.Context) (validator.ValidatorRule, error)
-
-// Validator 数据验证
-// Docs github.com/go-playground/validator/v10
-func (t *Resources[T]) Validator(call ValidatorFun) {
-	t.validatorFun = call
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetTransformFun() any {
+	return res.transformFun
 }
 
-type FormatFun[T any] func(model *T, data *gjson.Result, e echo.Context) error
-
-// Format 数据格式化
-func (t *Resources[T]) Format(call FormatFun[T]) {
-	t.formatFun = call
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetMetaManyFun() any {
+	return res.metaManyFun
 }
 
-type ActionCallParamsFun[T any] func(ctx context.Context, data *T, params *gjson.Result) error
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetMetaOneFun() any {
+	return res.metaOneFun
+}
 
-type ActionCallFun[T any] func(ctx context.Context, data *T) error
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetCreateBeforeFun() any {
+	return res.createBeforeFun
+}
 
-type Result map[string]func(ctx echo.Context) error
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetCreateAfterFun() any {
+	return res.createAfterFun
+}
 
-func (t *Resources[T]) Result() Result {
-	result := Result{}
-	if t.ActionList {
-		result["list"] = t.List
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetEditBeforeFun() any {
+	return res.editBeforeFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetEditAfterFun() any {
+	return res.editAfterFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetDeleteBeforeFun() any {
+	return res.deleteBeforeFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetDeleteAfterFun() any {
+	return res.deleteAfterFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetStoreBeforeFun() any {
+	return res.storeBeforeFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetStoreAfterFun() any {
+	return res.storeAfterFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetTrashBeforeFun() any {
+	return res.trashBeforeFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetTrashAfterFun() any {
+	return res.trashAfterFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetRestoreBeforeFun() any {
+	return res.restoreBeforeFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetRestoreAfterFun() any {
+	return res.restoreAfterFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) IsTree() bool {
+	return res.Tree
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetTreeSort() string {
+	return res.TreeSort
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetPagination() Pagination {
+	return res.Pagination
+}
+
+// Getter 方法用于接口访问
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetKey() string {
+	return res.Key
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetQueryFun() any {
+	return res.queryFun
+}
+
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) GetPreload() []string {
+	return res.preload
+}
+
+// Result 返回所有启用的操作函数
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Result() map[string]any {
+	result := make(map[string]any)
+
+	if res.ActionList {
+		result["list"] = res.List
 	}
-	if t.ActionShow {
-		result["show"] = t.Show
+	if res.ActionShow {
+		result["show"] = res.Show
 	}
-	if t.ActionCreate {
-		result["create"] = t.Create
+	if res.ActionCreate {
+		result["create"] = res.Create
 	}
-	if t.ActionEdit {
-		result["edit"] = t.Edit
+	if res.ActionEdit {
+		result["edit"] = res.Edit
 	}
-	if t.ActionDelete {
-		result["delete"] = t.Delete
-		result["deleteMany"] = t.DeleteMany
+	if res.ActionStore {
+		result["store"] = res.Store
 	}
-	if t.ActionStore {
-		result["store"] = t.Store
+	if res.ActionDelete {
+		result["delete"] = res.Delete
+		result["deleteMany"] = res.DeleteMany
 	}
-	if t.ActionSoftDelete {
-		result["trash"] = t.Trash
-		result["trashMany"] = t.TrashMany
-		result["restore"] = t.Restore
-		result["restoreMany"] = t.RestoreMany
+	if res.ActionTrash {
+		result["trash"] = res.Trash
+		result["trashMany"] = res.TrashMany
 	}
+	if res.ActionRestore {
+		result["restore"] = res.Restore
+		result["restoreMany"] = res.RestoreMany
+	}
+
 	return result
+}
+
+// SetRoute 设置路由注册配置
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) SetRoute(appName, resName, routePath string) *Resources[Model, Info, Params, Data, ListMeta, DetailMeta] {
+	res.routeAppName = appName
+	res.routeResName = resName
+	res.routePath = routePath
+	return res
+}
+
+// Register 执行路由注册
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Register() {
+	if res.routeAppName != "" && res.routeResName != "" && res.routePath != "" {
+		res.RegisterRoutes(res.routeAppName, res.routeResName, res.routePath)
+	}
 }

@@ -1,65 +1,105 @@
 package i18n
 
 import (
+	"context"
 	"embed"
-	"github.com/labstack/echo/v4"
+	"io/fs"
+	"sync"
+
+	"github.com/duxweb/go-fast/v2/helper"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/pelletier/go-toml/v2"
 	"golang.org/x/text/language"
-	"io/fs"
 )
 
 var Bundle *i18n.Bundle
 
+var Localizer map[string]*i18n.Localizer
+
+var LocalizerLock sync.RWMutex
+
+type LangKey struct{}
+
 //go:embed lang/*.toml
 var langFs embed.FS
 
-func Init() {
+func Init() error {
 	Bundle = i18n.NewBundle(language.English)
 	Bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-	Register(langFs)
+	Localizer = make(map[string]*i18n.Localizer)
+	err := Register(langFs)
+	return err
 }
 
-func Register(file embed.FS) {
-	_ = fs.WalkDir(file, ".", func(path string, d fs.DirEntry, err error) error {
+// Register 注册语言文件
+// Register register language files
+func Register(file embed.FS) error {
+	err := fs.WalkDir(file, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
 			return nil
 		}
-		_, err = Bundle.LoadMessageFileFS(file, path)
+		_, _ = Bundle.LoadMessageFileFS(file, path)
 		return nil
 	})
+	return err
 }
 
-func Get(c echo.Context, id string, data ...map[string]any) string {
-	if c == nil {
-		return id
-	}
-	return GetDefault(c, id, id, data...)
+// WithLanguage 设置语言
+// WithLanguage set language
+func WithLanguage(ctx context.Context, lang string) context.Context {
+	ctx = context.WithValue(ctx, LangKey{}, lang)
+	return ctx
 }
 
-func GetDefault(c echo.Context, id string, message string, data ...map[string]any) string {
-	local, ok := c.Get("i18n").(*i18n.Localizer)
+// GetLocalizer 获取本地化器
+// GetLocalizer get localizer by lang
+func GetLocalizer(lang string) *i18n.Localizer {
+	LocalizerLock.RLock()
+	defer LocalizerLock.RUnlock()
+	localizer, ok := Localizer[lang]
 	if !ok {
-		return id
+		localizer = i18n.NewLocalizer(Bundle, lang)
+		Localizer[lang] = localizer
 	}
-	msgData := map[string]any{}
-	if len(data) > 0 {
-		msgData = data[0]
+	return localizer
+}
+
+// T 获取本地化消息
+// T get localized message
+func T(ctx context.Context, msg string, args ...any) string {
+
+	lang := helper.GetContextValue[LangKey, string](ctx, LangKey{})
+	if lang == "" {
+		lang = "en-US"
 	}
 
-	cfg := &i18n.LocalizeConfig{
+	defaultMessage := msg
+	msgData := map[string]any{}
+
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case map[string]any:
+			for k, v := range v {
+				msgData[k] = v
+			}
+		case string:
+			defaultMessage = v
+		}
+	}
+	cfg := i18n.LocalizeConfig{
 		DefaultMessage: &i18n.Message{
-			ID:    id,
-			Other: message,
+			ID:    msg,
+			Other: defaultMessage,
 		},
 		TemplateData: msgData,
 	}
-	str, err := local.Localize(cfg)
+	str, err := GetLocalizer(lang).Localize(&cfg)
+
 	if err != nil {
-		return id
+		return msg
 	}
 	return str
 }

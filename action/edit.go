@@ -2,141 +2,84 @@ package action
 
 import (
 	"context"
-	"errors"
+	"reflect"
 
-	"github.com/duxweb/go-fast/database"
-	"github.com/duxweb/go-fast/helper"
-	"github.com/duxweb/go-fast/i18n"
-	"github.com/duxweb/go-fast/models"
-	"github.com/duxweb/go-fast/response"
-	"github.com/duxweb/go-fast/validator"
-	"github.com/labstack/echo/v4"
-	"github.com/spf13/cast"
-	"github.com/tidwall/gjson"
-	"gorm.io/gorm"
+	"github.com/duxweb/go-fast/v2/database"
+	"github.com/duxweb/go-fast/v2/resp"
 	"gorm.io/gorm/clause"
 )
 
-func (t *Resources[T]) Edit(ctx echo.Context) error {
-	var err error
-	if t.initFun != nil {
-		err = t.initFun(t, ctx)
-		if err != nil {
-			return err
+// Edit 编辑记录方法
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Edit(ctx context.Context, input *EditInput[Data]) (*resp.HumaResponse[any, resp.EmptyMeta], error) {
+	id := input.ID
+
+	// 获取模型实例
+	var model Model
+	if res.model != nil {
+		// 使用反射创建模型实例
+		modelType := reflect.TypeOf(res.model)
+		if modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
 		}
+		model = reflect.New(modelType).Interface().(Model)
 	}
 
-	params, err := helper.Qs(ctx)
+	err := res.getOne(&model, id, ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	data, err := helper.Body(ctx)
-	if err != nil {
-		return err
-	}
-
-	if t.validatorFun != nil {
-		rules, err := t.validatorFun(data, ctx)
+	// 应用格式化函数
+	if res.formatFun != nil {
+		formatFn := res.formatFun.(func(*Model, *Data, context.Context) (*Model, error))
+		formattedModel, err := formatFn(&model, &input.Body, ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		dataMaps := map[string]any{}
-		data.ForEach(func(key, value gjson.Result) bool {
-			dataMaps[key.String()] = value.Value()
-			return true
-		})
-		err = validator.ValidatorMaps(ctx, dataMaps, rules)
-		if err != nil {
-			return err
-		}
-	}
-
-	id := ctx.Param("id")
-	var model T
-
-	err = t.getOne(ctx, &model, id, params)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return response.BusinessError(i18n.Get(ctx, "common.message.emptyData"))
-		} else {
-			return err
-		}
-	}
-
-	if t.formatFun != nil {
-		err = t.formatFun(&model, data, ctx)
-		if err != nil {
-			return err
-		}
+		model = *formattedModel
 	}
 
 	tx := database.Gorm().Begin()
 	if tx.Error != nil {
-		return tx.Error
+		return nil, tx.Error
 	}
 	c := context.Background()
 	c = context.WithValue(c, "tx", tx)
-	c = context.WithValue(c, "echo", ctx)
 
-	if t.editBeforeFun != nil {
-		err = t.editBeforeFun(c, &model, data)
+	// 编辑前回调
+	if res.editBeforeFun != nil {
+		editBeforeFn := res.editBeforeFun.(func(context.Context, *Model, *Data) error)
+		err := editBeforeFn(c, &model, &input.Body)
 		if err != nil {
 			tx.Rollback()
-			return err
-		}
-	}
-	if t.saveBeforeFun != nil {
-		err = t.saveBeforeFun(c, &model, data)
-		if err != nil {
-			tx.Rollback()
-			return err
-		}
-	}
-
-	if t.Tree && data.Get("parent_id").Exists() {
-		parentId := data.Get("parent_id").Uint()
-		if !models.CheckParentHas[T](database.Gorm().Model(t.Model), cast.ToUint(id), uint(parentId)) {
-			tx.Rollback()
-			return response.BusinessError(i18n.Get(ctx, "common.message.parent"))
+			return nil, err
 		}
 	}
 
 	err = tx.Debug().Omit(clause.Associations).Save(&model).Error
 	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	if t.editAfterFun != nil {
-		err = t.editAfterFun(c, &model, data)
+	// 编辑后回调
+	if res.editAfterFun != nil {
+		editAfterFn := res.editAfterFun.(func(context.Context, *Model, *Data) error)
+		err := editAfterFn(c, &model, &input.Body)
 		if err != nil {
 			tx.Rollback()
-			return err
-		}
-	}
-	if t.saveAfterFun != nil {
-		err = t.saveAfterFun(c, &model, data)
-		if err != nil {
-			tx.Rollback()
-			return err
+			return nil, err
 		}
 	}
 
 	err = tx.Commit().Error
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return response.Send(ctx, response.Data{
-		Message: i18n.Get(ctx, "common.message.edit"),
-	})
-}
-
-func (t *Resources[T]) EditBefore(call ActionCallParamsFun[T]) {
-	t.editBeforeFun = call
-}
-
-func (t *Resources[T]) EditAfter(call ActionCallParamsFun[T]) {
-	t.editAfterFun = call
+	return resp.Send(ctx, resp.Data[any, resp.EmptyMeta]{
+		Message: "编辑成功",
+		Data:    nil,
+		Meta:    resp.EmptyMeta{},
+	}), nil
 }

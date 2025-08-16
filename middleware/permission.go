@@ -1,60 +1,47 @@
 package middleware
 
 import (
-	duxAuth "github.com/duxweb/go-fast/auth"
-	"github.com/duxweb/go-fast/response"
-	"github.com/duxweb/go-fast/route"
-	"github.com/labstack/echo/v4"
-	"github.com/samber/lo"
+	"github.com/danielgtaylor/huma/v2"
+	duxAuth "github.com/duxweb/go-fast/v2/auth"
+	"github.com/duxweb/go-fast/v2/route"
 )
 
 type PermissionFun func(id string) ([]string, []string, error)
 
-func PermissionMiddleware(permission PermissionFun) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			auth, ok := c.Get("auth").(*duxAuth.JwtClaims)
-			if !ok {
-				return response.BusinessError("Permissions must be authorized by the user after", 500)
-			}
-			routeName := route.GetRouteName(c)
-
-			if routeName == "" {
-				return next(c)
-			}
-
-			allPermission, userPermission, err := permission(auth.ID)
-			if err != nil {
-				return err
-			}
-			c.Set("permissions", allPermission)
-
-			c.Set("userPermissions", userPermission)
-
-			err = Can(c, routeName)
-			if err != nil {
-				return err
-			}
-			return next(c)
+func PermissionMiddleware(permission PermissionFun) func(ctx huma.Context, next func(huma.Context)) {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		// 从上下文中获取认证信息
+		auth, ok := ctx.Context().Value("auth").(*duxAuth.JwtClaims)
+		if !ok {
+			huma.WriteErr(nil, ctx, 500, "Permissions must be authorized by the user after")
+			return
 		}
+
+		// 获取路由名称
+		routeName := route.GetRouteName(ctx)
+		if routeName == "" {
+			next(ctx)
+			return
+		}
+
+		// 获取权限信息
+		allPermission, userPermission, err := permission(auth.ID)
+		if err != nil {
+			huma.WriteErr(nil, ctx, 500, err.Error())
+			return
+		}
+
+		// 将权限信息存入上下文
+		ctx = huma.WithValue(ctx, "permissions", allPermission)
+		ctx = huma.WithValue(ctx, "userPermissions", userPermission)
+
+		// 检查权限
+		err = Can(ctx, routeName)
+		if err != nil {
+			ctx.SetStatus(403)
+			return
+		}
+
+		next(ctx)
 	}
-}
-
-func Can(c echo.Context, name string) error {
-	userPermission := c.Get("userPermissions").([]string)
-	permission := c.Get("permissions").([]string)
-
-	if len(userPermission) == 0 || len(permission) == 0 {
-		return nil
-	}
-
-	if lo.IndexOf[string](permission, name) == -1 {
-		return nil
-	}
-
-	if lo.IndexOf[string](userPermission, name) != -1 {
-		return nil
-	}
-
-	return echo.ErrForbidden
 }

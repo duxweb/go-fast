@@ -4,11 +4,12 @@ import (
 	"container/list"
 	"encoding/json"
 	"errors"
-	"github.com/duxweb/go-fast/logger"
-	"github.com/olahol/melody"
-	"github.com/spf13/cast"
 	"log/slog"
 	"sync"
+
+	"github.com/duxweb/go-fast/v2/logger"
+	"github.com/olahol/melody"
+	"github.com/spf13/cast"
 )
 
 // Client 客户端映射

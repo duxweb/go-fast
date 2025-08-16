@@ -1,23 +1,17 @@
 package app
 
 var (
-	// List Applications
-	List = make(map[string]*Config)
-
-	// Indexes Application Index
+	// Apps 应用列表
+	// Apps application list
+	Apps = make(map[string]*Config)
+	// Indexes 应用索引
+	// Indexes application index
 	Indexes []string
 )
 
-type Config struct {
-	Name     string
-	Config   any
-	Init     func(t *Dux)
-	Register func(t *Dux)
-	Boot     func(t *Dux)
-}
-
-// Register Call this method to register the application with the framework
+// Register 注册应用
+// Register application
 func Register(opt *Config) {
-	List[opt.Name] = opt
+	Apps[opt.Name] = opt
 	Indexes = append(Indexes, opt.Name)
 }

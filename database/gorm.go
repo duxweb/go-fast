@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/duxweb/go-fast/config"
-	"github.com/duxweb/go-fast/global"
-	"github.com/duxweb/go-fast/logger"
-	coreLogger "github.com/duxweb/go-fast/logger"
-	dameng "github.com/godoes/gorm-dameng"
+	"github.com/duxweb/go-fast/v2/config"
+	"github.com/duxweb/go-fast/v2/global"
+	"github.com/duxweb/go-fast/v2/logger"
+	coreLogger "github.com/duxweb/go-fast/v2/logger"
 
 	slogGorm "github.com/orandin/slog-gorm"
 	"github.com/samber/do/v2"
@@ -44,9 +43,9 @@ func (s *GormService) Shutdown() error {
 }
 
 func GormInit() {
-	dbConfig := config.Load("database").GetStringMap("db.drivers")
-	for name, _ := range dbConfig {
-		do.ProvideNamed[*GormService](global.Injector, "orm."+name, func(injector do.Injector) (*GormService, error) {
+	dbConfig := config.Load("database").MapKeys("db.drivers")
+	for _, name := range dbConfig {
+		do.ProvideNamed(global.Injector, "orm."+name, func(injector do.Injector) (*GormService, error) {
 			return NewGorm(name), nil
 		})
 	}
@@ -71,12 +70,8 @@ func GormCtx(ctx context.Context) *gorm.DB {
 
 func NewGorm(name string) *GormService {
 	// 重新读取服务
-	err := config.Load("database").ReadInConfig()
-	if err != nil {
-		logger.Log().Error("database", "config", err.Error())
-		return nil
-	}
-	dbConfig := config.Load("database").GetStringMapString("db.drivers." + name)
+	config.Reload("database")
+	dbConfig := config.Load("database").StringMap("db.drivers." + name)
 	var connect gorm.Dialector
 	if dbConfig["type"] == "mysql" {
 		connect = mysql.Open(fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
@@ -96,13 +91,6 @@ func NewGorm(name string) *GormService {
 			dbConfig["port"],
 		))
 	}
-	if dbConfig["type"] == "dameng" {
-		dsn := dameng.BuildUrl(dbConfig["username"], dbConfig["password"], dbConfig["host"], cast.ToInt(dbConfig["port"]), map[string]string{
-			"schema":         dbConfig["schema"],
-			"connectTimeout": dbConfig["connect_timeout"],
-		})
-		connect = dameng.Open(dsn)
-	}
 	if dbConfig["type"] == "sqlite" {
 		connect = sqlite.Open(dbConfig["file"] + "?_journal=WAL&_timeout=5000&_fk=true")
 	}
@@ -112,7 +100,7 @@ func NewGorm(name string) *GormService {
 			SingularTable: true,
 		},
 		DisableForeignKeyConstraintWhenMigrating: true,
-		Logger:                                   slogGorm.New(slogGorm.WithHandler(coreLogger.GetWriterHeader(config.Load("logger").GetString("db.level"), "db"))),
+		Logger:                                   slogGorm.New(slogGorm.WithHandler(coreLogger.Log("database").Handler())),
 	})
 	if err != nil {
 		logger.Log().Error("database", "config", err.Error())
@@ -131,17 +119,4 @@ func NewGorm(name string) *GormService {
 	return &GormService{
 		engine: database,
 	}
-}
-
-func SwitchGorm(name string) error {
-	// 关闭原服务
-	err := do.ShutdownNamed(global.Injector, "orm."+name)
-	if err != nil {
-		return err
-	}
-	// 替换服务
-	do.OverrideNamed[*GormService](global.Injector, "orm."+name, func(injector do.Injector) (*GormService, error) {
-		return NewGorm(name), nil
-	})
-	return nil
 }

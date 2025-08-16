@@ -1,12 +1,12 @@
 package database
 
 import (
-	"github.com/duxweb/go-fast/annotation"
-	"github.com/duxweb/go-fast/models"
+	"github.com/duxweb/go-fast/v2/annotation"
+	"github.com/duxweb/go-fast/v2/models"
 )
 
 func Register() {
-	GormMigrate(models.LogOperate{}, models.LogLogin{}, models.LogVisit{}, models.LogVisitData{}, models.LogVisitSpider{})
+	GormMigrate(models.LogOperate{}, models.LogLogin{})
 	for _, file := range annotation.Annotations {
 		for _, item := range file.Annotations {
 			if item.Name != "AutoMigrate" {

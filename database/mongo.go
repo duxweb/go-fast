@@ -1,8 +1,8 @@
 package database
 
 import (
-	"github.com/duxweb/go-fast/config"
-	"github.com/duxweb/go-fast/global"
+	"github.com/duxweb/go-fast/v2/config"
+	"github.com/duxweb/go-fast/v2/global"
 	"github.com/samber/do/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -14,13 +14,13 @@ type MongoService struct {
 }
 
 func (s *MongoService) Shutdown() error {
-	return s.client.Disconnect(global.CtxBackground)
+	return s.client.Disconnect(global.Ctx)
 }
 
 func MongoInit() {
-	dbConfig := config.Load("database").GetStringMap("mongodb.drivers")
-	for name, _ := range dbConfig {
-		do.ProvideNamed[*MongoService](global.Injector, "mongodb."+name, func(injector do.Injector) (*MongoService, error) {
+	dbConfig := config.Load("database").MapKeys("mongodb.drivers")
+	for _, name := range dbConfig {
+		do.ProvideNamed(global.Injector, "mongodb."+name, func(injector do.Injector) (*MongoService, error) {
 			return NewMongo(name), nil
 		})
 	}
@@ -36,18 +36,16 @@ func Mongo(name ...string) *mongo.Database {
 }
 
 func NewMongo(name string) *MongoService {
-	err := config.Load("database").ReadInConfig()
-	if err != nil {
-		panic("qmgo error :" + err.Error())
-	}
+	// 重新读取服务
+	config.Reload("database")
 
-	dbConfig := config.Load("database").GetStringMapString("mongodb.drivers." + name)
+	dbConfig := config.Load("database").StringMap("mongodb.drivers." + name)
 
 	var auth = ""
 	if dbConfig["username"] != "" && dbConfig["password"] != "" {
 		auth = dbConfig["username"] + ":" + dbConfig["password"] + "@"
 	}
-	client, err := mongo.Connect(global.CtxBackground, options.Client().ApplyURI("mongodb://"+auth+dbConfig["host"]+":"+dbConfig["port"]))
+	client, err := mongo.Connect(global.Ctx, options.Client().ApplyURI("mongodb://"+auth+dbConfig["host"]+":"+dbConfig["port"]))
 	if err != nil {
 		panic("qmgo error :" + err.Error())
 	}

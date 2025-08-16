@@ -1,53 +1,77 @@
 package lock
 
 import (
-	"time"
+	"log"
 
-	"github.com/duxweb/go-fast/config"
-	"github.com/duxweb/go-fast/database"
-	"github.com/duxweb/go-fast/global"
-	"github.com/duxweb/go-fast/lock/driver"
+	"github.com/duxweb/go-fast/v2/config"
+	"github.com/duxweb/go-fast/v2/database"
+	"github.com/duxweb/go-fast/v2/global"
+	golock "github.com/duxweb/go-lock"
+	"github.com/duxweb/go-lock/drivers"
 	"github.com/samber/do/v2"
 )
 
-type LockDriver interface {
-	Create(key string, ttl time.Duration) driver.LockDriver
+type LockService struct {
+	manager *golock.Manager
+	name    string
 }
 
-func Get(name ...string) LockDriver {
-	lockDriver := config.Load("use").GetString("lock.driver")
-	if len(name) > 0 {
-		lockDriver = name[0]
-	}
-	lockDriverName := "lock." + lockDriver
+func (s *LockService) Shutdown() error {
+	return nil
+}
 
-	if _, err := do.InvokeNamed[LockDriver](global.Injector, lockDriverName); err != nil {
-		do.ProvideNamed[LockDriver](global.Injector, lockDriverName, func(i do.Injector) (LockDriver, error) {
-			var s LockDriver
-			switch lockDriver {
-			case "redis":
-				s = driver.NewRedisDriver(database.Redis())
-			case "memory":
-			default:
-				s = driver.NewMemoryDriver()
-			}
-			return s, nil
+func LockInit() {
+	lockConfig := config.Load("lock").MapKeys("drivers")
+	for _, name := range lockConfig {
+		do.ProvideNamed(global.Injector, "lock."+name, func(injector do.Injector) (*LockService, error) {
+			return NewLock(name), nil
 		})
 	}
-
-	return do.MustInvokeNamed[LockDriver](global.Injector, lockDriverName)
 }
 
-func New(driver LockDriver) *Manager {
-	return &Manager{
-		driver: driver,
+// Lock 获取指定名称的锁管理器，默认为 "default"
+func Lock(name ...string) *golock.Manager {
+	n := "default"
+	if len(name) > 0 {
+		n = name[0]
 	}
+	service := do.MustInvokeNamed[*LockService](global.Injector, "lock."+n)
+	return service.manager
 }
 
-type Manager struct {
-	driver LockDriver
-}
+// NewLock 创建新的锁服务
+func NewLock(name string) *LockService {
+	lockConfig := config.Load("lock").StringMap("drivers." + name)
 
-func (m *Manager) Create(key string, ttl time.Duration) driver.LockDriver {
-	return m.driver.Create(key, ttl)
+	var provider golock.LockProvider
+
+	lockType := lockConfig["type"]
+	if lockType == "" {
+		lockType = "memory"
+	}
+
+	var err error
+
+	switch lockType {
+	case "redis":
+		// 使用 Redis 数据库
+		client := database.Redis(lockConfig["database"])
+
+		provider, err = drivers.NewRedisDriver(&drivers.RedisOptions{
+			Client: client,
+		})
+		if err != nil {
+			log.Fatalf("Failed to create Redis lock provider: %v", err)
+		}
+	default:
+		// 默认使用内存锁
+		provider = drivers.NewMemoryDriver()
+	}
+
+	manager := golock.New(provider)
+
+	return &LockService{
+		manager: manager,
+		name:    name,
+	}
 }

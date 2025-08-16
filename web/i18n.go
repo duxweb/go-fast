@@ -1,13 +1,15 @@
 package web
 
 import (
-	duxI18n "github.com/duxweb/go-fast/i18n"
+	"github.com/duxweb/go-fast/v2/helper"
+	"github.com/duxweb/go-fast/v2/i18n"
 	"github.com/labstack/echo/v4"
-	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 )
 
-func I18nHandler() echo.MiddlewareFunc {
+// I18n 国际化
+// I18n i18n
+func I18n() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			accept := c.Request().Header.Get("Accept-Language")
@@ -15,16 +17,10 @@ func I18nHandler() echo.MiddlewareFunc {
 				accept = "en-US"
 			}
 			t, _, _ := language.ParseAcceptLanguage(accept)
+			lang := t[0].String()
 
-			var langTag language.Tag
-			if len(t) > 0 {
-				langTag = t[0]
-			} else {
-				langTag = language.English
-			}
-
-			c.Set("i18n", i18n.NewLocalizer(duxI18n.Bundle, accept))
-			c.Set("lang", langTag.String())
+			c.Set("lang", lang)
+			helper.EchoSetContextValue(c, i18n.LangKey{}, lang)
 			return next(c)
 		}
 	}

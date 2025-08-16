@@ -1,0 +1,32 @@
+# 队列配置
+[default]
+driver = "memory"
+workers = 1
+retries = 3
+timeout = "30s"
+
+[redis]
+driver = "redis"
+workers = 5
+retries = 3
+timeout = "60s"
+addr = "127.0.0.1:6379"
+password = ""
+db = 0
+
+[database]
+driver = "database"
+workers = 3
+retries = 5
+timeout = "120s"
+dsn = "mysql://user:pass@localhost/queue"
+table = "jobs"
+
+# 任务配置
+[tasks]
+# 邮件发送任务
+email_sender = "redis"
+# 文件处理任务  
+file_processor = "database"
+# 默认任务队列
+default_task = "default"

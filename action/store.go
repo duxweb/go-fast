@@ -2,86 +2,67 @@ package action
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"reflect"
 
-	"github.com/duxweb/go-fast/database"
-	"github.com/duxweb/go-fast/helper"
-	"github.com/duxweb/go-fast/i18n"
-	"github.com/duxweb/go-fast/response"
-	"github.com/duxweb/go-fast/validator"
+	"github.com/duxweb/go-fast/v2/database"
+	"github.com/duxweb/go-fast/v2/resp"
 	"github.com/gookit/goutil/structs"
-	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
-	"github.com/tidwall/gjson"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-func (t *Resources[T]) Store(ctx echo.Context) error {
-	var err error
-	if t.initFun != nil {
-		err = t.initFun(t, ctx)
-		if err != nil {
-			return err
+// Store 部分字段更新方法
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Store(ctx context.Context, input *EditInput[Data]) (*resp.HumaResponse[any, resp.EmptyMeta], error) {
+	id := input.ID
+	
+	// 将输入转换为 JSON 以获取实际提交的字段
+	inputBytes, _ := json.Marshal(input.Body)
+	var inputMap map[string]interface{}
+	json.Unmarshal(inputBytes, &inputMap)
+	
+	// 获取提交的字段名
+	keys := make([]string, 0, len(inputMap))
+	for key := range inputMap {
+		keys = append(keys, key)
+	}
+
+	// 获取模型实例
+	var model Model
+	if res.model != nil {
+		// 使用反射创建模型实例
+		modelType := reflect.TypeOf(res.model)
+		if modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
 		}
+		model = reflect.New(modelType).Interface().(Model)
 	}
 
-	params, err := helper.Qs(ctx)
-	if err != nil {
-		return err
-	}
-
-	data, err := helper.Body(ctx)
-	if err != nil {
-		return err
-	}
-
-	keys := []string{}
-	data.ForEach(func(key, value gjson.Result) bool {
-		keys = append(keys, key.String())
-		return true
-	})
-
-	if t.validatorFun != nil {
-		rules, err := t.validatorFun(data, ctx)
-		if err != nil {
-			return err
-		}
-		rules = lo.PickBy[string, validator.ValidatorWarp](rules, func(key string, value validator.ValidatorWarp) bool {
-			return lo.IndexOf[string](keys, key) != -1
-		})
-		dataMaps := map[string]any{}
-		data.ForEach(func(key, value gjson.Result) bool {
-			dataMaps[key.String()] = value.Value()
-			return true
-		})
-		err = validator.ValidatorMaps(ctx, dataMaps, rules)
-		if err != nil {
-			return err
-		}
-	}
-
-	id := ctx.Param("id")
-	var model T
-	err = t.getOne(ctx, &model, id, params)
+	err := res.getOne(&model, id, ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return response.BusinessLangError(ctx, "common.message.emptyData")
+			return nil, errors.New("记录不存在")
 		} else {
-			return err
+			return nil, err
 		}
 	}
 
-	if t.formatFun != nil {
-		err = t.formatFun(&model, data, ctx)
+	// 应用格式化函数
+	if res.formatFun != nil {
+		formatFn := res.formatFun.(func(*Model, *Data, context.Context) (*Model, error))
+		formattedModel, err := formatFn(&model, &input.Body, ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		model = *formattedModel
 	}
 
+	// 将模型转换为 map，然后只保留提交的字段
 	formatData, err := structs.StructToMap(model)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	formatData = lo.PickBy[string, any](formatData, func(key string, value any) bool {
 		return lo.IndexOf[string](keys, key) != -1
@@ -89,45 +70,45 @@ func (t *Resources[T]) Store(ctx echo.Context) error {
 
 	tx := database.Gorm().Begin()
 	if tx.Error != nil {
-		return tx.Error
+		return nil, tx.Error
 	}
 	c := context.Background()
 	c = context.WithValue(c, "tx", tx)
-	c = context.WithValue(c, "echo", ctx)
 
-	if t.storeBeforeFun != nil {
-		err = t.storeBeforeFun(c, &model, data)
+	// Store前回调
+	if res.storeBeforeFun != nil {
+		storeBeforeFn := res.storeBeforeFun.(func(context.Context, *Model, *Data) error)
+		err := storeBeforeFn(c, &model, &input.Body)
 		if err != nil {
-			return err
+			tx.Rollback()
+			return nil, err
 		}
 	}
 
 	err = tx.Model(&model).Omit(clause.Associations).Updates(formatData).Error
 	if err != nil {
-		return err
+		tx.Rollback()
+		return nil, err
 	}
 
-	if t.storeAfterFun != nil {
-		err = t.storeAfterFun(c, &model, data)
+	// Store后回调
+	if res.storeAfterFun != nil {
+		storeAfterFn := res.storeAfterFun.(func(context.Context, *Model, *Data) error)
+		err := storeAfterFn(c, &model, &input.Body)
 		if err != nil {
-			return err
+			tx.Rollback()
+			return nil, err
 		}
 	}
 
 	err = tx.Commit().Error
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return response.Send(ctx, response.Data{
-		Message: i18n.Get(ctx, "common.message.store"),
-	})
-}
-
-func (t *Resources[T]) StoreBefore(call ActionCallParamsFun[T]) {
-	t.storeBeforeFun = call
-}
-
-func (t *Resources[T]) StoreAfter(call ActionCallParamsFun[T]) {
-	t.storeAfterFun = call
+	return resp.Send(ctx, resp.Data[any, resp.EmptyMeta]{
+		Message: "保存成功",
+		Data:    nil,
+		Meta:    resp.EmptyMeta{},
+	}), nil
 }

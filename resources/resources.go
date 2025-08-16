@@ -1,18 +1,17 @@
 package resources
 
 import (
-	"github.com/duxweb/go-fast/menu"
-	"github.com/duxweb/go-fast/middleware"
-	"github.com/duxweb/go-fast/permission"
-	"github.com/duxweb/go-fast/route"
-	"github.com/labstack/echo/v4"
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/duxweb/go-fast/v2/middleware"
+	"github.com/duxweb/go-fast/v2/permission"
+	"github.com/duxweb/go-fast/v2/route"
 )
 
 type ResourceData struct {
 	name           string
 	path           string
-	authMiddleware []echo.MiddlewareFunc
-	middleware     []echo.MiddlewareFunc
+	authMiddleware huma.Middlewares
+	middleware     huma.Middlewares
 	permission     middleware.PermissionFun
 	operate        bool
 }
@@ -22,28 +21,27 @@ func New(name string, path string) *ResourceData {
 		name: name,
 		path: path,
 	}
-
 }
 
-func (t *ResourceData) AddMiddleware(middle ...echo.MiddlewareFunc) *ResourceData {
+func (t *ResourceData) AddMiddleware(middle huma.Middlewares) *ResourceData {
 	t.middleware = append(t.middleware, middle...)
 	return t
 }
 
-func (t *ResourceData) AddAuthMiddleware(middle ...echo.MiddlewareFunc) *ResourceData {
+func (t *ResourceData) AddAuthMiddleware(middle huma.Middlewares) *ResourceData {
 	t.authMiddleware = append(t.authMiddleware, middle...)
 	return t
 }
 
-func (t *ResourceData) GetMiddleware() []echo.MiddlewareFunc {
+func (t *ResourceData) GetMiddleware() huma.Middlewares {
 	return t.middleware
 }
 
-func (t *ResourceData) GetAuthMiddleware() []echo.MiddlewareFunc {
+func (t *ResourceData) GetAuthMiddleware() huma.Middlewares {
 	return t.authMiddleware
 }
 
-func (t *ResourceData) GetAllMiddleware() []echo.MiddlewareFunc {
+func (t *ResourceData) GetAllMiddleware() huma.Middlewares {
 	return append(t.middleware, t.authMiddleware...)
 }
 
@@ -59,7 +57,7 @@ func (t *ResourceData) SetOperate(status bool) *ResourceData {
 
 func (t *ResourceData) run() *ResourceData {
 
-	middle := []echo.MiddlewareFunc{
+	middle := []func(huma.Context, func(huma.Context)){
 		middleware.AuthMiddleware(t.name),
 	}
 	if t.permission != nil {
@@ -70,8 +68,7 @@ func (t *ResourceData) run() *ResourceData {
 	}
 	middle = append(middle, t.GetAllMiddleware()...)
 
-	route.Set(t.name, route.New(t.path, middle...))
+	route.SetRouter(t.name, route.New(t.name, t.path, middle...))
 	permission.Set(t.name, permission.New())
-	menu.Set(t.name, menu.New(t.path))
 	return t
 }

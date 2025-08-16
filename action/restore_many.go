@@ -1,40 +1,27 @@
 package action
 
 import (
-	"github.com/duxweb/go-fast/helper"
-	"github.com/duxweb/go-fast/i18n"
-	"github.com/duxweb/go-fast/response"
-	"github.com/labstack/echo/v4"
-	"strings"
+	"context"
+
+	"github.com/duxweb/go-fast/v2/resp"
 )
 
-func (t *Resources[T]) RestoreMany(ctx echo.Context) error {
-	var err error
-	if t.initFun != nil {
-		err = t.initFun(t, ctx)
-		if err != nil {
-			return err
-		}
-	}
-
-	params, err := helper.Qs(ctx)
-	if err != nil {
-		return err
-	}
-
-	ids := strings.Split(params.Get("ids").String(), ",")
-
-	for _, id := range ids {
+// RestoreMany 批量恢复软删除记录方法
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) RestoreMany(ctx context.Context, input *RestoreManyInput) (*resp.HumaResponse[any, resp.EmptyMeta], error) {
+	for _, id := range input.IDs {
 		if id == "" {
 			continue
 		}
-		err = t.restoreOne(ctx, id)
+		restoreInput := &DeleteInput{ID: id}
+		_, err := res.Restore(ctx, restoreInput)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return response.Send(ctx, response.Data{
-		Message: i18n.Get(ctx, "common.message.restore"),
-	})
+	return resp.Send(ctx, resp.Data[any, resp.EmptyMeta]{
+		Message: "批量恢复成功",
+		Data:    nil,
+		Meta:    resp.EmptyMeta{},
+	}), nil
 }

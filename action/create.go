@@ -2,121 +2,77 @@ package action
 
 import (
 	"context"
+	"reflect"
 
-	"github.com/duxweb/go-fast/database"
-	"github.com/duxweb/go-fast/helper"
-	"github.com/duxweb/go-fast/i18n"
-	"github.com/duxweb/go-fast/response"
-	"github.com/duxweb/go-fast/validator"
-	"github.com/labstack/echo/v4"
-	"github.com/tidwall/gjson"
+	"github.com/duxweb/go-fast/v2/database"
+	"github.com/duxweb/go-fast/v2/resp"
 	"gorm.io/gorm/clause"
 )
 
-func (t *Resources[T]) Create(ctx echo.Context) error {
-	var err error
-	if t.initFun != nil {
-		err = t.initFun(t, ctx)
-		if err != nil {
-			return err
+// Create 创建记录方法
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Create(ctx context.Context, input *Data) (*resp.HumaResponse[any, resp.EmptyMeta], error) {
+	// 获取模型实例
+	var model Model
+	if res.model != nil {
+		// 使用反射创建模型实例
+		modelType := reflect.TypeOf(res.model)
+		if modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
 		}
+		model = reflect.New(modelType).Interface().(Model)
 	}
 
-	data, err := helper.Body(ctx)
-	if err != nil {
-		return err
-	}
-
-	if t.validatorFun != nil {
-		rules, err := t.validatorFun(data, ctx)
+	// 应用格式化函数
+	if res.formatFun != nil {
+		formatFn := res.formatFun.(func(*Model, *Data, context.Context) (*Model, error))
+		formattedModel, err := formatFn(&model, input, ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		dataMaps := map[string]any{}
-		data.ForEach(func(key, value gjson.Result) bool {
-			dataMaps[key.String()] = value.Value()
-			return true
-		})
-		err = validator.ValidatorMaps(ctx, dataMaps, rules)
-		if err != nil {
-			return err
-		}
-	}
-
-	model := t.Model
-	if t.formatFun != nil {
-		err = t.formatFun(&model, data, ctx)
-		if err != nil {
-			return err
-		}
+		model = *formattedModel
 	}
 
 	tx := database.Gorm().Begin()
 	if tx.Error != nil {
-		return tx.Error
+		return nil, tx.Error
 	}
 	c := context.Background()
 	c = context.WithValue(c, "tx", tx)
-	c = context.WithValue(c, "echo", ctx)
 
-	if t.createBeforeFun != nil {
-		err = t.createBeforeFun(c, &model, data)
+	// 创建前回调
+	if res.createBeforeFun != nil {
+		createBeforeFn := res.createBeforeFun.(func(context.Context, *Model, *Data) error)
+		err := createBeforeFn(c, &model, input)
 		if err != nil {
 			tx.Rollback()
-			return err
-		}
-	}
-	if t.saveBeforeFun != nil {
-		err = t.saveBeforeFun(c, &model, data)
-		if err != nil {
-			tx.Rollback()
-			return err
+			return nil, err
 		}
 	}
 
-	err = tx.Model(t.Model).Omit(clause.Associations).Create(&model).Error
+	err := tx.Model(model).Omit(clause.Associations).Create(&model).Error
 	if err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	if t.createAfterFun != nil {
-		err = t.createAfterFun(c, &model, data)
+	// 创建后回调
+	if res.createAfterFun != nil {
+		createAfterFn := res.createAfterFun.(func(context.Context, *Model, *Data) error)
+		err := createAfterFn(c, &model, input)
 		if err != nil {
 			tx.Rollback()
-			return err
-		}
-	}
-	if t.saveAfterFun != nil {
-		err = t.saveAfterFun(c, &model, data)
-		if err != nil {
-			tx.Rollback()
-			return err
+			return nil, err
 		}
 	}
 
 	err = tx.Commit().Error
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return response.Send(ctx, response.Data{
-		Message: i18n.Get(ctx, "common.message.create"),
-	})
-}
-
-func (t *Resources[T]) CreateBefore(call ActionCallParamsFun[T]) {
-	t.createBeforeFun = call
-}
-
-func (t *Resources[T]) CreateAfter(call ActionCallParamsFun[T]) {
-	t.createAfterFun = call
-}
-
-func (t *Resources[T]) SaveBefore(call ActionCallParamsFun[T]) {
-	t.saveBeforeFun = call
-}
-
-func (t *Resources[T]) SaveAfter(call ActionCallParamsFun[T]) {
-	t.saveAfterFun = call
+	return resp.Send(ctx, resp.Data[any, resp.EmptyMeta]{
+		Message: "创建成功",
+		Data:    nil,
+		Meta:    resp.EmptyMeta{},
+	}), nil
 }

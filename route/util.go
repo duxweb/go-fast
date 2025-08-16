@@ -1,15 +1,13 @@
 package route
 
 import (
-	"github.com/labstack/echo/v4"
+	"github.com/danielgtaylor/huma/v2"
 )
 
-func GetRouteName(c echo.Context) string {
-	name := ""
-	for _, r := range c.Echo().Routes() {
-		if r.Method == c.Request().Method && r.Path == c.Path() {
-			name = r.Name
-		}
+func GetRouteName(ctx huma.Context) string {
+	// 在 Huma 中，可以通过 Operation 获取路由信息
+	if ctx.Operation() != nil {
+		return ctx.Operation().OperationID
 	}
-	return name
+	return ""
 }

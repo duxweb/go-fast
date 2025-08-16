@@ -2,9 +2,10 @@ package auth
 
 import (
 	"errors"
-	"github.com/duxweb/go-fast/config"
-	"github.com/golang-jwt/jwt/v5"
 	"time"
+
+	"github.com/duxweb/go-fast/v2/config"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type JWT struct {
@@ -18,7 +19,7 @@ type JwtClaims struct {
 
 func NewJWT() *JWT {
 	return &JWT{
-		SigningKey: []byte(config.Load("use").GetString("app.secret")),
+		SigningKey: []byte(config.Load("use").String("app.secret")),
 	}
 }
 

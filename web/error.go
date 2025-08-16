@@ -1,89 +1,66 @@
 package web
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
-	"runtime/debug"
-	"strings"
 
-	"github.com/duxweb/go-fast/global"
-	"github.com/duxweb/go-fast/i18n"
-	"github.com/duxweb/go-fast/logger"
-	"github.com/duxweb/go-fast/response"
-	"github.com/go-errors/errors"
+	"github.com/duxweb/go-fast/v2/errors"
+	"github.com/duxweb/go-fast/v2/helper"
 	"github.com/labstack/echo/v4"
-	"github.com/samber/lo"
+	"github.com/samber/oops"
 	"github.com/spf13/cast"
 )
 
+type TError struct {
+	Code    int
+	Message string
+	Data    any
+}
+
+// ErrorHandler 错误处理
+// ErrorHandler error handler
 func ErrorHandler() echo.HTTPErrorHandler {
 	return func(err error, c echo.Context) {
-		result := response.Data{
-			Code: http.StatusInternalServerError,
+
+		result := TError{
+			Code:    http.StatusInternalServerError,
+			Message: http.StatusText(http.StatusInternalServerError),
 		}
-		var e *echo.HTTPError
-		if errors.As(err, &e) {
-			// http error
+
+		switch e := err.(type) {
+		case *echo.HTTPError:
 			result.Code = e.Code
 			result.Message = cast.ToString(e.Message)
-		} else {
-			var exceptions *errors.Error
-			var validator *response.ValidatorData
-			if errors.As(err, &exceptions) {
-				stacks := exceptions.StackFrames()
-				logger.Log().Error("core", "err", err,
-					slog.String("file", lo.Ternary[string](len(stacks) > 0, stacks[0].File+":"+cast.ToString(stacks[0].LineNumber), "")),
-					slog.Any("stack", lo.Map[errors.StackFrame, map[string]any](stacks, func(item errors.StackFrame, index int) map[string]any {
-						return map[string]any{
-							"file": item.File + ":" + cast.ToString(item.LineNumber),
-							"func": item.Name,
-						}
-					})),
-				)
-				result.Message = err.Error()
-			} else if errors.As(err, &validator) {
-				result.Code = validator.Code
-				result.Data = validator.Data
-				result.Message = validator.Message
-			} else {
-				logger.Log().Error("core", "err", err, slog.String("stack", string(debug.Stack())))
-				result.Message = lo.Ternary[string](!global.Debug, i18n.Get(c, "common.error.errorMessage"), err.Error())
-			}
-
+		case errors.HTTPError:
+			result.Code = e.Code
+			result.Message = e.Error()
+			result.Data = e.Data
+		case oops.OopsError:
+			result.Message = e.Error()
+			c.Logger().Error(e.Error(), slog.Any("error", err))
+		default:
+			result.Message = err.Error()
+			c.Logger().Error(err.Error(), slog.Any("error", err))
 		}
 
-		if isAsync(c) {
-			err = response.Send(c, result, result.Code)
+		if helper.NetIsAjax(c) {
+			err = c.JSON(result.Code, result)
 			if err != nil {
-				logger.Log().Error("err", err)
+				c.Logger().Error(err.Error(), slog.Any("error", err))
 			}
 			return
 		}
 
-		c.Set("tpl", "app")
+		err = c.Render(result.Code, "template/error.html", map[string]any{
+			"title":   fmt.Sprintf("%d | %s", result.Code, result.Message),
+			"code":    result.Code,
+			"message": result.Message,
+		})
 
-		if result.Code == http.StatusNotFound {
-			err = c.Render(http.StatusNotFound, "template/404.html", nil)
-		} else {
-			err = c.Render(http.StatusInternalServerError, "template/error.html", map[string]any{
-				"code":    result.Code,
-				"message": result.Message,
-			})
-		}
 		if err != nil {
-			logger.Log().Error("err", err)
+			c.Logger().Error(err.Error(), slog.Any("error", err))
 		}
-	}
-}
 
-func isAsync(ctx echo.Context) bool {
-	xr := ctx.Request().Header.Get("X-Requested-With")
-	if xr != "" && strings.Index(xr, "XMLHttpRequest") != -1 {
-		return true
 	}
-	accept := ctx.Request().Header.Get("Accept")
-	if strings.Index(accept, "/json") != -1 || strings.Index(accept, "/+json") != -1 {
-		return true
-	}
-	return false
 }

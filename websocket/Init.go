@@ -2,12 +2,13 @@ package websocket
 
 import (
 	"encoding/json"
-	"github.com/duxweb/go-fast/logger"
-	"github.com/olahol/melody"
-	"github.com/spf13/cast"
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/duxweb/go-fast/v2/logger"
+	"github.com/olahol/melody"
+	"github.com/spf13/cast"
 )
 
 var Service *ServiceT
@@ -66,7 +67,7 @@ func (t *ServiceT) Run() {
 		}
 		data, err := agent.auth(token)
 		if err != nil {
-			logger.Log("websocket").Error("error", err)
+			logger.Log("websocket").Error("authentication error", "error", err)
 			_ = session.CloseWithMsg([]byte(err.Error()))
 			return
 		}
@@ -81,7 +82,7 @@ func (t *ServiceT) Run() {
 		// 设置客户端在线
 		err = EventOnline(clientID)
 		if err != nil {
-			logger.Log("websocket").Error("Client Online", err)
+			logger.Log("websocket").Error("Client Online", "error", err)
 			_ = session.CloseWithMsg([]byte(err.Error()))
 			return
 		}
@@ -102,7 +103,7 @@ func (t *ServiceT) Run() {
 		// 发送离线
 		err := EventOffline(clientID)
 		if err != nil {
-			logger.Log("websocket").Error("Client Online", err)
+			logger.Log("websocket").Error("Client Offline", "error", err)
 		}
 	})
 
@@ -126,7 +127,7 @@ func (t *ServiceT) Run() {
 		data := Message{}
 		err := json.Unmarshal(msg, &data)
 		if err != nil {
-			logger.Log("websocket").Error("Ws Received", err, slog.String("client", clientID), slog.String("message", string(msg)))
+			logger.Log("websocket").Error("Ws Received", "error", err, "client", clientID, "message", string(msg))
 			return
 		}
 		client, err := GetClient(clientID)
@@ -137,7 +138,7 @@ func (t *ServiceT) Run() {
 		agent := Service.Agents[client.app]
 		err = agent.message(&data, client)
 		if err != nil {
-			logger.Log("websocket").Error("Ws Received", err)
+			logger.Log("websocket").Error("Ws Received", "error", err)
 			return
 		}
 

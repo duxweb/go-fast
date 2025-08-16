@@ -3,11 +3,11 @@ package database
 import (
 	"time"
 
-	"github.com/demdxx/gocast/v2"
-	"github.com/duxweb/go-fast/config"
-	"github.com/duxweb/go-fast/global"
+	"github.com/duxweb/go-fast/v2/config"
+	"github.com/duxweb/go-fast/v2/global"
 	"github.com/redis/go-redis/v9"
 	"github.com/samber/do/v2"
+	"github.com/spf13/cast"
 )
 
 type RedisService struct {
@@ -23,16 +23,16 @@ func (s *RedisService) Shutdown() error {
 }
 
 func RedisInit() {
-	dbConfig := config.Load("database").GetStringMap("redis.drivers")
-	for name, _ := range dbConfig {
-		do.ProvideNamed[*RedisService](global.Injector, "redis."+name, func(injector do.Injector) (*RedisService, error) {
+	dbConfig := config.Load("database").MapKeys("redis.drivers")
+	for _, name := range dbConfig {
+		do.OverrideNamed(global.Injector, "redis."+name, func(injector do.Injector) (*RedisService, error) {
 			return NewRedis(name), nil
 		})
 	}
 
-	clusterConfig := config.Load("database").GetStringMap("redisCluster.drivers")
-	for name, _ := range clusterConfig {
-		do.ProvideNamed[*RedisClusterService](global.Injector, "redisCluster."+name, func(injector do.Injector) (*RedisClusterService, error) {
+	clusterConfig := config.Load("database").MapKeys("redisCluster.drivers")
+	for _, name := range clusterConfig {
+		do.ProvideNamed(global.Injector, "redisCluster."+name, func(injector do.Injector) (*RedisClusterService, error) {
 			return NewRedisCluster(name), nil
 		})
 	}
@@ -77,19 +77,28 @@ func NewRedisCluster(name string) *RedisClusterService {
 }
 
 func ConnSingle(name string) (*redis.Client, error) {
-	err := config.Load("database").ReadInConfig()
+
+	var clientConfig struct {
+		Host     string        `koanf:"host"`
+		Port     int           `koanf:"port"`
+		Password string        `koanf:"password"`
+		DB       int           `koanf:"db"`
+		Timeout  time.Duration `koanf:"timeout"`
+	}
+
+	err := config.Load("database").Unmarshal("redis.drivers."+name, &clientConfig)
 	if err != nil {
 		return nil, err
 	}
-	dbConfig := config.Load("database").GetStringMapString("redis.drivers." + name)
+
 	client := redis.NewClient(&redis.Options{
-		Addr:        dbConfig["host"] + ":" + dbConfig["port"],
-		Password:    dbConfig["password"],
-		DB:          gocast.Number[int](dbConfig["db"]),
-		DialTimeout: 5 * time.Second,
+		Addr:        clientConfig.Host + ":" + cast.ToString(clientConfig.Port),
+		Password:    clientConfig.Password,
+		DB:          clientConfig.DB,
+		DialTimeout: clientConfig.Timeout * time.Second,
 	})
 
-	_, err = client.Ping(global.CtxBackground).Result()
+	_, err = client.Ping(global.Ctx).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -97,17 +106,25 @@ func ConnSingle(name string) (*redis.Client, error) {
 }
 
 func ConnCluster(name string) (*redis.ClusterClient, error) {
-	err := config.Load("database").ReadInConfig()
+
+	var clientConfig struct {
+		Addrs    []string `koanf:"addrs"`
+		Username string   `koanf:"username"`
+		Password string   `koanf:"password"`
+		DB       int      `koanf:"db"`
+	}
+
+	err := config.Load("database").Unmarshal("redisCluster.drivers."+name, &clientConfig)
 	if err != nil {
 		return nil, err
 	}
-	dbConfig := config.Load("database").Sub("redisCluster.drivers." + name)
+
 	client := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:    dbConfig.GetStringSlice("addrs"),
-		Username: dbConfig.GetString("username"),
-		Password: dbConfig.GetString("password"),
+		Addrs:    clientConfig.Addrs,
+		Username: clientConfig.Username,
+		Password: clientConfig.Password,
 	})
-	_, err = client.Ping(global.CtxBackground).Result()
+	_, err = client.Ping(global.Ctx).Result()
 	if err != nil {
 		return nil, err
 	}

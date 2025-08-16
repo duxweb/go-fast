@@ -2,9 +2,10 @@ package views
 
 import (
 	"embed"
+	"net/http"
+
 	"github.com/CloudyKit/jet/v6"
 	"github.com/CloudyKit/jet/v6/loaders/httpfs"
-	"net/http"
 )
 
 var Views = map[string]*jet.Set{}
@@ -12,8 +13,9 @@ var Views = map[string]*jet.Set{}
 //go:embed template/*
 var TplFs embed.FS
 
-func Init() {
+func Init() error {
 	NewFS("app", TplFs)
+	return nil
 }
 
 // New 创建普通模板

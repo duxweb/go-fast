@@ -1,9 +1,10 @@
 package web
 
 import (
-	"github.com/labstack/echo/v4"
 	"net"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 )
 
 func IpHandler() echo.IPExtractor {

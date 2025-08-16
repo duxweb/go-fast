@@ -1,7 +1,6 @@
 package permission
 
 import (
-	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 )
 
@@ -29,13 +28,14 @@ func (t *PermissionData) Add(name string) {
 	}
 	t.Data = append(t.Data, data)
 }
-func (t *PermissionData) Get(ctx echo.Context) []map[string]any {
-	data := lo.Map[*PermissionData, map[string]any](t.Data, func(group *PermissionData, index int) map[string]any {
-		list := lo.Map[*PermissionData, map[string]any](group.Data, func(item *PermissionData, index int) map[string]any {
+func (t *PermissionData) Get() []map[string]any {
+	data := lo.Map(t.Data, func(group *PermissionData, index int) map[string]any {
+		list := lo.Map(group.Data, func(item *PermissionData, index int) map[string]any {
 			return map[string]any{
 				"name": item.Name,
 			}
 		})
+
 		return map[string]any{
 			"name":     "group:" + group.Name,
 			"children": list,

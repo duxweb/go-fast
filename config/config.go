@@ -1,93 +1,88 @@
 package config
 
 import (
-	"embed"
+	"fmt"
+	"log/slog"
+	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
-	"github.com/spf13/viper"
-
-	"github.com/duxweb/go-fast/global"
-	"github.com/golang-module/carbon/v2"
-	"github.com/gookit/goutil/fsutil"
-	"github.com/samber/do/v2"
-	"github.com/spf13/afero"
+	"github.com/duxweb/go-fast/v2/global"
+	"github.com/knadh/koanf/parsers/dotenv"
+	"github.com/knadh/koanf/parsers/toml/v2"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
+	"github.com/samber/lo"
 )
 
-var data = map[string]*viper.Viper{}
-
-//go:embed all:tpl
-var ConfigTplFs embed.FS
+var data = map[string]*koanf.Koanf{}
 
 func Init() {
-	// Init Config
-	files, _ := ConfigTplFs.ReadDir("tpl")
-	for _, file := range files {
-		conf := filepath.Join(global.ConfigDir, file.Name())
-		if fsutil.FileExist(conf) {
-			continue
-		}
-		conf = filepath.ToSlash(conf)
-		f := fsutil.MustCreateFile(conf, 0777, 0777)
-		c, err := ConfigTplFs.ReadFile("tpl/" + file.Name())
-		if err != nil {
-			panic(err)
-		}
-		_, err = f.Write(c)
-		if err != nil {
-			panic(err)
-		}
-		f.Close()
-	}
-
 	configFiles, err := filepath.Glob(global.ConfigDir + "*.toml")
 	if err != nil {
 		panic("configuration loading failure")
 	}
 
-	// Load Configuration Files in Loop
 	for _, file := range configFiles {
 		file = filepath.ToSlash(file)
 		filename := path.Base(file)
 
 		suffix := path.Ext(file)
 		name := filename[0 : len(filename)-len(suffix)]
-		data[name] = LoadFile(name)
+		LoadFile(name)
 	}
 
-	// Set Framework Configuration
 	if IsLoad("use") {
-		global.Debug = Load("use").GetBool("app.debug")
-		global.Lang = Load("use").GetString("app.lang")
+		global.Debug = Load("use").Bool("app.debug")
+		global.Lang = Load("use").String("app.lang")
 	}
-
-	// Set time
-	carbon.SetDefault(carbon.Default{
-		Layout:       carbon.DateTimeLayout,
-		Timezone:     carbon.Local,
-		WeekStartsAt: carbon.Monday,
-		Locale:       global.Lang,
-	})
-
-	// set OsFs
-	do.ProvideNamed[afero.Fs](global.Injector, "os.fs", func(injector do.Injector) (afero.Fs, error) {
-		fs := afero.NewOsFs()
-		return fs, nil
-	})
 }
 
-func LoadFile(name string) *viper.Viper {
+func LoadFile(name string) {
+	// init config
+	config := koanf.New(".")
+	prefix := strings.ToUpper(name) + "_"
+
+	// load toml file
 	configFile := filepath.Join(global.ConfigDir, name+".toml")
-	config := viper.New()
-	config.SetConfigFile(configFile)
-	config.SetConfigType("toml")
-	if err := config.ReadInConfig(); err != nil {
+	f := file.Provider(configFile)
+	err := config.Load(f, toml.Parser())
+	if err != nil {
 		panic(err)
 	}
-	return config
+
+	// load dotenv file
+	envf := file.Provider(GetDotEnv())
+	config.Load(envf, dotenv.ParserEnv(prefix, ".", func(s string) string {
+		return strings.Replace(
+			strings.ToLower(strings.TrimPrefix(s, prefix)),
+			"_", ".", -1)
+	}))
+
+	// load env file
+	envPrefix := "DUX_" + prefix
+	config.Load(env.Provider(envPrefix, ".", func(s string) string {
+		return strings.Replace(
+			strings.ToLower(strings.TrimPrefix(s, envPrefix)),
+			"_", ".", -1)
+	}), nil)
+
+	f.Watch(func(event interface{}, err error) {
+		if err != nil {
+			slog.Error("config watch", slog.Any("error", err))
+			return
+		}
+		config = koanf.New(".")
+		config.Load(f, toml.Parser())
+		data[name] = config
+	})
+
+	data[name] = config
 }
 
-func Load(name string) *viper.Viper {
+func Load(name string) *koanf.Koanf {
 	if t, ok := data[name]; ok {
 		return t
 	} else {
@@ -97,7 +92,7 @@ func Load(name string) *viper.Viper {
 
 func Reload(name string) {
 	if _, ok := data[name]; ok {
-		data[name] = LoadFile(name)
+		LoadFile(name)
 	} else {
 		panic("configuration (" + name + ") not found")
 	}
@@ -106,4 +101,12 @@ func Reload(name string) {
 func IsLoad(name string) bool {
 	_, ok := data[name]
 	return ok
+}
+
+func GetDotEnv() string {
+	dotenv := filepath.Join(".", lo.Ternary(global.DotEnv == "", ".env", fmt.Sprintf(".%s.env", global.DotEnv)))
+	if _, err := os.Stat(dotenv); os.IsNotExist(err) {
+		return ""
+	}
+	return dotenv
 }

@@ -2,31 +2,43 @@ package web
 
 import (
 	"fmt"
-	"github.com/duxweb/go-fast/logger"
-	"github.com/labstack/gommon/log"
 	"io"
 	"log/slog"
-	"os"
+
+	"github.com/duxweb/go-fast/v2/logger"
+	"github.com/labstack/gommon/log"
 )
 
 type EchoLogger struct {
 	Logger    *slog.Logger
 	SlogLevel slog.Level
+	prefix    string
+	output    io.Writer
+}
+
+func LoggerHandler() *EchoLogger {
+	return &EchoLogger{
+		Logger:    logger.Log(),
+		SlogLevel: slog.LevelInfo,
+		prefix:    "",
+	}
 }
 
 func (l *EchoLogger) Output() io.Writer {
-	return os.Stdout
+	return l.output
 }
 
-// SetOutput 设置日志记录器的输出
 func (l *EchoLogger) SetOutput(w io.Writer) {
+	l.output = w
 }
 
+// Prefix 返回前缀
 func (l *EchoLogger) Prefix() string {
-	return ""
+	return l.prefix
 }
 
 func (l *EchoLogger) SetPrefix(p string) {
+	l.prefix = p
 }
 
 func (l *EchoLogger) Level() log.Lvl {
@@ -44,9 +56,6 @@ func (l *EchoLogger) Level() log.Lvl {
 	}
 }
 
-func (l *EchoLogger) SetHeader(h string) {
-}
-
 func (l *EchoLogger) SetLevel(v log.Lvl) {
 	switch v {
 	case log.DEBUG:
@@ -62,6 +71,9 @@ func (l *EchoLogger) SetLevel(v log.Lvl) {
 	}
 }
 
+func (l *EchoLogger) SetHeader(h string) {
+}
+
 func (l *EchoLogger) Print(i ...interface{}) {
 	l.Logger.Info(fmt.Sprint(i...))
 }
@@ -71,7 +83,7 @@ func (l *EchoLogger) Printf(format string, args ...interface{}) {
 }
 
 func (l *EchoLogger) Printj(j log.JSON) {
-	l.Logger.Info("", slog.Any("data", j))
+	l.Logger.Info("json_log", slog.Any("json", j))
 }
 
 func (l *EchoLogger) Debug(i ...interface{}) {
@@ -83,7 +95,7 @@ func (l *EchoLogger) Debugf(format string, args ...interface{}) {
 }
 
 func (l *EchoLogger) Debugj(j log.JSON) {
-	l.Logger.Debug("", slog.Any("data", j))
+	l.Logger.Debug("json_log", slog.Any("json", j))
 }
 
 func (l *EchoLogger) Info(i ...interface{}) {
@@ -95,7 +107,7 @@ func (l *EchoLogger) Infof(format string, args ...interface{}) {
 }
 
 func (l *EchoLogger) Infoj(j log.JSON) {
-	l.Logger.Debug("", slog.Any("data", j))
+	l.Logger.Info("json_log", slog.Any("json", j))
 }
 
 func (l *EchoLogger) Warn(i ...interface{}) {
@@ -107,7 +119,7 @@ func (l *EchoLogger) Warnf(format string, args ...interface{}) {
 }
 
 func (l *EchoLogger) Warnj(j log.JSON) {
-	l.Logger.Warn("", slog.Any("data", j))
+	l.Logger.Warn("json_log", slog.Any("json", j))
 }
 
 func (l *EchoLogger) Error(i ...interface{}) {
@@ -119,33 +131,34 @@ func (l *EchoLogger) Errorf(format string, args ...interface{}) {
 }
 
 func (l *EchoLogger) Errorj(j log.JSON) {
-	l.Logger.Error("", slog.Any("data", j))
+	l.Logger.Error("json_log", slog.Any("json", j))
 }
 
 func (l *EchoLogger) Fatal(i ...interface{}) {
-	l.Logger.Error(fmt.Sprint(i...))
+	l.Logger.Error("FATAL: " + fmt.Sprint(i...))
 }
 
 func (l *EchoLogger) Fatalf(format string, args ...interface{}) {
-	l.Logger.Error(fmt.Sprintf(format, args...))
+	l.Logger.Error("FATAL: " + fmt.Sprintf(format, args...))
 }
 
 func (l *EchoLogger) Fatalj(j log.JSON) {
-	l.Logger.Error("", slog.Any("data", j))
+	l.Logger.Error("FATAL json_log", slog.Any("json", j))
 }
 
 func (l *EchoLogger) Panic(i ...interface{}) {
-	l.Logger.Error(fmt.Sprint(i...))
-}
-
-func (l *EchoLogger) Panicj(j log.JSON) {
-	l.Logger.Error("", slog.Any("data", j))
+	msg := fmt.Sprint(i...)
+	l.Logger.Error("PANIC: " + msg)
+	panic(msg)
 }
 
 func (l *EchoLogger) Panicf(format string, args ...interface{}) {
-	l.Logger.Error(fmt.Sprintf(format, args...))
+	msg := fmt.Sprintf(format, args...)
+	l.Logger.Error("PANIC: " + msg)
+	panic(msg)
 }
 
-func LoggerHandler() *EchoLogger {
-	return &EchoLogger{Logger: logger.Log()}
+func (l *EchoLogger) Panicj(j log.JSON) {
+	l.Logger.Error("PANIC json_log", slog.Any("json", j))
+	panic(j)
 }

@@ -5,10 +5,9 @@ import (
 	"time"
 
 	"github.com/bytedance/sonic"
-	"github.com/duxweb/go-fast/global"
-	"github.com/duxweb/go-fast/helper"
+	"github.com/duxweb/go-fast/v2/global"
+	"github.com/duxweb/go-fast/v2/helper"
 	"github.com/duxweb/go-storage/v2"
-	"github.com/go-errors/errors"
 	"github.com/samber/do/v2"
 	"github.com/spf13/cast"
 )
@@ -18,9 +17,9 @@ func Storage(name string) storage.FileStorage {
 }
 
 func StorageRegister(name string, Type string, conf map[string]string) {
-	do.OverrideNamed[storage.FileStorage](global.Injector, "storage."+name, func(injector do.Injector) (storage.FileStorage, error) {
+	do.OverrideNamed(global.Injector, "storage."+name, func(injector do.Injector) (storage.FileStorage, error) {
 		if conf == nil {
-			return nil, errors.New(fmt.Sprintf("storage driver %s not found", name))
+			return nil, fmt.Errorf("storage driver %s not found", name)
 		}
 		store, err := storage.New(Type, conf, LocalSign)
 		return store, err

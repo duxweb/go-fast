@@ -1,10 +1,14 @@
-package dux
+package src
 
 import (
-	"github.com/duxweb/go-fast/app"
+	"context"
+
+	"github.com/duxweb/go-fast/v2/core"
 )
 
-func New() *app.Dux {
-	dux := &app.Dux{}
-	return dux
+// New 创建Dux实例
+// New create Dux instance
+func New(context ...context.Context) *core.App {
+	core := core.New(context...)
+	return core
 }

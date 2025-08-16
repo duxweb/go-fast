@@ -1,19 +1,19 @@
 package helper
 
 import (
-	"github.com/demdxx/gocast/v2"
+	"github.com/spf13/cast"
 )
 
 func SliceToTree(data []map[string]any, idField string, pidField string, sonField string) []map[string]any {
 	var dataMap = make(map[uint]map[string]any)
 	tree := []map[string]any{}
 	for i, datum := range data {
-		var id = gocast.Number[uint](datum[idField])
+		var id = cast.ToUint(datum[idField])
 		dataMap[id] = datum
 		data[i][sonField] = []map[string]any{}
 	}
 	for _, datum := range data {
-		var pid = gocast.Number[uint](datum[pidField])
+		var pid = cast.ToUint(datum[pidField])
 		if pid != 0 {
 			dataMap[pid][sonField] = append(dataMap[pid][sonField].([]map[string]any), datum)
 		} else {

@@ -2,11 +2,12 @@ package websocket
 
 import (
 	"errors"
-	"github.com/duxweb/go-fast/logger"
-	"github.com/panjf2000/ants/v2"
-	"github.com/spf13/cast"
 	"log/slog"
 	"time"
+
+	"github.com/duxweb/go-fast/v2/logger"
+	"github.com/panjf2000/ants/v2"
+	"github.com/spf13/cast"
 )
 
 // Sub 订阅频道
@@ -92,7 +93,7 @@ func (p *Client) Send(data map[string]any) {
 	if err != nil {
 		// 稍后重试发送
 		_ = ants.Submit(func() {
-			time.Sleep(3)
+			time.Sleep(3 * time.Second)
 			_ = SendClient(p.clientID, data)
 		})
 	}
@@ -106,7 +107,7 @@ func Push(channels []string, data map[string]any) {
 		if err != nil {
 			// 稍后重试发送
 			_ = ants.Submit(func() {
-				time.Sleep(3)
+				time.Sleep(3 * time.Second)
 				_ = SendClient(topic, data)
 			})
 		}

@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -12,13 +13,19 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/duxweb/go-fast/config"
-	"github.com/duxweb/go-fast/global"
+	"github.com/duxweb/go-fast/v2/config"
 	"github.com/gofrs/uuid"
-	"github.com/samber/do/v2"
-	"github.com/spf13/afero"
+	"github.com/gookit/goutil/fsutil"
+	"github.com/tidwall/gjson"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// StructToGJson 将结构体转换为gjson.Result以兼容现有代码
+func StructToGJson(input any) *gjson.Result {
+	data, _ := json.Marshal(input)
+	result := gjson.ParseBytes(data)
+	return &result
+}
 
 // HashEncode Ciphertext Encryption
 func HashEncode(content string) string {
@@ -46,7 +53,7 @@ func Encryption(str string, keys ...string) (string, error) {
 	}
 
 	if key == "" {
-		key = config.Load("use").GetString("app.secret")
+		key = config.Load("use").String("app.secret")
 	}
 
 	originByte := []byte(str)
@@ -69,7 +76,7 @@ func Decryption(data string, keys ...string) (string, error) {
 	}
 
 	if key == "" {
-		key = config.Load("use").GetString("app.secret")
+		key = config.Load("use").String("app.secret")
 	}
 
 	originByte, _ := hex.DecodeString(data)
@@ -177,16 +184,12 @@ func IsExist(f string) bool {
 }
 
 func CreateDir(dirs ...string) {
-	fs := do.MustInvokeNamed[afero.Fs](global.Injector, "os.fs")
 	for _, path := range dirs {
-		exists, err := afero.DirExists(fs, path)
-		if err != nil {
-			panic("failed to create " + path + " directory")
-		}
+		exists := fsutil.PathExists(path)
 		if exists {
 			return
 		}
-		err = fs.MkdirAll(path, 0777)
+		err := fsutil.Mkdir(path, 0777)
 		if err != nil {
 			panic("failed to create " + path + " directory")
 		}
@@ -214,24 +217,4 @@ func Round(val float64, precision int) float64 {
 	}
 
 	return math.Floor(val*p+0.5) / p
-}
-
-// InTimeSpan Range Time Query
-func InTimeSpan(start, end, check time.Time, includeStart, includeEnd bool) bool {
-	_start := start
-	_end := end
-	_check := check
-	if end.Before(start) {
-		_end = end.Add(24 * time.Hour)
-		if check.Before(start) {
-			_check = check.Add(24 * time.Hour)
-		}
-	}
-	if includeStart {
-		_start = _start.Add(-1 * time.Nanosecond)
-	}
-	if includeEnd {
-		_end = _end.Add(1 * time.Nanosecond)
-	}
-	return _check.After(_start) && _check.Before(_end)
 }
