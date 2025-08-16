@@ -6,7 +6,7 @@ import (
 	"github.com/duxweb/go-fast/v2/core"
 )
 
-// New 创建Dux实例
+// New 创建Dux
 // New create Dux instance
 func New(context ...context.Context) *core.App {
 	core := core.New(context...)
