@@ -14,6 +14,12 @@ import (
 	"github.com/samber/lo"
 )
 
+type WebConfig struct {
+	Domain string
+	Host   string
+	Port   string
+}
+
 var (
 	// Router is the Chi router instance used by the Huma adapter
 	Router       *echo.Echo
@@ -39,6 +45,8 @@ var (
 		"./config",
 		"./data/logs",
 	}
+
+	Web WebConfig
 
 	Service *service.Service
 

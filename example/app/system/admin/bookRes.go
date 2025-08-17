@@ -18,7 +18,7 @@ type QueryParams struct {
 // Info 输出信息结构
 type Info struct {
 	Id      uint   `json:"id" doc:"记录ID"`
-	Name    string `json:"name" doc:"名称"`
+	Name    string `json:"name" doc:"名称" required:"true" message:"必填名称"`
 	Content string `json:"content" doc:"内容"`
 }
 
@@ -40,7 +40,7 @@ func BookRes() {
 	res := action.New[models.Book, Info, QueryParams, Data, BookMeta, resp.EmptyMeta]()
 
 	// 设置路由配置 - 可以在最开始就设置
-	res.SetRoute("admin", "system.book", "/books")
+	res.SetRoute("admin", "system.book", "/books", "书籍")
 
 	// 定义模型
 	res.SetModel(models.Book{})
@@ -82,7 +82,6 @@ func BookRes() {
 			Content: data.Content,
 		}, nil
 	})
-	fmt.Println("xxx")
-	// 最后执行注册 - 一行搞定！
-	res.Register()
+
+	res.Route()
 }

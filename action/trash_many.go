@@ -8,7 +8,7 @@ import (
 
 // TrashMany 批量彻底删除记录方法
 func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) TrashMany(ctx context.Context, input *TrashManyInput) (*resp.HumaResponse[any, resp.EmptyMeta], error) {
-	for _, id := range input.IDs {
+	for _, id := range input.Body {
 		if id == "" {
 			continue
 		}

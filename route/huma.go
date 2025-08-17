@@ -2,18 +2,18 @@ package route
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humaecho"
 	"github.com/duxweb/go-fast/v2/global"
 	"github.com/duxweb/go-fast/v2/views"
-	"github.com/labstack/echo/v4"
 )
 
-// CustomError 自定义错误结构，实现 huma.StatusError 接口
-// CustomError implements huma.StatusError interface for unified response format
-type CustomError struct {
+// CommonError 通用错误结构，实现 huma.StatusError 接口
+// CommonError implements huma.StatusError interface for unified response format
+type CommonError struct {
 	status  int
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -23,13 +23,13 @@ type CustomError struct {
 
 // Error 返回错误消息
 // Error returns the error message
-func (e *CustomError) Error() string {
+func (e *CommonError) Error() string {
 	return e.Message
 }
 
 // GetStatus 返回 HTTP 状态码
 // GetStatus returns the HTTP status code
-func (e *CustomError) GetStatus() int {
+func (e *CommonError) GetStatus() int {
 	return e.status
 }
 
@@ -51,7 +51,7 @@ func NewHuma(name string, prefix string) huma.API {
 			data = errorDetails
 		}
 
-		return &CustomError{
+		return &CommonError{
 			status:  status,
 			Code:    status,
 			Message: message,
@@ -64,29 +64,7 @@ func NewHuma(name string, prefix string) huma.API {
 
 	config.OpenAPIPath = prefix + "/openapi"
 	config.SchemasPath = prefix + "/schemas"
-
-	// 配置文档模板
-	global.Router.GET(prefix+"/docs", func(c echo.Context) error {
-		return c.HTML(http.StatusOK, `<!doctype html>
-			<html>
-				<head>
-					<title>Scalar API Reference</title>
-					<meta charset="utf-8" />
-					<meta
-						name="viewport"
-						content="width=device-width, initial-scale=1" />
-				</head>
-
-				<body>
-					<script
-					id="api-reference"
-					data-url="`+prefix+`/openapi.json"></script>
-
-					<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
-
-				</body>
-			</html>`)
-	})
+	config.DocsPath = prefix + "/docs"
 
 	// 配置安全方案
 	// Configure security schemes
@@ -95,13 +73,50 @@ func NewHuma(name string, prefix string) huma.API {
 			Type:         "http",
 			Scheme:       "bearer",
 			BearerFormat: "JWT",
+			Description:  "JWT 认证，格式：Bearer {token}",
+		},
+		"apiSignature": {
+			Type:        "apiKey",
+			In:          "header",
+			Name:        "Content-MD5",
+			Description: "API 签名认证。需要在请求头中包含：AccessKey（访问密钥ID）、Content-Date（Unix时间戳）、Content-MD5（签名）。签名算法：SHA256_HMAC(path + '\\n' + queryString + '\\n' + timestamp, appSecret)。时间戳有效期：10秒",
+			Extensions: map[string]any{
+				"x-signature-headers": []string{
+					"AccessKey",
+					"Content-Date",
+					"Content-MD5",
+				},
+				"x-signature-algorithm": "SHA256_HMAC",
+				"x-signature-example": map[string]any{
+					"accessKey":   "app_123456",
+					"appSecret":   "your_app_secret",
+					"timestamp":   "1704067200",
+					"path":        "/api/v1/users",
+					"queryString": "page=1&limit=10",
+					"signData":    "path + '\\n' + queryString + '\\n' + timestamp",
+					"signature":   "SHA256_HMAC(signData, appSecret) -> hex",
+				},
+				"x-signature-timeout": "10 seconds",
+			},
 		},
 	}
 
+	// 设置全局安全要求 - 所有接口默认需要 bearer token
+	// Set global security requirements - all endpoints require bearer token by default
+	config.Security = []map[string][]string{
+		{"bearer": {}},
+	}
+
+	// 配置服务器
+	// Configure servers
 	config.Servers = []*huma.Server{
 		{
-			URL:         "http://localhost:8900",
-			Description: name + " API Server",
+			URL:         fmt.Sprintf("http://%s:%s", global.Web.Host, global.Web.Port),
+			Description: "Local server",
+		},
+		{
+			URL:         global.Web.Domain,
+			Description: "Domain server",
 		},
 	}
 
@@ -153,42 +168,42 @@ func NewHuma(name string, prefix string) huma.API {
 // Get registers a GET operation.
 func Get[I any, O any](s *RouterData, path string, name string, options huma.Operation, handler func(context.Context, *I) (*O, error)) *RouterItem {
 	options.Method = "GET"
-	return Add[I, O](s, http.MethodGet, path, name, options, handler)
+	return Add(s, http.MethodGet, path, name, options, handler)
 }
 
 // Post 注册一个 POST 操作
 // Post registers a POST operation.
 func Post[I any, O any](s *RouterData, path string, name string, options huma.Operation, handler func(context.Context, *I) (*O, error)) *RouterItem {
 	options.Method = "POST"
-	return Add[I, O](s, http.MethodPost, path, name, options, handler)
+	return Add(s, http.MethodPost, path, name, options, handler)
 }
 
 // Put 注册一个 PUT 操作
 // Put registers a PUT operation.
 func Put[I any, O any](s *RouterData, path string, name string, options huma.Operation, handler func(context.Context, *I) (*O, error)) *RouterItem {
 	options.Method = "PUT"
-	return Add[I, O](s, http.MethodPut, path, name, options, handler)
+	return Add(s, http.MethodPut, path, name, options, handler)
 }
 
 // Delete 注册一个 DELETE 操作
 // Delete registers a DELETE operation.
 func Delete[I any, O any](s *RouterData, path string, name string, options huma.Operation, handler func(context.Context, *I) (*O, error)) *RouterItem {
 	options.Method = "DELETE"
-	return Add[I, O](s, http.MethodDelete, path, name, options, handler)
+	return Add(s, http.MethodDelete, path, name, options, handler)
 }
 
 // Head 注册一个 HEAD 操作
 // Head registers an HEAD operation.
 func Head[I any, O any](s *RouterData, path string, name string, options huma.Operation, handler func(context.Context, *I) (*O, error)) *RouterItem {
 	options.Method = "HEAD"
-	return Add[I, O](s, http.MethodOptions, path, name, options, handler)
+	return Add(s, http.MethodOptions, path, name, options, handler)
 }
 
 // Patch 注册一个 PATCH 操作
 // Patch registers a PATCH operation.
 func Patch[I any, O any](s *RouterData, path string, name string, options huma.Operation, handler func(context.Context, *I) (*O, error)) *RouterItem {
 	options.Method = "PATCH"
-	return Add[I, O](s, http.MethodPatch, path, name, options, handler)
+	return Add(s, http.MethodPatch, path, name, options, handler)
 }
 
 // Add 使用 Huma 注册一个路由操作
@@ -198,8 +213,60 @@ func Patch[I any, O any](s *RouterData, path string, name string, options huma.O
 func Add[I any, O any](s *RouterData, method string, path string, name string, options huma.Operation, handler func(context.Context, *I) (*O, error)) *RouterItem {
 	fullName := s.Name + "." + name
 	options.OperationID = fullName
-	options.Path = joinPath(s.Prefix, path)
+	options.Path = path
 	options.Method = method
+
+	// 添加默认的错误响应（如果没有定义）
+	// Add default error responses if not defined
+	if options.Responses == nil {
+		options.Responses = map[string]*huma.Response{}
+	}
+
+	// 定义错误响应 schema
+	errorSchema := &huma.Schema{
+		Type: "object",
+		Properties: map[string]*huma.Schema{
+			"code": {
+				Type:  "integer",
+				Title: "状态码",
+			},
+			"message": {
+				Type:  "string",
+				Title: "错误消息",
+			},
+			"data": {
+				Title: "错误数据",
+			},
+			"meta": {
+				Type:  "object",
+				Title: "元数据",
+			},
+		},
+		Required: []string{"code", "message", "data", "meta"},
+	}
+
+	// 添加常见的错误状态码响应
+	errorStatuses := map[string]string{
+		"400": "请求参数错误",
+		"401": "未授权",
+		"403": "禁止访问",
+		"404": "资源不存在",
+		"422": "参数验证失败",
+		"500": "服务器内部错误",
+	}
+
+	for statusCode, description := range errorStatuses {
+		if _, exists := options.Responses[statusCode]; !exists {
+			options.Responses[statusCode] = &huma.Response{
+				Description: description,
+				Content: map[string]*huma.MediaType{
+					"application/json": {
+						Schema: errorSchema,
+					},
+				},
+			}
+		}
+	}
 
 	// 使用路由组自己的 Huma 实例而不是全局实例
 	// Use route group's own Huma instance instead of global one

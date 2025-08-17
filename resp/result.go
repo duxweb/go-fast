@@ -1,26 +1,29 @@
 package resp
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/duxweb/go-fast/v2/i18n"
-	"github.com/labstack/echo/v4"
+	"github.com/duxweb/go-fast/v2/views"
 )
 
 // EmptyMeta 空元数据
 type EmptyMeta struct{}
 
-func RawRender(ctx echo.Context, app string, name string, bind any, code ...int) error {
-	statusCode := 200
-	if len(code) > 0 {
-		statusCode = code[0]
-	}
-	templateName := name
-	if app != "" {
-		templateName = app + ":" + name
+// Render 使用 views 系统渲染模板并返回 HTML 响应
+func Render(ctx context.Context, templateName string, data any) (*views.HTMLOutput, error) {
+	var buf bytes.Buffer
+
+	// 使用现有的 View.Render 方法
+	err := views.View.Render(&buf, templateName, data, ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	return ctx.Render(statusCode, templateName, bind)
+	return views.NewHTMLResponse(buf.String()), nil
 }
 
 type Data[T, M any] struct {
@@ -31,7 +34,7 @@ type Data[T, M any] struct {
 	Meta        M      `json:"meta"`
 }
 
-func RawSend(ctx echo.Context, data Data[any, any], code ...int) error {
+func RawSend(ctx huma.Context, data Data[any, any], code ...int) error {
 	statusCode := 200
 	if len(code) > 0 {
 		statusCode = code[0]
@@ -40,15 +43,24 @@ func RawSend(ctx echo.Context, data Data[any, any], code ...int) error {
 		data.Message = "ok"
 	}
 	if data.MessageLang != "" {
-		data.Message = i18n.T(ctx.Request().Context(), data.MessageLang)
+		data.Message = i18n.T(ctx.Context(), data.MessageLang)
 	}
 	if data.Meta == nil {
-		data.Meta = echo.Map{}
+		data.Meta = map[string]any{}
 	}
 	if data.Code == 0 {
 		data.Code = statusCode
 	}
-	return ctx.JSON(statusCode, data)
+
+	// 直接使用 huma.Context 输出
+	ctx.SetStatus(statusCode)
+	ctx.SetHeader("Content-Type", "application/json")
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	_, err = ctx.BodyWriter().Write(jsonData)
+	return err
 }
 
 // HumaResponse Huma API 统一响应格式

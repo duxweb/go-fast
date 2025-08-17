@@ -1,9 +1,6 @@
 package route
 
 import (
-	pathutil "path"
-	"strings"
-
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -47,9 +44,14 @@ func New(name string, prefix string, middle ...RouterMiddle) *RouterData {
 
 // Group 基于父分组创建子分组，使用 Huma 分组功能
 // Group creates a subgroup using Huma's grouping functionality.
-func Group(s *RouterData, prefix string, name string, middle ...RouterMiddle) *RouterData {
+func Group(s *RouterData, prefix string, name string, label string, middle ...RouterMiddle) *RouterData {
 	// 使用 Huma 分组，自动继承父级中间件
 	humGrp := huma.NewGroup(s.HumaRouter, prefix)
+
+	humGrp.UseModifier(func(op *huma.Operation, next func(*huma.Operation)) {
+		op.Tags = []string{label}
+		next(op)
+	})
 
 	// 应用 Huma 中间件
 	for _, middleware := range middle {
@@ -63,23 +65,6 @@ func Group(s *RouterData, prefix string, name string, middle ...RouterMiddle) *R
 	}
 	s.Groups = append(s.Groups, group)
 	return group
-}
-
-// joinPath 安全拼接分组前缀与本地路径
-// joinPath safely concatenates group prefixes and local paths.
-func joinPath(prefix, path string) string {
-	if prefix == "" {
-		if path == "" {
-			return "/"
-		}
-		if strings.HasPrefix(path, "/") {
-			return path
-		}
-		return "/" + path
-	}
-	// 确保单一前导斜杠，避免出现双分隔符
-	// Ensure single leading slash, prevent double separators
-	return pathutil.Clean("/" + strings.TrimSuffix(prefix, "/") + "/" + strings.TrimPrefix(path, "/"))
 }
 
 func (t *RouterData) ParseTree(prefix string) map[string]any {

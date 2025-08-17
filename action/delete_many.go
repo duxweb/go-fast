@@ -8,7 +8,7 @@ import (
 
 // DeleteMany 批量删除记录方法
 func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) DeleteMany(ctx context.Context, input *DeleteManyInput) (*resp.HumaResponse[any, resp.EmptyMeta], error) {
-	for _, id := range input.IDs {
+	for _, id := range input.Body {
 		if id == "" {
 			continue
 		}

@@ -33,6 +33,7 @@ type Resources[Model any, Info any, Params any, Data any, ListMeta any, DetailMe
 	routeAppName string
 	routeResName string
 	routePath    string
+	routeLabel   string
 
 	// 存储各种回调函数，使用具体类型
 	model        any
@@ -99,6 +100,11 @@ type ShowInput struct {
 	ID string `path:"id" required:"true" doc:"记录ID"`
 }
 
+// CreateInput  创建操作输入
+type CreateInput[Data any] struct {
+	Body Data `json:",inline"`
+}
+
 // EditInput 编辑操作输入
 type EditInput[Data any] struct {
 	ID   string `path:"id" required:"true" doc:"记录ID"`
@@ -112,12 +118,12 @@ type DeleteInput struct {
 
 // DeleteManyInput 批量删除输入
 type DeleteManyInput struct {
-	IDs []string `json:"ids" required:"true" doc:"记录ID列表"`
+	Body []string `json:"ids" required:"true" doc:"记录ID列表"`
 }
 
 // TrashManyInput 批量彻底删除输入
 type TrashManyInput struct {
-	IDs []string `json:"ids" required:"true" doc:"记录ID列表"`
+	Body []string `json:"ids" required:"true" doc:"记录ID列表"`
 }
 
 // RestoreManyInput 批量恢复输入
@@ -258,14 +264,15 @@ func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Result() 
 }
 
 // SetRoute 设置路由注册配置
-func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) SetRoute(appName, resName, routePath string) *Resources[Model, Info, Params, Data, ListMeta, DetailMeta] {
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) SetRoute(appName, resName, routePath, label string) *Resources[Model, Info, Params, Data, ListMeta, DetailMeta] {
 	res.routeAppName = appName
 	res.routeResName = resName
 	res.routePath = routePath
+	res.routeLabel = label
 	return res
 }
 
 // Register 执行路由注册
-func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Register() {
-	res.RegisterRoutes(res.routeAppName, res.routeResName, res.routePath)
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Route() {
+	res.Register(res.routeAppName, res.routeResName, res.routePath)
 }

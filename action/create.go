@@ -10,7 +10,7 @@ import (
 )
 
 // Create 创建记录方法
-func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Create(ctx context.Context, input *Data) (*resp.HumaResponse[any, resp.EmptyMeta], error) {
+func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Create(ctx context.Context, input *CreateInput[Data]) (*resp.HumaResponse[any, resp.EmptyMeta], error) {
 	// 获取模型实例
 	var model Model
 	if res.model != nil {
@@ -25,7 +25,7 @@ func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Create(ct
 	// 应用格式化函数
 	if res.formatFun != nil {
 		formatFn := res.formatFun.(func(*Model, *Data, context.Context) (*Model, error))
-		formattedModel, err := formatFn(&model, input, ctx)
+		formattedModel, err := formatFn(&model, &input.Body, ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -42,7 +42,7 @@ func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Create(ct
 	// 创建前回调
 	if res.createBeforeFun != nil {
 		createBeforeFn := res.createBeforeFun.(func(context.Context, *Model, *Data) error)
-		err := createBeforeFn(c, &model, input)
+		err := createBeforeFn(c, &model, &input.Body)
 		if err != nil {
 			tx.Rollback()
 			return nil, err
@@ -58,7 +58,7 @@ func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Create(ct
 	// 创建后回调
 	if res.createAfterFun != nil {
 		createAfterFn := res.createAfterFun.(func(context.Context, *Model, *Data) error)
-		err := createAfterFn(c, &model, input)
+		err := createAfterFn(c, &model, &input.Body)
 		if err != nil {
 			tx.Rollback()
 			return nil, err

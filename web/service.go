@@ -11,10 +11,10 @@ import (
 
 func Service() *service.Config {
 	return &service.Config{
-		Name: "web",
-		Init: Init,
-		Register: Boot,
-		Cmd:  Command,
+		Name:     "web",
+		Init:     Init,
+		Register: Register,
+		Cmd:      Command,
 	}
 }
 
