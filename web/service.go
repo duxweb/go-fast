@@ -13,7 +13,7 @@ func Service() *service.Config {
 	return &service.Config{
 		Name: "web",
 		Init: Init,
-		Boot: Boot,
+		Register: Boot,
 		Cmd:  Command,
 	}
 }
@@ -25,7 +25,7 @@ func Command() []*cli.Command {
 		Usage:    "starting the web service",
 		Action: func(context.Context, *cli.Command) error {
 			// 启动服务
-			global.Service.Boot()
+			global.Service.Register()
 			// 执行启动钩子
 			hook.RunBoot()
 			// 启动 Web 服务

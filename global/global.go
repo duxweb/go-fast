@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 var (
 	// Router is the Chi router instance used by the Huma adapter
 	Router       *echo.Echo
-	HTTP         *http.Server
 	Name         = "go-fast"
 	Version      = "v2.0.0-alpha"
 	BootTime     time.Time

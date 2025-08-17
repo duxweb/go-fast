@@ -21,6 +21,7 @@ func Register() {
 			if item.Name != "Resource" {
 				continue
 			}
+
 			// 直接运行函数，不管返回值
 			if resFunc, ok := item.Func.(func()); ok {
 				resFunc()

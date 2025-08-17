@@ -267,7 +267,5 @@ func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) SetRoute(
 
 // Register 执行路由注册
 func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) Register() {
-	if res.routeAppName != "" && res.routeResName != "" && res.routePath != "" {
-		res.RegisterRoutes(res.routeAppName, res.routeResName, res.routePath)
-	}
+	res.RegisterRoutes(res.routeAppName, res.routeResName, res.routePath)
 }

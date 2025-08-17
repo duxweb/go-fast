@@ -16,7 +16,7 @@ func Service() *service.Config {
 		Init: func() error {
 			return nil
 		},
-		Boot: func() error {
+		Register: func() error {
 			for _, name := range Indexes {
 				appConfig := Apps[name]
 				if appConfig.Init != nil {

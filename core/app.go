@@ -20,6 +20,7 @@ import (
 	"github.com/duxweb/go-fast/v2/lock"
 	"github.com/duxweb/go-fast/v2/permission"
 	"github.com/duxweb/go-fast/v2/queue"
+	"github.com/duxweb/go-fast/v2/resources"
 	"github.com/duxweb/go-fast/v2/route"
 	"github.com/duxweb/go-fast/v2/service"
 	"github.com/duxweb/go-fast/v2/views"
@@ -125,6 +126,7 @@ func (t *App) Run() {
 	t.RegisterService(CoreService)
 	t.RegisterService(config.Service)
 	t.RegisterService(app.Service)
+	t.RegisterService(resources.Service)
 	t.RegisterService(web.Service)
 	t.RegisterService(route.Service)
 	t.RegisterService(database.Service)

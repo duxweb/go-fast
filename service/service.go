@@ -47,14 +47,14 @@ func (s *Service) Init() {
 	}
 }
 
-// Boot 启动服务，非启动服务可不实现
-// Boot start service, non-startup service can be implemented
-func (s *Service) Boot() {
+// Register 注册服务，再初始化之后运行
+// Register start service, non-startup service can be implemented
+func (s *Service) Register() {
 	var err error
 	for _, name := range Indexes {
 		t := Services[name]
-		if t.Boot != nil {
-			err = t.Boot()
+		if t.Register != nil {
+			err = t.Register()
 			if err != nil {
 				continue
 			}

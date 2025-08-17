@@ -1,6 +1,8 @@
 package action
 
 import (
+	"fmt"
+
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/duxweb/go-fast/v2/route"
 )
@@ -9,6 +11,7 @@ import (
 func (res *Resources[Model, Info, Params, Data, ListMeta, DetailMeta]) RegisterRoutes(appName, resName, routePath string) {
 	// 获取路由组
 	routeData := route.GetRouter(appName)
+	fmt.Println("xx", routeData)
 	if routeData == nil {
 		return // 如果没有找到路由组，直接返回
 	}

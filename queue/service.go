@@ -9,9 +9,9 @@ import (
 
 func Service() *service.Config {
 	return &service.Config{
-		Name: "queue",
-		Init: Init,
-		Boot: Boot,
+		Name:     "queue",
+		Init:     Init,
+		Register: Register,
 	}
 }
 
@@ -35,6 +35,6 @@ func Init() error {
 	return nil
 }
 
-func Boot() error {
+func Register() error {
 	return Queue().Start()
 }

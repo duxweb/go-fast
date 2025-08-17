@@ -33,7 +33,7 @@ func Command() []*cli.Command {
 		Usage:    "View all event listeners",
 		Action: func(context.Context, *cli.Command) error {
 			// 启动服务
-			global.Service.Boot()
+			global.Service.Register()
 			// 执行启动钩子
 			hook.RunBoot()
 

@@ -8,6 +8,7 @@ import (
 	"github.com/danielgtaylor/huma/v2/adapters/humaecho"
 	"github.com/duxweb/go-fast/v2/global"
 	"github.com/duxweb/go-fast/v2/views"
+	"github.com/labstack/echo/v4"
 )
 
 // CustomError 自定义错误结构，实现 huma.StatusError 接口
@@ -35,9 +36,6 @@ func (e *CustomError) GetStatus() int {
 // NewHuma 创建 Huma API 实例，配置统一的响应格式和安全方案
 // NewHuma creates a Huma API instance with unified response format and security schemes
 func NewHuma(name string, prefix string) huma.API {
-	if global.Router == nil {
-		return nil
-	}
 
 	// 覆盖默认的 huma.NewError 函数，使用我们的自定义错误格式
 	// Override default huma.NewError function to use our custom error format
@@ -64,7 +62,31 @@ func NewHuma(name string, prefix string) huma.API {
 
 	config := huma.DefaultConfig(name+" API", global.Version)
 
-	config.DocsPath = prefix + "/docs"
+	config.OpenAPIPath = prefix + "/openapi"
+	config.SchemasPath = prefix + "/schemas"
+
+	// 配置文档模板
+	global.Router.GET(prefix+"/docs", func(c echo.Context) error {
+		return c.HTML(http.StatusOK, `<!doctype html>
+			<html>
+				<head>
+					<title>Scalar API Reference</title>
+					<meta charset="utf-8" />
+					<meta
+						name="viewport"
+						content="width=device-width, initial-scale=1" />
+				</head>
+
+				<body>
+					<script
+					id="api-reference"
+					data-url="`+prefix+`/openapi.json"></script>
+
+					<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+
+				</body>
+			</html>`)
+	})
 
 	// 配置安全方案
 	// Configure security schemes
@@ -78,7 +100,7 @@ func NewHuma(name string, prefix string) huma.API {
 
 	config.Servers = []*huma.Server{
 		{
-			URL:         prefix,
+			URL:         "http://localhost:8900",
 			Description: name + " API Server",
 		},
 	}

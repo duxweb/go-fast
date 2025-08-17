@@ -82,7 +82,7 @@ func BookRes() {
 			Content: data.Content,
 		}, nil
 	})
-
+	fmt.Println("xxx")
 	// 最后执行注册 - 一行搞定！
 	res.Register()
 }
