@@ -1,0 +1,70 @@
+# Huma validator messages
+[validator.required]
+other = "{{.Field}} is required"
+
+[validator.minLength]
+other = "{{.Field}} must be at least {{.Min}} characters"
+
+[validator.maxLength] 
+other = "{{.Field}} must be at most {{.Max}} characters"
+
+[validator.minimum]
+other = "{{.Field}} must be at least {{.Min}}"
+
+[validator.maximum]
+other = "{{.Field}} must be at most {{.Max}}"
+
+[validator.exclusiveMinimum]
+other = "{{.Field}} must be greater than {{.Min}}"
+
+[validator.exclusiveMaximum]
+other = "{{.Field}} must be less than {{.Max}}"
+
+[validator.multipleOf]
+other = "{{.Field}} must be a multiple of {{.Multiple}}"
+
+[validator.pattern]
+other = "{{.Field}} does not match the required pattern"
+
+# Format validation messages
+[validator.format.email]
+other = "{{.Field}} must be a valid email address"
+
+[validator.format.uri]
+other = "{{.Field}} must be a valid URI"
+
+[validator.format.url]
+other = "{{.Field}} must be a valid URL"
+
+[validator.format.uuid]
+other = "{{.Field}} must be a valid UUID"
+
+[validator.format.date]
+other = "{{.Field}} must be a valid date (YYYY-MM-DD)"
+
+[validator.format.date-time]
+other = "{{.Field}} must be a valid date-time"
+
+[validator.format.time]
+other = "{{.Field}} must be a valid time (HH:MM:SS)"
+
+[validator.format.ipv4]
+other = "{{.Field}} must be a valid IPv4 address"
+
+[validator.format.ipv6]
+other = "{{.Field}} must be a valid IPv6 address"
+
+[validator.format.hostname]
+other = "{{.Field}} must be a valid hostname"
+
+[validator.enum]
+other = "{{.Field}} must be one of: {{.Values}}"
+
+[validator.minItems]
+other = "{{.Field}} must have at least {{.Min}} items"
+
+[validator.maxItems]
+other = "{{.Field}} must have at most {{.Max}} items"
+
+[validator.uniqueItems]
+other = "{{.Field}} must have unique items"

@@ -1,0 +1,70 @@
+# Huma 验证器消息
+[validator.required]
+other = "{{.Field}}不能为空"
+
+[validator.minLength]
+other = "{{.Field}}长度不能少于{{.Min}}个字符"
+
+[validator.maxLength] 
+other = "{{.Field}}长度不能超过{{.Max}}个字符"
+
+[validator.minimum]
+other = "{{.Field}}不能小于{{.Min}}"
+
+[validator.maximum]
+other = "{{.Field}}不能大于{{.Max}}"
+
+[validator.exclusiveMinimum]
+other = "{{.Field}}必须大于{{.Min}}"
+
+[validator.exclusiveMaximum]
+other = "{{.Field}}必须小于{{.Max}}"
+
+[validator.multipleOf]
+other = "{{.Field}}必须是{{.Multiple}}的倍数"
+
+[validator.pattern]
+other = "{{.Field}}格式不正确"
+
+# Format 验证消息
+[validator.format.email]
+other = "{{.Field}}必须是有效的邮箱地址"
+
+[validator.format.uri]
+other = "{{.Field}}必须是有效的URI"
+
+[validator.format.url]
+other = "{{.Field}}必须是有效的URL"
+
+[validator.format.uuid]
+other = "{{.Field}}必须是有效的UUID"
+
+[validator.format.date]
+other = "{{.Field}}必须是有效的日期格式(YYYY-MM-DD)"
+
+[validator.format.date-time]
+other = "{{.Field}}必须是有效的日期时间格式"
+
+[validator.format.time]
+other = "{{.Field}}必须是有效的时间格式(HH:MM:SS)"
+
+[validator.format.ipv4]
+other = "{{.Field}}必须是有效的IPv4地址"
+
+[validator.format.ipv6]
+other = "{{.Field}}必须是有效的IPv6地址"
+
+[validator.format.hostname]
+other = "{{.Field}}必须是有效的主机名"
+
+[validator.enum]
+other = "{{.Field}}必须是以下值之一: {{.Values}}"
+
+[validator.minItems]
+other = "{{.Field}}至少需要{{.Min}}个元素"
+
+[validator.maxItems]
+other = "{{.Field}}最多只能有{{.Max}}个元素"
+
+[validator.uniqueItems]
+other = "{{.Field}}的元素必须是唯一的"
